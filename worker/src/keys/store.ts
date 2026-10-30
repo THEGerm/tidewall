@@ -1,7 +1,7 @@
 // Provider keys per participant. Reads return status only (saved, last 4
 // characters, date); the plaintext never goes back to a browser.
 
-import { encrypt } from "./crypto";
+import { decrypt, encrypt } from "./crypto";
 
 export const PROVIDERS = ["anthropic", "google", "openai"] as const;
 export type Provider = (typeof PROVIDERS)[number];
@@ -35,4 +35,13 @@ export async function saveKey(db: D1Database, secret: string, email: string, pro
 
 export async function deleteKey(db: D1Database, email: string, provider: Provider) {
   await db.prepare("DELETE FROM provider_keys WHERE email = ? AND provider = ?").bind(email, provider).run();
+}
+
+// Only the Worker calls this, to use or check a key; nothing returns it to a browser.
+export async function readKey(db: D1Database, secret: string, email: string, provider: Provider) {
+  const row = await db
+    .prepare("SELECT ciphertext, iv FROM provider_keys WHERE email = ? AND provider = ?")
+    .bind(email, provider)
+    .first<{ ciphertext: string; iv: string }>();
+  return row ? decrypt(secret, row.ciphertext, row.iv) : null;
 }

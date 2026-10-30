@@ -2,7 +2,8 @@
 
 import type { Env } from "../index";
 import { accessEmail } from "../access";
-import { deleteKey, isProvider, keyStatus, saveKey } from "../keys/store";
+import { deleteKey, isProvider, keyStatus, readKey, saveKey } from "../keys/store";
+import { checkKey } from "../providers/check";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
@@ -23,6 +24,14 @@ export async function handleMe(request: Request, env: Env, url: URL): Promise<Re
 
   if (url.pathname === "/api/me" || url.pathname === "/api/me/") {
     return json({ ok: true, email, ...participant, keys: await keyStatus(env.DB, email) });
+  }
+
+  const test = url.pathname.match(/^\/api\/me\/keys\/([a-z]+)\/test$/);
+  if (test && isProvider(test[1])) {
+    if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
+    const key = await readKey(env.DB, env.KEY_ENC_SECRET, email, test[1]);
+    if (!key) return json({ ok: false, error: "no key saved" }, 404);
+    return json({ ok: true, check: await checkKey(test[1], key) });
   }
 
   const match = url.pathname.match(/^\/api\/me\/keys\/([a-z]+)$/);
