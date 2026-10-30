@@ -1,0 +1,27 @@
+# Secrets: never commit
+.dev.vars
+.env
+*.env
+*.key
+secrets/
+
+# Node and Wrangler
+node_modules/
+.wrangler/
+dist/
+
+# Python
+__pycache__/
+.venv/
+.ipynb_checkpoints/
+
+# LaTeX build files
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.pdf
+
+# OS
+.DS_Store
