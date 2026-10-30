@@ -5,6 +5,7 @@ import { accessEmail } from "../access";
 import { deleteKey, isProvider, keyStatus, readKey, saveKey } from "../keys/store";
 import { checkKey } from "../providers/check";
 import { handleControl } from "./control";
+import { fullLedger } from "../ledger/ledger";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
@@ -25,6 +26,11 @@ export async function handleMe(request: Request, env: Env, url: URL): Promise<Re
 
   if (url.pathname === "/api/me" || url.pathname === "/api/me/") {
     return json({ ok: true, email, ...participant, keys: await keyStatus(env.DB, email) });
+  }
+
+  if (url.pathname === "/api/me/ledger" && request.method === "GET") {
+    const cap = await env.DB.prepare("SELECT value FROM meta WHERE key = 'cap_usd'").first<{ value: string }>();
+    return json({ ok: true, cap_usd: Number(cap?.value ?? 0), ...(await fullLedger(env.DB)) });
   }
 
   if (url.pathname.startsWith("/api/me/control/")) {

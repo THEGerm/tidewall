@@ -1,6 +1,7 @@
-// The run page (docs/dashboard.md, page 2, step D2). Reads /api/runs/:id for
-// the charts and /api/runs/:id/days/:day for the day shown. The map here is
-// the plain one; the risograph map (D2b) replaces it later.
+// The run page (docs/dashboard.md, page 2, steps D2 and D2b). Reads
+// /api/runs/:id for the charts and /api/runs/:id/days/:day for the day shown.
+// The risograph print (map.js) sits on top; the plain tiles below it carry
+// the same facts as text.
 
 const DISTRICTS = ["Port", "Hightown", "Old Quarter", "Lowtown", "Market", "Seawall"];
 const TURF = { Port: "Families", Hightown: "Families", "Old Quarter": "Families", Lowtown: "Saltdogs", Market: "Saltdogs", Seawall: "Saltdogs" };
@@ -107,6 +108,7 @@ async function load() {
   });
   renderTurf();
   renderGauges();
+  renderPaid();
   let resizing;
   addEventListener("resize", () => { clearTimeout(resizing); resizing = setTimeout(renderScores, 150); });
   await show(day);
@@ -148,7 +150,21 @@ async function show(n) {
   renderSecrets(v);
 }
 
+let print = null;
+function renderPrint(v) {
+  if (!window.TidewallMap) return; // the plain tiles still carry every fact
+  if (!print) {
+    print = TidewallMap.mount($("print"), {
+      seed: id,
+      onDistrict: (d) => document.querySelector(`.tile[data-district="${d}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+    });
+  }
+  const d = summary.days[v.day - 1];
+  print.update({ day: v.day, open: v.open, nature: v.nature, events: v.events, turf: d.turf, prison: d.prison, treasury: d.treasury, live: v.run.live });
+}
+
 function renderMap(v) {
+  renderPrint(v);
   const open = new Set(v.open);
   const byDistrict = Object.fromEntries(DISTRICTS.map((d) => [d, []]));
   const citywide = [];
@@ -181,7 +197,10 @@ function renderWire(v) {
       h("p", {}, w.text),
       h("p", { class: "cites" }, "Reports: ", w.events.map((x) => (byId[x] ? describe(byId[x]) : x)).join("; ")),
     );
-    const mark = (on) => document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("lit", on && districts.includes(t.dataset.district)));
+    const mark = (on) => {
+      document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("lit", on && districts.includes(t.dataset.district)));
+      print?.highlight(on ? districts : []);
+    };
     li.addEventListener("mouseenter", () => mark(true));
     li.addEventListener("mouseleave", () => mark(false));
     li.addEventListener("focus", () => mark(true));
@@ -300,6 +319,27 @@ function renderSecrets(v) {
     block("Private messages", (v.messages || []).map((m) => h("li", {}, h("strong", {}, `${m.from} to ${m.to}: `), m.text))),
     block("Diaries", (v.diaries || []).filter((x) => x.text).map((x) => h("li", {}, h("strong", {}, `${x.player}: `), x.text))),
   );
+}
+
+// Who paid: the run's ledger summed by payer and provider (step D3).
+async function renderPaid() {
+  const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI" };
+  let rows = [];
+  try { rows = (await getJSON(`/api/runs/${id}/ledger`)).ledger; } catch { return; }
+  const by = new Map();
+  for (const r of rows) {
+    const k = `${r.payer_name ?? "nobody"}|${r.provider}`;
+    const t = by.get(k) || { payer: r.payer_name ?? "nobody (no key)", provider: r.provider, calls: 0, fallback: 0, input: 0, cached: 0, output: 0, cost: 0 };
+    t.calls += r.calls; t.fallback += r.fallback_calls || 0;
+    t.input += r.input || 0; t.cached += r.cached_input || 0; t.output += r.output || 0; t.cost += r.cost_usd || 0;
+    by.set(k, t);
+  }
+  const m = (x) => (x / 1e6).toFixed(2);
+  const head = h("thead", {}, h("tr", {}, ["Payer", "Provider", "Calls", "Fallback", "Input", "Cached", "Output", "Cost"].map((x) => h("th", {}, x))));
+  const body = h("tbody", {}, by.size
+    ? [...by.values()].map((t) => h("tr", {}, [t.payer, PROVIDER[t.provider] || t.provider, t.calls, t.fallback || "", m(t.input), m(t.cached), m(t.output), `$${t.cost.toFixed(2)}`].map((x) => h("td", {}, x))))
+    : h("tr", {}, h("td", { colspan: "8" }, "No model calls yet (bots cost nothing).")));
+  $("paid").replaceChildren(head, body);
 }
 
 load();

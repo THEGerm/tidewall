@@ -23,6 +23,8 @@
       <span id="daylabel" class="daylabel"></span>
     </nav>
 
+    <div id="print" class="print"></div>
+
     <div class="split">
       <section aria-labelledby="h-map">
         <h2 id="h-map">The city</h2>
@@ -58,6 +60,12 @@
       <div id="confidant" class="confidant"></div>
     </section>
 
+    <section aria-labelledby="h-paid">
+      <h2 id="h-paid">Who paid</h2>
+      <p class="muted">Participants pay for the model calls with their own keys, taking turns by day. Tokens in millions, for the whole run so far.</p>
+      <div class="table-wrap"><table class="num" id="paid"></table></div>
+    </section>
+
     <section id="after" aria-labelledby="h-after" hidden>
       <h2 id="h-after">Opened after the run</h2>
       <p class="muted">Secret moves, private messages and diaries. Hidden while the run was live.</p>
@@ -72,6 +80,7 @@
     <a href="https://github.com/THEGerm/tidewall/blob/main/docs/rules.md">The rules</a>
   </footer>
 
+  <script src="/run/map.js"></script>
   <script src="/run/run.js"></script>
 </body>
 </html>

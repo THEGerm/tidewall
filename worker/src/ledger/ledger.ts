@@ -42,3 +42,21 @@ export async function runLedger(db: D1Database, runId: string) {
     .all<Record<string, number | string | null>>();
   return results;
 }
+
+// The signed-in ledger page: every run by day, provider, model and payer
+// name, with failed and fallback-key calls counted, plus totals per payer
+// and per run. Payer emails stay in the table and never leave it.
+export async function fullLedger(db: D1Database) {
+  const sums = `COUNT(*) AS calls, SUM(1 - ok) AS failed, SUM(fallback_key) AS fallback_calls,
+    SUM(input) AS input, SUM(cached_input) AS cached_input, SUM(cache_write) AS cache_write,
+    SUM(output) AS output, SUM(cost_usd) AS cost_usd,
+    SUM(CASE WHEN cost_usd IS NULL AND input IS NOT NULL THEN 1 ELSE 0 END) AS unpriced`;
+  const q = async (sql: string) => (await db.prepare(sql).all<Record<string, number | string | null>>()).results;
+  const [rows, byPayer, byRun] = await Promise.all([
+    q(`SELECT run_id, day, provider, model, payer_name, ${sums} FROM ledger
+       GROUP BY run_id, day, provider, model, payer_name ORDER BY run_id, day, provider, payer_name`),
+    q(`SELECT payer_name, provider, ${sums} FROM ledger GROUP BY payer_name, provider ORDER BY payer_name, provider`),
+    q(`SELECT run_id, ${sums} FROM ledger GROUP BY run_id ORDER BY run_id`),
+  ]);
+  return { rows, byPayer, byRun, study: await studySpend(db) };
+}
