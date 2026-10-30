@@ -7,6 +7,12 @@
   --accent: #1f5f7a;
   --ok: #2e7d4f;
   --off: #b0a99a;
+  /* The four inks of the map (docs/dashboard.md), one per side, used everywhere */
+  --gov: #21327a;
+  --fam: #d9472e;
+  --salt: #18a09c;
+  --wire: #b8860b;
+  --conf: #c62828;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -18,6 +24,11 @@
     --accent: #6fb3cf;
     --ok: #5cc28a;
     --off: #5b6573;
+    --gov: #8fa0ea;
+    --fam: #f07a63;
+    --salt: #4cc7c2;
+    --wire: #f0b232;
+    --conf: #ff6b6b;
   }
 }
 :root[data-theme="dark"] {
@@ -29,6 +40,11 @@
   --accent: #6fb3cf;
   --ok: #5cc28a;
   --off: #5b6573;
+  --gov: #8fa0ea;
+  --fam: #f07a63;
+  --salt: #4cc7c2;
+  --wire: #f0b232;
+  --conf: #ff6b6b;
 }
 * { box-sizing: border-box; }
 body {
@@ -69,3 +85,69 @@ button { padding: 10px 16px; border: none; border-radius: 8px; background: var(-
 button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .msg { min-height: 1.5em; color: var(--muted); }
 .eyebrow a { color: inherit; }
+
+/* Run page and runs list (D1, D2) */
+body.wide { max-width: 1120px; }
+.runs td a { font-weight: 600; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.8rem; border: 1px solid var(--line); color: var(--muted); }
+.tag.live { color: var(--ok); border-color: var(--ok); }
+.daynav { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); }
+.daynav input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.daynav button { padding: 6px 14px; font-size: 1.2rem; line-height: 1; }
+.daynav button:disabled { opacity: 0.4; cursor: default; }
+.daylabel { font-weight: 600; white-space: nowrap; min-width: 6.5em; text-align: right; }
+.split { display: grid; gap: 0 24px; }
+@media (min-width: 700px) { .split { grid-template-columns: 3fr 2fr; } }
+.map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 420px) { .map { grid-template-columns: repeat(2, 1fr); } }
+.tile { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--fam); border-radius: 8px; padding: 8px 10px; min-height: 96px; transition: box-shadow 0.15s; }
+.tile.salt { border-top-color: var(--salt); }
+.tile header { display: flex; flex-direction: column; }
+.tile .owner { font-size: 0.78rem; color: var(--muted); }
+.tile.closed { background: repeating-linear-gradient(135deg, var(--surface) 0 8px, var(--bg) 8px 16px); }
+.tile.lit { box-shadow: 0 0 0 3px var(--wire); }
+.closedtag { margin: 4px 0 0; font-size: 0.8rem; font-weight: 600; color: var(--gov); }
+.quiet { margin: 6px 0 0; font-size: 0.8rem; color: var(--muted); }
+.badges { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.badge { font-size: 0.75rem; padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor; color: var(--muted); }
+.badge.gov { color: var(--gov); } .badge.fam { color: var(--fam); } .badge.salt { color: var(--salt); } .badge.wire { color: var(--wire); }
+.badge.secret { border-style: dashed; }
+.citywide { padding-left: 20px; color: var(--muted); font-size: 0.92rem; }
+.wire { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.wire li { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--wire); border-radius: 8px; padding: 10px 12px; }
+.wire li:focus { outline: 2px solid var(--wire); }
+.wire p { margin: 4px 0 0; }
+.wire .cites { font-size: 0.8rem; color: var(--muted); }
+.chart svg { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .axis { stroke: var(--muted); stroke-width: 1; }
+svg .now { stroke: var(--muted); stroke-dasharray: 2 3; }
+svg .tick { fill: var(--muted); font-size: 11px; }
+svg .label { font-size: 12px; font-weight: 600; }
+svg .line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+svg .line.gov { stroke: var(--gov); } svg .pt.gov, svg .label.gov { fill: var(--gov); }
+svg .line.fam { stroke: var(--fam); } svg .pt.fam, svg .label.fam { fill: var(--fam); }
+svg .line.salt { stroke: var(--salt); } svg .pt.salt, svg .label.salt { fill: var(--salt); }
+svg .line.wire { stroke: var(--wire); } svg .pt.wire { fill: var(--wire); }
+.today { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 0.85rem; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.chip.gov { color: var(--gov); } .chip.fam { color: var(--fam); } .chip.salt { color: var(--salt); }
+.turf { position: relative; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.turfrow { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.turfname { width: 5.5em; flex: none; font-size: 0.85rem; color: var(--muted); }
+.squares { display: flex; gap: 3px; }
+.sq { width: 20px; height: 20px; flex: none; border-radius: 3px; font-size: 0.7rem; font-weight: 700; display: grid; place-items: center; border: 1px solid currentColor; }
+.sq.fam { color: var(--fam); } .sq.salt { color: var(--salt); }
+.sq.encroach.fam { background: var(--fam); color: var(--surface); border-color: var(--fam); }
+.sq.encroach.salt { background: var(--salt); color: var(--surface); border-color: var(--salt); }
+.sq.on { outline: 2px solid var(--text); outline-offset: 1px; }
+.big { font-size: 1.4rem; font-weight: 600; margin: 0 0 4px; }
+.spark { width: 100%; max-width: 200px; height: 36px; }
+.confidential { display: inline-block; background: var(--conf); color: #fff; font-size: 0.8rem; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-right: 6px; }
+.confidant { display: grid; gap: 8px; }
+.confidant article { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--conf); border-radius: 8px; padding: 10px 12px; }
+.confidant p { margin: 2px 0; }
+.confidant .who { font-size: 0.82rem; color: var(--muted); }
+.confidant .sam { color: var(--muted); font-style: italic; }
+.block h3 { margin-top: 16px; }
+.block ul { padding-left: 20px; }

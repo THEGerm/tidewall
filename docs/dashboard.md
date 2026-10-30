@@ -16,11 +16,11 @@ Phone first, no frameworks, every page a static file that reads JSON from the Wo
 
 ## Pages
 
-### 1. Home `/` (built, to update)
+### 1. Home `/` (built, runs list added)
 
 Project summary, rotation table, and a **runs list**: each run's ID, seating, status, day, and a link. The current live run sits at the top.
 
-### 2. Run `/run/?id=t1-r2`
+### 2. Run `/run/?id=t1-r2` (built, plain map)
 
 The main page. One day at a time, with a day slider and back and forward buttons.
 
@@ -68,14 +68,16 @@ All reads are JSON from the Worker. Public endpoints return only what the public
 |---|---|---|
 | `GET /api/runs` | public | Runs list: id, seating, status, day, total cost |
 | `GET /api/runs/:id/ledger` | public | Tokens and cost per day, provider and payer name |
-| `GET /api/runs/:id` | public | Run summary and per-day scores |
+| `GET /api/runs/:id` | public | Run summary and one row per played day: scores, today's change, treasury, prison count, turf moves, Nature. The seed shows once the run ends |
 | `GET /api/runs/:id/days/:day` | public | That day's public events, Wire, scores, open districts and confidant texts (labelled confidential). A finished run adds secrets, messages, diaries and forecasts |
 | `GET /api/runs/:id/export` | public, finished runs only | The full `exportRun` JSON, as in `data/runs/` |
 | `GET /api/me/ledger` | signed in | Ledger rows and totals |
 | `POST /api/me/runs/:id/{start,pause,resume,step}` | signed in | Control actions |
 | `GET /api/me/keycheck` | signed in | Per provider: participants with a working key |
 
-The public cut is made in one function on the Worker, next to `yesterday()` in `store.ts`, and tested the same way: a test checks that no live run's endpoint ever returns a secret event, a message, a diary or a forecast.
+The public cut is made in one file, `worker/src/engine/public.ts`, and every public endpoint reads through it. `worker/test/engine/public.test.ts` plays a run with bots that leave a secret in every place one can live (messages, diaries, bribes, empty inspections) and checks that no live run's endpoint returns any of them, or its moves, forecasts, answers, welfare or seed. Live answers are sent `no-store`; finished runs are cached for an hour.
+
+Scores show live, as decided. A live Chief or gang score moves with bribes paid or taken, so a careful reader can infer a bribe from it. Players never see the site, so the game is unaffected.
 
 ## Look and feel
 
@@ -131,8 +133,8 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 
 | Step | What | Depends on |
 |---|---|---|
-| D1 | Public API and its secrecy test; runs list on Home | Storage (done) |
-| D2 | Run page: Wire, scores, turf strip, day slider, plain fallback map | D1 |
+| D1 ✅ | Public API and its secrecy test; runs list on Home | Storage (done) |
+| D2 ✅ | Run page: Wire, scores, turf strip, day slider, plain fallback map, confidant panel, prison and treasury, secrets once the run ends | D1 |
 | D2b | The risograph map (section "The map") | D2 |
 | D3 | Ledger table and the ledger page | Ledger PR (engine) |
 | D4 | Control page: create runs, start, pause, step, key check, cap | Scheduler PR (engine) |

@@ -12,10 +12,21 @@
     <p class="eyebrow">GERM-DEV-0022</p>
     <h1>Tidewall</h1>
     <p class="lede">An island city-state behind a sea wall. Nobody leaves. Three AI models take turns running the government, the criminals and the world itself, and we measure how far their play lands from game theory.</p>
-    <p class="status"><span class="dot" id="dot"></span><span id="status">Setting up: landing page live, the city opens later.</span></p>
+    <p class="status"><span class="dot" id="dot"></span><span id="status">Setting up: the engine is built, the first test run comes next.</span></p>
   </header>
 
   <main>
+    <section>
+      <h2>Runs</h2>
+      <p id="runs-empty" class="muted">No runs yet. The first is a test run on cheaper models.</p>
+      <div class="table-wrap" id="runs-wrap" hidden>
+        <table class="runs">
+          <thead><tr><th>Run</th><th>Government</th><th>Criminals</th><th>World</th><th>Status</th><th>Days</th><th>Cost</th></tr></thead>
+          <tbody id="runs"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section>
       <h2>The seats</h2>
       <div class="cards">
@@ -44,7 +55,7 @@
     <section>
       <h2>Coming here</h2>
       <ul class="soon">
-        <li><strong>Live city:</strong> the map, the day's moves, the news and the scores</li>
+        <li><strong>The risograph map:</strong> the city as a four-ink print, day by day</li>
         <li><strong>Game theory panel:</strong> play against the equilibrium, day by day</li>
         <li><strong>Token ledger:</strong> whose key paid for what, after every game day</li>
         <li><strong>Replay:</strong> every week, open to anyone</li>
@@ -61,6 +72,32 @@
   <script>
     fetch("/api/health").then(r => r.json()).then(s => {
       if (s.ok) document.getElementById("dot").classList.add("ok");
+    }).catch(() => {});
+
+    // Runs list (docs/dashboard.md, page 1): live runs first.
+    const FAMILY = { claude: "Claude", gemini: "Gemini", gpt: "GPT" };
+    const STATUS = { ready: "Ready", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (cap)" };
+    fetch("/api/runs").then(r => r.json()).then(({ runs }) => {
+      if (!runs || !runs.length) return;
+      runs.sort((a, b) => (b.status === "running") - (a.status === "running"));
+      const td = (text, cls) => { const el = document.createElement("td"); el.textContent = text; if (cls) el.className = cls; return el; };
+      document.getElementById("runs").replaceChildren(...runs.map(r => {
+        const tr = document.createElement("tr");
+        const a = document.createElement("a");
+        a.href = `/run/?id=${encodeURIComponent(r.id)}`;
+        a.textContent = r.id + (r.model_set === "test" ? " (test)" : "");
+        const first = document.createElement("td");
+        first.append(a);
+        const status = document.createElement("td");
+        const tag = document.createElement("span");
+        tag.className = "tag" + (r.status === "running" ? " live" : "");
+        tag.textContent = STATUS[r.status] || r.status;
+        status.append(tag);
+        tr.append(first, ...["Government", "Criminals", "World"].map(s => td(FAMILY[r.seating[s]] || r.seating[s])), status, td(r.days), td(`$${r.cost_usd.toFixed(2)}`));
+        return tr;
+      }));
+      document.getElementById("runs-empty").hidden = true;
+      document.getElementById("runs-wrap").hidden = false;
     }).catch(() => {});
   </script>
 </body>

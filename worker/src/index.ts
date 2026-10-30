@@ -2,6 +2,7 @@
 // they don't match lands here. /me/* and /api/me/* sit behind Cloudflare Access.
 
 import { handleMe } from "./api/me";
+import { handlePublic } from "./api/public";
 import { tick } from "./engine/runner";
 
 export interface Env {
@@ -16,7 +17,7 @@ const STATUS = {
   project: "Tidewall",
   id: "GERM-DEV-0022",
   phase: "setup",
-  step: "5 of 5: My keys",
+  step: "dashboard",
 };
 
 export default {
@@ -37,6 +38,10 @@ export default {
 
     if (url.pathname === "/api/me" || url.pathname.startsWith("/api/me/")) {
       return handleMe(request, env, url);
+    }
+
+    if (url.pathname === "/api/runs" || url.pathname.startsWith("/api/runs/")) {
+      return handlePublic(request, env, url);
     }
 
     if (url.pathname.startsWith("/api/")) {

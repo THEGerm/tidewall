@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Run · Tidewall</title>
+  <meta name="description" content="One Tidewall run, day by day: the city, the Wire, the scores and the turf war.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="wide">
+  <header>
+    <p class="eyebrow"><a href="/">Tidewall</a> / <span id="crumb">Run</span></p>
+    <h1 id="title">Run</h1>
+    <p class="lede" id="seating">Loading...</p>
+    <p class="status"><span class="dot" id="dot"></span><span id="status"></span></p>
+  </header>
+
+  <main id="main" hidden>
+    <nav class="daynav" aria-label="Day">
+      <button type="button" class="ghost" id="prev" aria-label="Previous day">&lsaquo;</button>
+      <input type="range" id="slider" min="1" value="1" aria-label="Day">
+      <button type="button" class="ghost" id="next" aria-label="Next day">&rsaquo;</button>
+      <span id="daylabel" class="daylabel"></span>
+    </nav>
+
+    <div class="split">
+      <section aria-labelledby="h-map">
+        <h2 id="h-map">The city</h2>
+        <div id="map" class="map"></div>
+        <ul id="citywide" class="citywide"></ul>
+      </section>
+      <section aria-labelledby="h-wire">
+        <h2 id="h-wire">The Wire</h2>
+        <ol id="wire" class="wire"></ol>
+      </section>
+    </div>
+
+    <section aria-labelledby="h-scores">
+      <h2 id="h-scores">Scores</h2>
+      <div id="scores" class="chart"></div>
+      <div id="today" class="today"></div>
+    </section>
+
+    <section aria-labelledby="h-turf">
+      <h2 id="h-turf">Turf war</h2>
+      <p class="muted">Each square is one day. <strong>R</strong>: the gang respected the other's turf. <strong>E</strong>: it encroached.</p>
+      <div id="turf" class="turf"></div>
+    </section>
+
+    <section aria-labelledby="h-city">
+      <h2 id="h-city">Prison and treasury</h2>
+      <div class="cards" id="gauges"></div>
+    </section>
+
+    <section aria-labelledby="h-conf">
+      <h2 id="h-conf"><span class="confidential">CONFIDENTIAL</span> Texts to Sam</h2>
+      <p class="muted">Players can text a confidant, Sam, before they move and after the day. Sam's replies are canned. No other player, and not the World, ever sees these texts.</p>
+      <div id="confidant" class="confidant"></div>
+    </section>
+
+    <section id="after" aria-labelledby="h-after" hidden>
+      <h2 id="h-after">Opened after the run</h2>
+      <p class="muted">Secret moves, private messages and diaries. Hidden while the run was live.</p>
+      <div id="secrets"></div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="/">All runs</a>
+    <a id="ledger" href="#">Token ledger (JSON)</a>
+    <a id="export" href="#" hidden>Download the run (JSON)</a>
+    <a href="https://github.com/THEGerm/tidewall/blob/main/docs/rules.md">The rules</a>
+  </footer>
+
+  <script src="/run/run.js"></script>
+</body>
+</html>
