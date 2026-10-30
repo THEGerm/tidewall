@@ -107,6 +107,7 @@ async function load() {
   });
   renderTurf();
   renderGauges();
+  renderPaid();
   let resizing;
   addEventListener("resize", () => { clearTimeout(resizing); resizing = setTimeout(renderScores, 150); });
   await show(day);
@@ -300,6 +301,27 @@ function renderSecrets(v) {
     block("Private messages", (v.messages || []).map((m) => h("li", {}, h("strong", {}, `${m.from} to ${m.to}: `), m.text))),
     block("Diaries", (v.diaries || []).filter((x) => x.text).map((x) => h("li", {}, h("strong", {}, `${x.player}: `), x.text))),
   );
+}
+
+// Who paid: the run's ledger summed by payer and provider (step D3).
+async function renderPaid() {
+  const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI" };
+  let rows = [];
+  try { rows = (await getJSON(`/api/runs/${id}/ledger`)).ledger; } catch { return; }
+  const by = new Map();
+  for (const r of rows) {
+    const k = `${r.payer_name ?? "nobody"}|${r.provider}`;
+    const t = by.get(k) || { payer: r.payer_name ?? "nobody (no key)", provider: r.provider, calls: 0, fallback: 0, input: 0, cached: 0, output: 0, cost: 0 };
+    t.calls += r.calls; t.fallback += r.fallback_calls || 0;
+    t.input += r.input || 0; t.cached += r.cached_input || 0; t.output += r.output || 0; t.cost += r.cost_usd || 0;
+    by.set(k, t);
+  }
+  const m = (x) => (x / 1e6).toFixed(2);
+  const head = h("thead", {}, h("tr", {}, ["Payer", "Provider", "Calls", "Fallback", "Input", "Cached", "Output", "Cost"].map((x) => h("th", {}, x))));
+  const body = h("tbody", {}, by.size
+    ? [...by.values()].map((t) => h("tr", {}, [t.payer, PROVIDER[t.provider] || t.provider, t.calls, t.fallback || "", m(t.input), m(t.cached), m(t.output), `$${t.cost.toFixed(2)}`].map((x) => h("td", {}, x))))
+    : h("tr", {}, h("td", { colspan: "8" }, "No model calls yet (bots cost nothing).")));
+  $("paid").replaceChildren(head, body);
 }
 
 load();

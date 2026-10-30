@@ -168,3 +168,10 @@ form.inline input, .grid-form input, .grid-form select { padding: 8px 10px; bord
   table.stack td { border: none; padding: 4px 12px; }
   table.stack td[data-label]:not([data-label=""])::before { content: attr(data-label) ": "; color: var(--muted); font-size: 0.85rem; }
 }
+
+/* Ledger (D3) */
+table.num td, table.num th { white-space: nowrap; }
+.capbar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; margin-top: 12px; }
+.capbar span { display: block; height: 100%; background: var(--accent); }
+.pick { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 10px; color: var(--muted); }
+.pick select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }

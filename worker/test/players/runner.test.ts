@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createRun, getRun } from "../../src/engine/store";
 import { playNextDay, tick, type RunnerEnv } from "../../src/engine/runner";
-import { runLedger, studySpend } from "../../src/ledger/ledger";
+import { fullLedger, runLedger, studySpend } from "../../src/ledger/ledger";
 import { PRICES, costOf } from "../../src/ledger/pricing";
 import { saveKey } from "../../src/keys/store";
 import { MODELS } from "../../src/players/models";
@@ -94,6 +94,21 @@ describe("scheduler", () => {
     expect((await studySpend(env.DB)).usd).toBeGreaterThan(0);
     expect(efforts.length).toBeGreaterThan(0);
     expect(efforts.every((e) => e === "medium")).toBe(true);
+  });
+
+  it("totals the full ledger by payer and run, without emails", async () => {
+    const env = await setup();
+    await createRun(env.DB, { id: "t1-r1", seed: "seed-one-1", triple: 1, rotation: 1, seating });
+    await on(env);
+    await tick(env, opts);
+    await tick(env, opts);
+    const l = await fullLedger(env.DB);
+    const calls = (rows: Record<string, any>[]) => rows.reduce((a, r) => a + Number(r.calls), 0);
+    expect(calls(l.rows)).toBe(calls(l.byPayer));
+    expect(l.byRun).toEqual([expect.objectContaining({ run_id: "t1-r1", calls: calls(l.rows) })]);
+    expect(Number(l.byRun[0].cost_usd)).toBeCloseTo(l.study.usd, 9);
+    expect(new Set(l.byPayer.map((r) => r.payer_name))).toEqual(new Set(["Germ", "Shazz"]));
+    expect(JSON.stringify(l)).not.toContain("@");
   });
 
   it("pauses with a reason when nobody has a key for a provider", async () => {

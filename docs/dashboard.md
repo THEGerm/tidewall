@@ -44,7 +44,7 @@ The panel the plan promises, per run and across runs:
 
 Figures use the same functions as `analysis/metrics`, ported to the page or precomputed into the run export. The paper's figures come from the notebooks; the page is for watching.
 
-### 4. Ledger `/me/ledger/` (signed in)
+### 4. Ledger `/me/ledger/` (signed in, built)
 
 After every game day: tokens in, cached and out, plus cost, per participant and provider, with fallback-key rows marked. Running totals per run and for the study, against the budget cap. The same rows, with participant names (never emails), are public data on each run page and in the run export: who paid is part of the record.
 
@@ -71,7 +71,7 @@ All reads are JSON from the Worker. Public endpoints return only what the public
 | `GET /api/runs/:id` | public | Run summary and one row per played day: scores, today's change, treasury, prison count, turf moves, Nature. The seed shows once the run ends |
 | `GET /api/runs/:id/days/:day` | public | That day's public events, Wire, scores, open districts and confidant texts (labelled confidential). A finished run adds secrets, messages, diaries and forecasts |
 | `GET /api/runs/:id/export` | public, finished runs only | The full `exportRun` JSON, as in `data/runs/` |
-| `GET /api/me/ledger` | signed in | Ledger rows and totals |
+| `GET /api/me/ledger` | signed in | Ledger rows by run, day, provider, model and payer name, with totals per payer and per run, and the cap. No emails |
 | `POST /api/me/runs/:id/{start,pause,resume,step}` | signed in | Control actions |
 | `GET /api/me/keycheck` | signed in | Per provider: participants with a working key |
 
@@ -136,7 +136,7 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 | D1 ✅ | Public API and its secrecy test; runs list on Home | Storage (done) |
 | D2 ✅ | Run page: Wire, scores, turf strip, day slider, plain fallback map, confidant panel, prison and treasury, secrets once the run ends | D1 |
 | D2b | The risograph map (section "The map") | D2 |
-| D3 | Ledger table and the ledger page | Ledger PR (engine) |
+| D3 ✅ | Ledger page, and a "Who paid" table on each run page | Ledger PR (engine) |
 | D4 ✅ | Control page: create runs, start, pause, step, key check, cap, models in use | Scheduler PR (engine) |
 | D5 | Game theory panel | Metrics in the run export |
 | D6 | Finished-run tabs: messages, diaries, confidant, forecasts | D2 |
