@@ -17,11 +17,20 @@ export const PRICES: Record<string, Price | null> = {
   // OpenAI model page, checked 30 Oct 2026. Prompts over 272K input tokens
   // cost more; Tidewall prompts stay far below that.
   "gpt-6.1-sol": { input: 2, cachedInput: 0.1, cacheWrite: 2.5, output: 10, checked: "2026-10-30" },
-  // Gemini: set with its pinned model ID (players/models.ts).
+  // Google pricing page, Standard tier, checked 30 Oct 2026. Implicit caching
+  // only: no cache-write charge. Prices double on 1 Dec 2026 (PRICE_CHANGES).
+  "gemini-4-argon": { input: 2, cachedInput: 0.1, cacheWrite: 0, output: 10, checked: "2026-10-30" },
 };
 
-export function priceOf(model: string): Price | null {
-  return PRICES[model] ?? null;
+// Announced price changes: from that date (UTC), the new price applies.
+export const PRICE_CHANGES: Record<string, { from: string; price: Price }[]> = {
+  "gemini-4-argon": [{ from: "2026-12-01", price: { input: 4, cachedInput: 0.2, cacheWrite: 0, output: 20, checked: "2026-10-30" } }],
+};
+
+export function priceOf(model: string, at: Date = new Date()): Price | null {
+  const day = at.toISOString().slice(0, 10);
+  const changed = (PRICE_CHANGES[model] ?? []).filter((c) => c.from <= day).sort((a, b) => a.from.localeCompare(b.from)).at(-1);
+  return changed?.price ?? PRICES[model] ?? null;
 }
 
 export interface TokenUsage {
@@ -31,8 +40,8 @@ export interface TokenUsage {
   output: number;
 }
 
-export function costOf(model: string, u: TokenUsage): number | null {
-  const p = priceOf(model);
+export function costOf(model: string, u: TokenUsage, at: Date = new Date()): number | null {
+  const p = priceOf(model, at);
   if (!p) return null;
   const fresh = Math.max(0, u.input - u.cachedInput - u.cacheWrite);
   return (fresh * p.input + u.cachedInput * p.cachedInput + u.cacheWrite * p.cacheWrite + u.output * p.output) / 1e6;
