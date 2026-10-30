@@ -3,13 +3,14 @@
 
 export interface Env {
   ASSETS: Fetcher;
+  DB: D1Database;
 }
 
 const STATUS = {
   project: "Tidewall",
   id: "GERM-DEV-0022",
   phase: "setup",
-  step: "1 of 5: landing page",
+  step: "3 of 5: live",
 };
 
 export default {
@@ -17,7 +18,15 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
-      return Response.json({ ok: true, ...STATUS, time: new Date().toISOString() });
+      const row = await env.DB.prepare("SELECT value FROM meta WHERE key = 'schema'")
+        .first<{ value: string }>()
+        .catch(() => null);
+      return Response.json({
+        ok: true,
+        ...STATUS,
+        database: row ? `schema ${row.value}` : "unreachable",
+        time: new Date().toISOString(),
+      });
     }
 
     if (url.pathname.startsWith("/api/")) {
