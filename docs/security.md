@@ -23,6 +23,7 @@ Written 30 Oct 2026, when the key store went live. Every claim below points to c
 - **What the database holds** ([worker/migrations/0002_keys.sql](../worker/migrations/0002_keys.sql)): the encrypted key, its IV, the last 4 characters and the date. A copy of the database alone is useless without the master key.
 - **What the browser gets back** ([worker/src/keys/store.ts](../worker/src/keys/store.ts)): saved or not, last 4, date. No route returns a key.
 - **Delete** removes the row at once.
+- **Test** ([worker/src/providers/check.ts](../worker/src/providers/check.ts)) decrypts the key inside the Worker and asks the provider to list its models, which is free. The browser gets back only "works" or "failed" and the reason.
 
 ## What this does not protect against
 

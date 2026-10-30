@@ -34,7 +34,7 @@ function render(keys) {
       <form>
         <input type="password" autocomplete="off" spellcheck="false" placeholder="${k.saved ? "Paste a new key to replace it" : "Paste your key"}" aria-label="${p.name} key">
         <button type="submit">Save</button>
-        ${k.saved ? '<button type="button" class="ghost">Delete</button>' : ""}
+        ${k.saved ? '<button type="button" class="ghost test">Test</button><button type="button" class="ghost del">Delete</button>' : ""}
       </form>`;
     const form = row.querySelector("form");
     const input = row.querySelector("input");
@@ -50,7 +50,15 @@ function render(keys) {
         say(`${p.name} key saved.`);
       } catch (err) { say(`Not saved: ${err.message}.`); }
     });
-    const del = row.querySelector("button.ghost");
+    const test = row.querySelector("button.test");
+    if (test) test.addEventListener("click", async () => {
+      say(`Testing your ${p.name} key...`);
+      try {
+        const { check } = await api(`/api/me/keys/${p.id}/test`, { method: "POST" });
+        say(check.ok ? `${p.name}: works (${check.detail}).` : `${p.name}: failed (${check.detail}).`);
+      } catch (err) { say(`Test didn't run: ${err.message}.`); }
+    });
+    const del = row.querySelector("button.del");
     if (del) del.addEventListener("click", async () => {
       if (!confirm(`Delete your ${p.name} key?`)) return;
       try {
