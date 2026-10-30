@@ -20,6 +20,17 @@ export const PRICES: Record<string, Price | null> = {
   // Google pricing page, Standard tier, checked 30 Oct 2026. Implicit caching
   // only: no cache-write charge. Prices double on 1 Dec 2026 (PRICE_CHANGES).
   "gemini-4-argon": { input: 2, cachedInput: 0.1, cacheWrite: 0, output: 10, checked: "2026-10-30" },
+
+  // Test-run models (Germ, 30 Oct).
+  // Claude Haiku 5.5, Claude docs, checked 30 Oct 2026: $0.10 in and $0.50 out for
+  // prompts up to 100K tokens. Cache read and write follow Anthropic's usual
+  // multipliers (0.1x and 1.25x input).
+  "claude-haiku-5-5": { input: 0.1, cachedInput: 0.01, cacheWrite: 0.125, output: 0.5, checked: "2026-10-30" },
+  // Gemini 3 Flash Preview, Google pricing page, Standard tier, checked 30 Oct
+  // 2026. Implicit caching: no write charge.
+  "gemini-3-flash-preview": { input: 0.5, cachedInput: 0.05, cacheWrite: 0, output: 3, checked: "2026-10-30" },
+  // o3 (snapshot o3-2025-04-16), OpenAI model page, checked 30 Oct 2026.
+  "o3-2025-04-16": { input: 2, cachedInput: 0.5, cacheWrite: 0, output: 8, checked: "2026-10-30" },
 };
 
 // Announced price changes: from that date (UTC), the new price applies.

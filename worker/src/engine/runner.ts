@@ -15,7 +15,7 @@ import { priceOf } from "../ledger/pricing";
 import type { callModel } from "../providers";
 import { keyChain, participants } from "../players/keys";
 import { modelPlayer, type CallRecord } from "../players/model";
-import { EFFORT, MODELS, isPinned, type Family } from "../players/models";
+import { EFFORT, isPinned, modelsFor, type Family } from "../players/models";
 import { placeholderPrompts, type Prompts } from "../players/prompts";
 
 export interface RunnerEnv {
@@ -47,9 +47,9 @@ async function meta(db: D1Database, key: string): Promise<string | null> {
 export async function blocker(env: RunnerEnv, run: RunRow, day: number): Promise<string | null> {
   for (const seat of ["Government", "Criminals", "World"] as const) {
     const family = run.seating[seat] as Family;
-    const m = MODELS[family];
+    const m = modelsFor(run.model_set)[family];
     if (!m) return `unknown model family "${family}" in the ${seat} seat`;
-    if (!isPinned(family)) return `${family} model ID not pinned yet (players/models.ts)`;
+    if (!isPinned(family, run.model_set)) return `${family} model ID not pinned yet (players/models.ts)`;
     if (!priceOf(m.model)) return `no price set for ${m.model} (ledger/pricing.ts)`;
     if ((await keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, day)).length === 0) return `nobody has a ${m.provider} key`;
   }
@@ -83,7 +83,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
     const calls: CallRecord[] = [];
     const prompts = o.prompts ?? placeholderPrompts;
     const players = Object.fromEntries(PLAYERS.map((name) => {
-      const m = MODELS[run.seating[SEAT_OF[name]] as Family];
+      const m = modelsFor(run.model_set)[run.seating[SEAT_OF[name]] as Family];
       return [name, modelPlayer({
         name, provider: m.provider, model: m.model, prompts, effort: EFFORT,
         keys: (d) => keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, d),

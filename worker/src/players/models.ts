@@ -20,4 +20,16 @@ export const MODELS: Record<Family, { provider: Provider; model: string }> = {
 // the models, not from one of them thinking harder.
 export const EFFORT = "medium" as const;
 
-export const isPinned = (f: Family) => !MODELS[f].model.startsWith("PIN-");
+// Cheap models for test runs (Germ, 30 Oct). They exercise the whole pipeline
+// for a fraction of the cost; their runs are marked model_set = 'test' and
+// stay out of the analysis.
+export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = {
+  claude: { provider: "anthropic", model: "claude-haiku-5-5" },
+  gemini: { provider: "google", model: "gemini-3-flash-preview" },
+  gpt: { provider: "openai", model: "o3-2025-04-16" }, // deprecated by OpenAI; dated snapshot
+};
+
+export type ModelSet = "study" | "test";
+export const modelsFor = (set: ModelSet) => (set === "test" ? TEST_MODELS : MODELS);
+
+export const isPinned = (f: Family, set: ModelSet = "study") => !modelsFor(set)[f].model.startsWith("PIN-");

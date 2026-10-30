@@ -12,7 +12,7 @@ export async function handleControl(request: Request, env: Env, path: string): P
   const meta = async (k: string) => (await env.DB.prepare("SELECT value FROM meta WHERE key = ?").bind(k).first<{ value: string }>())?.value ?? null;
 
   if (path === "status" && request.method === "GET") {
-    const { results: runs } = await env.DB.prepare("SELECT id, triple, rotation, seating, status, pause_reason, json_extract(state, '$.day') AS day FROM runs ORDER BY triple, rotation").all();
+    const { results: runs } = await env.DB.prepare("SELECT id, model_set, triple, rotation, seating, status, pause_reason, json_extract(state, '$.day') AS day FROM runs ORDER BY triple, rotation").all();
     return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")), spend: await studySpend(env.DB), runs });
   }
 
@@ -24,11 +24,12 @@ export async function handleControl(request: Request, env: Env, path: string): P
   }
 
   if (path === "runs" && request.method === "POST") {
-    const b = (await request.json().catch(() => null)) as { id?: string; seed?: string; triple?: number; rotation?: number; seating?: Seating } | null;
+    const b = (await request.json().catch(() => null)) as { id?: string; seed?: string; triple?: number; rotation?: number; seating?: Seating; model_set?: string } | null;
     const ok = b && /^[a-z0-9-]{1,40}$/.test(b.id ?? "") && typeof b.seed === "string" && b.seed.length >= 8
       && Number.isInteger(b.triple) && [1, 2, 3].includes(b.rotation as number) && b.seating
-      && ["Government", "Criminals", "World"].every((s) => ["claude", "gemini", "gpt"].includes((b.seating as any)[s]));
-    if (!ok) return json({ ok: false, error: "need id, seed (8+ chars), triple, rotation 1 to 3, seating of claude/gemini/gpt" }, 400);
+      && ["Government", "Criminals", "World"].every((s) => ["claude", "gemini", "gpt"].includes((b.seating as any)[s]))
+      && (b.model_set === undefined || b.model_set === "study" || b.model_set === "test");
+    if (!ok) return json({ ok: false, error: "need id, seed (8+ chars), triple, rotation 1 to 3, seating of claude/gemini/gpt, and model_set study or test" }, 400);
     if (await getRun(env.DB, b!.id!)) return json({ ok: false, error: "run exists" }, 409);
     const run = await createRun(env.DB, b as any);
     return json({ ok: true, run: { id: run.id, status: run.status } });
