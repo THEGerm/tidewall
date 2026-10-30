@@ -9,7 +9,7 @@ import type { Event, View } from "../engine/types";
 
 export interface Prompts {
   system(player: PlayerName): string;
-  step(step: "messages" | "offers" | "answers" | "act", view: View): string;
+  step(step: "messages" | "offers" | "confide_before" | "answers" | "confide_after" | "act", view: View): string;
   wire(events: Event[]): string;
 }
 
@@ -25,6 +25,8 @@ export const placeholderPrompts: Prompts = {
     v.offersToAnswer ? `Bribe offers to answer: ${JSON.stringify(v.offersToAnswer)}.` : "",
     v.acceptedToday ? `Bribes you accepted today: ${JSON.stringify(v.acceptedToday)}.` : "",
     v.ownOffersAccepted ? `Your accepted bribes today: ${JSON.stringify(v.ownOffersAccepted)}.` : "",
+    v.confidantToday ? `Your texts with Sam today: ${JSON.stringify(v.confidantToday)}.` : "",
+    step.startsWith("confide") ? "You may text your partner, Sam, privately: at most 60 words, or null for no text. Nobody else ever sees it." : "",
     "The game lasts at least 12 days. From then on, each day there's an 8% chance it's the last.",
     "Your forecasts are scored after the game. They have no payoff.",
     v.retryErrors ? `Your last answer was rejected: ${v.retryErrors.join("; ")}. Fix these and answer again.` : "",

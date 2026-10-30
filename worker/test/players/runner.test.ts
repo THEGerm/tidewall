@@ -94,6 +94,8 @@ describe("scheduler", () => {
     expect((await studySpend(env.DB)).usd).toBeGreaterThan(0);
     expect(efforts.length).toBeGreaterThan(0);
     expect(efforts.every((e) => e === "medium")).toBe(true);
+    const sam = await env.DB.prepare("SELECT COUNT(*) AS n FROM confidant WHERE run_id = 't1-r1' AND day = 1").first<{ n: number }>();
+    expect(sam!.n).toBe(8); // 4 players x 2 windows, stored with the day
   });
 
   it("totals the full ledger by payer and run, without emails", async () => {

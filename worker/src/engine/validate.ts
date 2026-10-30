@@ -3,7 +3,7 @@
 // to the player on its one retry (section 7).
 
 import {
-  BRIBE_MAX, BRIBE_MIN, DISTRICTS, MAX_AUDITS, PLAYERS, TURF, WIRE_MAX, WIRE_MIN,
+  BRIBE_MAX, BRIBE_MIN, CONFIDANT_MAX_WORDS, DISTRICTS, MAX_AUDITS, PLAYERS, TURF, WIRE_MAX, WIRE_MIN,
   type District, type Gang, type PlayerName,
 } from "./config";
 import type { AnswersAnswer, Event, Forecasts, MessagesAnswer, OffersAnswer, WireAnswer } from "./types";
@@ -35,6 +35,13 @@ export function checkOffers(a: unknown, gang: Gang, open: District[]): string[] 
       e.push(`bribe for ${d} must be a whole number from ${BRIBE_MIN} to ${BRIBE_MAX}, or null`);
   }
   return e;
+}
+
+export function checkConfide(a: unknown): string[] {
+  if (!isObj(a) || !("text" in a)) return ["answer must be {text: \"...\"} or {text: null}"];
+  if (a.text === null) return [];
+  if (typeof a.text !== "string") return ["text must be a string or null"];
+  return words(a.text) > CONFIDANT_MAX_WORDS ? [`text must be at most ${CONFIDANT_MAX_WORDS} words`] : [];
 }
 
 export function checkAnswers(a: unknown, offered: District[]): string[] {

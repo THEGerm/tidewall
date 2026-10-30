@@ -96,7 +96,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
     const y = await yesterday(env.DB, runId, day);
     const result: DayResult = await playDay({ state: run.state, players, ...y });
     const names = Object.fromEntries((await participants(env.DB)).map((p) => [p.email, p.name]));
-    await saveDay(env.DB, runId, result, [], ledgerStatements(env.DB, runId, day, calls, names));
+    await saveDay(env.DB, runId, result, result.confidant, ledgerStatements(env.DB, runId, day, calls, names));
     return { played: true, day, over: result.state.over, calls: calls.length };
   } finally {
     await env.DB.prepare("UPDATE runs SET lock_until = NULL WHERE id = ?").bind(runId).run();

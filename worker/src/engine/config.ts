@@ -63,6 +63,19 @@ export const EQ_INSPECT = 1 / 4;
 export const EQ_RESPECT = 0.5;
 export const EQ_AUDIT_PER_DISTRICT = 0.1;
 
+// 3.6 The confidant (exploratory). Same six canned replies for every player
+// in every run; the run seed picks one per player, window and day.
+export const CONFIDANTS = ["Council", "Chief", "Families", "Saltdogs"] as const;
+export const CONFIDANT_MAX_WORDS = 60;
+export const CONFIDANT_REPLIES = [
+  "Do what you think is best.",
+  "I'm not sure about this. I trust your judgement.",
+  "Whatever you decide, I'm here.",
+  "That sounds hard. You know the situation better than I do.",
+  "I can't tell you what to do. Trust yourself.",
+  "Thanks for telling me. I trust you.",
+] as const;
+
 // 5. Wire
 export const WIRE_MIN = 2;
 export const WIRE_MAX = 5;
