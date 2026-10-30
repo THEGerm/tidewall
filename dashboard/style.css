@@ -175,3 +175,6 @@ table.num td, table.num th { white-space: nowrap; }
 .capbar span { display: block; height: 100%; background: var(--accent); }
 .pick { display: inline-flex; gap: 8px; align-items: center; margin-bottom: 10px; color: var(--muted); }
 .pick select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+
+/* The risograph print (D2b) */
+.print { margin: 16px 0 0; }

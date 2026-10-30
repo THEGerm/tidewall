@@ -135,7 +135,7 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 |---|---|---|
 | D1 ✅ | Public API and its secrecy test; runs list on Home | Storage (done) |
 | D2 ✅ | Run page: Wire, scores, turf strip, day slider, plain fallback map, confidant panel, prison and treasury, secrets once the run ends | D1 |
-| D2b | The risograph map (section "The map") | D2 |
+| D2b ⏳ | The risograph map (section "The map"): built in `dashboard/run/map.js`, awaiting Germ's comments | D2 |
 | D3 ✅ | Ledger page, and a "Who paid" table on each run page | Ledger PR (engine) |
 | D4 ✅ | Control page: create runs, start, pause, step, key check, cap, models in use | Scheduler PR (engine) |
 | D5 | Game theory panel | Metrics in the run export |

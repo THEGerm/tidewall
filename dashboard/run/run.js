@@ -1,6 +1,7 @@
-// The run page (docs/dashboard.md, page 2, step D2). Reads /api/runs/:id for
-// the charts and /api/runs/:id/days/:day for the day shown. The map here is
-// the plain one; the risograph map (D2b) replaces it later.
+// The run page (docs/dashboard.md, page 2, steps D2 and D2b). Reads
+// /api/runs/:id for the charts and /api/runs/:id/days/:day for the day shown.
+// The risograph print (map.js) sits on top; the plain tiles below it carry
+// the same facts as text.
 
 const DISTRICTS = ["Port", "Hightown", "Old Quarter", "Lowtown", "Market", "Seawall"];
 const TURF = { Port: "Families", Hightown: "Families", "Old Quarter": "Families", Lowtown: "Saltdogs", Market: "Saltdogs", Seawall: "Saltdogs" };
@@ -149,7 +150,21 @@ async function show(n) {
   renderSecrets(v);
 }
 
+let print = null;
+function renderPrint(v) {
+  if (!window.TidewallMap) return; // the plain tiles still carry every fact
+  if (!print) {
+    print = TidewallMap.mount($("print"), {
+      seed: id,
+      onDistrict: (d) => document.querySelector(`.tile[data-district="${d}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+    });
+  }
+  const d = summary.days[v.day - 1];
+  print.update({ day: v.day, open: v.open, nature: v.nature, events: v.events, turf: d.turf, prison: d.prison, treasury: d.treasury, live: v.run.live });
+}
+
 function renderMap(v) {
+  renderPrint(v);
   const open = new Set(v.open);
   const byDistrict = Object.fromEntries(DISTRICTS.map((d) => [d, []]));
   const citywide = [];
@@ -182,7 +197,10 @@ function renderWire(v) {
       h("p", {}, w.text),
       h("p", { class: "cites" }, "Reports: ", w.events.map((x) => (byId[x] ? describe(byId[x]) : x)).join("; ")),
     );
-    const mark = (on) => document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("lit", on && districts.includes(t.dataset.district)));
+    const mark = (on) => {
+      document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("lit", on && districts.includes(t.dataset.district)));
+      print?.highlight(on ? districts : []);
+    };
     li.addEventListener("mouseenter", () => mark(true));
     li.addEventListener("mouseleave", () => mark(false));
     li.addEventListener("focus", () => mark(true));
