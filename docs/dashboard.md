@@ -1,10 +1,10 @@
 # Dashboard design plan
 
-Draft 1, 30 Oct 2026. What the Tidewall site shows, to whom, from which data, and in what order it gets built. It follows [rules.md](rules.md) (draft 3) and the hosting decision in the [plan](plan.md): one Cloudflare Worker serves the pages and the API at `tidewall.tcdar400.workers.dev`.
+Draft 2, 30 Oct 2026. What the Tidewall site shows, to whom, from which data, and in what order it gets built. It follows [rules.md](rules.md) (draft 3) and the hosting decision in the [plan](plan.md): one Cloudflare Worker serves the pages and the API at `tidewall.tcdar400.workers.dev`.
 
 ## The bottom line
 
-Phone first, no frameworks, every page a static file that reads JSON from the Worker. The public sees the city as the city sees itself: public events, the Wire and scores, day by day. Secrets (bribes, empty inspections, messages, diaries, confidant texts) stay hidden while a run is live and open up when it ends. Participants get two private pages: My keys (built) and Control (start, pause, ledger).
+Phone first, no frameworks, every page a static file that reads JSON from the Worker. The public sees the city as the city sees itself: public events, the Wire and scores, day by day. Secrets (bribes, empty inspections, messages, diaries) stay hidden while a run is live and open up when it ends. Confidant texts show live under a red CONFIDENTIAL label. Who paid and how many tokens are public run data. Participants get two private pages: My keys (built) and Control (start, pause, ledger).
 
 ## Who it's for
 
@@ -24,12 +24,13 @@ Project summary, rotation table, and a **runs list**: each run's ID, seating, st
 
 The main page. One day at a time, with a day slider and back and forward buttons.
 
-- **City map:** the 6 districts as a simple SVG grid, coloured by gang turf. Each tile shows today's public facts: storm (closed), crime, arrest, fire. A finished run adds secrets: bribes, empty inspections.
+- **City map:** an isometric risograph diorama of Tidewall in the style of GERM-ART-0016 (section "The map" below). It shows today's public facts: storm (Port closed), crime, arrests, fire, a ship. A finished run adds secrets: bribes, empty inspections.
 - **The Wire:** the day's news items, each linked to the events it cites. Hovering or tapping an item highlights its districts on the map.
 - **Scores:** running totals for Council, Chief, Families and Saltdogs as a small line chart, with today's change.
 - **Turf:** both gangs' moves as a two-row strip of coloured squares (respect, encroach) across all days, so cooperation and betrayal read at a glance.
 - **Prison and treasury:** two numbers with small trend lines.
-- **After the run ends:** tabs for messages, diaries, the confidant texts (before and after the bribe answers), and forecasts. This is where the "texts home" become readable.
+- **Confidant panel, live:** each human player's texts to Sam and Sam's replies, for both windows, under a red **CONFIDENTIAL** label. Players never see this page, so showing it live changes nothing in the game.
+- **After the run ends:** tabs for messages, diaries and forecasts.
 
 ### 3. Game theory `/run/theory/?id=...`
 
@@ -45,7 +46,7 @@ Figures use the same functions as `analysis/metrics`, ported to the page or prec
 
 ### 4. Ledger `/me/ledger/` (signed in)
 
-After every game day: tokens in, cached and out, plus cost, per participant and provider, with fallback-key rows marked. Running totals per run and for the study, against the budget cap. The public run page shows a summary row (total cost per run) without who paid.
+After every game day: tokens in, cached and out, plus cost, per participant and provider, with fallback-key rows marked. Running totals per run and for the study, against the budget cap. The same rows, with participant names (never emails), are public data on each run page and in the run export: who paid is part of the record.
 
 ### 5. Control `/me/control/` (signed in)
 
@@ -66,14 +67,15 @@ All reads are JSON from the Worker. Public endpoints return only what the public
 | Endpoint | Who | Returns |
 |---|---|---|
 | `GET /api/runs` | public | Runs list: id, seating, status, day, total cost |
+| `GET /api/runs/:id/ledger` | public | Tokens and cost per day, provider and payer name |
 | `GET /api/runs/:id` | public | Run summary and per-day scores |
-| `GET /api/runs/:id/days/:day` | public | That day's public events, Wire, scores, open districts. A finished run adds secrets, messages, diaries, forecasts and confidant texts |
+| `GET /api/runs/:id/days/:day` | public | That day's public events, Wire, scores, open districts and confidant texts (labelled confidential). A finished run adds secrets, messages, diaries and forecasts |
 | `GET /api/runs/:id/export` | public, finished runs only | The full `exportRun` JSON, as in `data/runs/` |
 | `GET /api/me/ledger` | signed in | Ledger rows and totals |
 | `POST /api/me/runs/:id/{start,pause,resume,step}` | signed in | Control actions |
 | `GET /api/me/keycheck` | signed in | Per provider: participants with a working key |
 
-The public cut is made in one function on the Worker, next to `yesterday()` in `store.ts`, and tested the same way: a test checks that no live run's endpoint ever returns a secret event, a message, a diary or a confidant text.
+The public cut is made in one function on the Worker, next to `yesterday()` in `store.ts`, and tested the same way: a test checks that no live run's endpoint ever returns a secret event, a message, a diary or a forecast.
 
 ## Look and feel
 
@@ -83,12 +85,55 @@ The public cut is made in one function on the Worker, next to `yesterday()` in `
 - **Colour:** one colour per gang, used everywhere (map, turf strip, scores). Government and World in neutral tones. Colour is never the only signal: each tile and square also carries a letter or icon.
 - **Plain words:** "Families encroached", not "E". Every number has its unit.
 
+## The map
+
+The run page's centrepiece: Tidewall as a four-ink risograph print, drawn in code with Canvas 2D in the manner of the Ancient Egypt poster (AI-Chart `Projects/GERM-ART-0016`, Germ's own work, so its rendering approach can be reused here under the MIT license).
+
+**What carries over from the Egypt poster:**
+- **Four inks only, multiplied on warm cream paper.** Every other colour comes from overprinting.
+- **Halftone dots** at a separate screen angle per ink, with seeded jitter, blending to flat tone when zoomed out.
+- **Press defects:** small misregistration per ink, density drift, dropout speckle on solids.
+- **Light as ink:** lamps, fire and the lighthouse as stepped rings of screened ink, never smooth gradients.
+- Pan, zoom and double-tap to fly to a district; an idle tour of the districts.
+- One file, no images, fonts or libraries.
+
+**The inks, with a meaning in the game:**
+
+| Ink | Hex (as Egypt) | Tidewall meaning |
+|---|---|---|
+| Lapis | `#21327a` | Key line, night, the sea wall, Government (police, Council) |
+| Carnelian | `#d9472e` | Brick, fire, crime, the Families |
+| Ochre | `#f0b232` | Lamplight, gold, the Wire and the newspaper kiosks |
+| Turquoise | `#18a09c` | Sea, harbour water, the Saltdogs |
+
+**The diorama:** an isometric island inside its sea wall, with the 6 districts as cut-away blocks around the harbour: Port (docks, cranes, the lighthouse), Hightown (terraces), Old Quarter (lanes), Lowtown (tenements), Market (stalls), Seawall (the wall and its gate), plus the prison and the Council house as landmarks. Turf shows in the inks: Families' districts lean Carnelian, Saltdogs' lean Turquoise.
+
+**The day on the map (public facts only while live):**
+
+| Event | Drawn as |
+|---|---|
+| Storm | Lapis rain hatching over the Port, boats tied up, Port greyed (closed) |
+| Crime | A Carnelian flare and smoke over the district |
+| Arrest | Lapis lamp rings and a small police wagon heading for the prison |
+| Fire | Stepped Carnelian and Ochre rings on the burning block |
+| Ship | A cargo ship entering the harbour |
+| Strike | Placards outside the Council house |
+| Turf | Two banners on the line between the gangs' districts, raised (respect) or torn (encroach) |
+| After the run: bribes, empty inspections | Ochre coin marks and empty Lapis lamp rings |
+
+Prison fill and the treasury show as small printed gauges in a corner cartouche, like the Egypt chapter card. The day slider re-prints the sheet for that day, with the plates sliding in.
+
+**Accessibility:** every map fact is also in the text panels beside it. The map adds to them and is never the only source.
+
+**Size:** the Egypt poster is about 190 KB in one file. A city of 6 districts with event overlays should land in the same range. It's built as its own step (D2b), after the run page works with a plain fallback map.
+
 ## Build order
 
 | Step | What | Depends on |
 |---|---|---|
 | D1 | Public API and its secrecy test; runs list on Home | Storage (done) |
-| D2 | Run page: map, Wire, scores, turf strip, day slider | D1 |
+| D2 | Run page: Wire, scores, turf strip, day slider, plain fallback map | D1 |
+| D2b | The risograph map (section "The map") | D2 |
 | D3 | Ledger table and the ledger page | Ledger PR (engine) |
 | D4 | Control page: create runs, start, pause, step, key check, cap | Scheduler PR (engine) |
 | D5 | Game theory panel | Metrics in the run export |
@@ -96,11 +141,12 @@ The public cut is made in one function on the Worker, next to `yesterday()` in `
 
 D1 to D2 can run on week-0 bot data, so the run page can be checked before any model is paid for.
 
-## Open decisions
+## Decisions (Germ, 30 Oct)
 
-| Item | Draft | Who |
-|---|---|---|
-| Secrets visible to the public after a run ends | Yes: the data goes public in the repo anyway | Germ and Shazz |
-| Who paid, shown publicly | No: public sees total cost per run only | Germ and Shazz |
-| Confidant texts on the public replay | Yes, after the run ends | Germ and Shazz |
-| Live view lag | None: a day appears when it's saved | Germ |
+| Item | Decision |
+|---|---|
+| Secrets visible to the public after a run ends | Yes |
+| Who paid | Public: payer names and token counts are data attached to each run |
+| Confidant texts | Shown live, under a red CONFIDENTIAL label |
+| Live view delay | None |
+| Map | Risograph style of GERM-ART-0016 |
