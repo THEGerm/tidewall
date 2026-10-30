@@ -7,7 +7,9 @@ export type Family = "claude" | "gemini" | "gpt";
 
 export const MODELS: Record<Family, { provider: Provider; model: string }> = {
   claude: { provider: "anthropic", model: "claude-opus-5-5" },
-  gemini: { provider: "google", model: "PIN-BEFORE-WEEK-1" },
+  // Gemini 4 Argon, chosen by Germ 30 Oct: Google's flagship and only Gemini 4
+  // model. Stable ID; no dated version is listed, so calls log the reported model.
+  gemini: { provider: "google", model: "gemini-4-argon" },
   // GPT-6.1 Sol, chosen by Germ 30 Oct: OpenAI's flagship workhorse, the tier that
   // matches Opus 5.5. No dated snapshot is listed, so every call logs the model
   // the provider reports (ledger.model_reported) to catch silent updates.

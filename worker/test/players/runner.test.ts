@@ -59,6 +59,12 @@ describe("pricing", () => {
     expect(PRICES["gpt-6.1-sol"]).toMatchObject({ input: 2, cachedInput: 0.1, cacheWrite: 2.5, output: 10 });
   });
 
+  it("has Gemini 4 Argon pinned, priced, and doubling on 1 Dec 2026", () => {
+    expect(saved.gemini).toBe("gemini-4-argon");
+    expect(costOf("gemini-4-argon", usage, new Date("2026-11-15T12:00:00Z"))).toBeCloseTo((200 * 2 + 800 * 0.1 + 200 * 10) / 1e6, 10);
+    expect(costOf("gemini-4-argon", usage, new Date("2026-12-01T00:00:00Z"))).toBeCloseTo((200 * 4 + 800 * 0.2 + 200 * 20) / 1e6, 10);
+  });
+
   it("costs fresh, cached and output tokens separately", () => {
     expect(costOf("claude-opus-5-5", usage)).toBeCloseTo((200 * 4 + 800 * 0.2 + 200 * 20) / 1e6, 10);
     expect(costOf("unknown-model", usage)).toBeNull();
