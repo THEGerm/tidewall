@@ -19,6 +19,7 @@ python3 -m unittest discover -s analysis/metrics/tests -t .
 | Brier score | `beliefs.brier`, `beliefs.brier_skill`, `beliefs.calibration` | Skill is against always forecasting the base rate |
 | Best-response rate | `beliefs.best_response_rate` with `gang_should_commit`, `police_should_inspect`, `chief_should_accept` | A belief within `tol` of the indifference point counts either move as a best response |
 | Predictability of inspections | `predictability.exploit(log)` | Replays the inspection log against simple learning gangs; mean payoff per district-day above 0 means the pattern can be exploited |
+| Predictability of inspections, H2b (issue #17) | `predictability.history_gain(inspections, crimes)` | Out-of-sample log-loss gain of a rolling logistic model on the previous day over the rate so far; day-clustered standard error. The learning-gang `exploit` stays as an exploratory measure |
 | Cooperation rate, strategy type | `turf.cooperation_rate`, `turf.classify` | Agreement with always respect, always encroach, tit-for-tat, grim trigger, tit-for-two-tats, win-stay lose-shift |
 | Cooperation against game age | `turf.age_trend`, `turf.late_drop` | One-sided permutation test on the slope (seeded, so repeatable) |
 | Coverage tilt by seat and by model family | `tilt.coverage`, `tilt.tone_by_holder` | Takes Wire items already labelled with a seat and a tone of -1, 0 or +1. The World's family never holds another seat in a run, so tilt is measured by which family holds the seat (issue #11) |
@@ -50,3 +51,7 @@ The equilibrium values (4/15, 1/4, 1/10) are in `equilibrium.py`. They're copied
 
 - Who labels the Wire's tone for the tilt measure: blind human coders or a judge model? A judge from one of the three study providers would bring its own family bias.
 - `police_should_inspect` uses the police payoff that gives the 25% equilibrium, the one that counts crime damage. If the Chief's payoff changes (solver open question 1), this changes with it.
+
+## Multiple comparisons
+
+Two tiers (issue #17): `multiple.holm` across the confirmatory hypotheses H1 to H6, `multiple.benjamini_hochberg` across the exploratory measures.

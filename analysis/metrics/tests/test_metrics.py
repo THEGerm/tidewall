@@ -4,7 +4,7 @@ import unittest
 from fractions import Fraction as F
 from pathlib import Path
 
-from analysis.metrics import beliefs, equilibrium as eq, predictability, rates, tilt, turf
+from analysis.metrics import beliefs, equilibrium as eq, multiple, predictability, rates, tilt, turf
 
 SOLVER_JSON = Path(__file__).resolve().parents[2] / "solver" / "equilibria.json"
 
@@ -179,3 +179,41 @@ class Tilt(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Holm(unittest.TestCase):
+    def test_textbook_example(self):
+        out = multiple.holm({"a": 0.01, "b": 0.04, "c": 0.03, "d": 0.005})
+        self.assertAlmostEqual(out["d"]["adjusted"], 0.02)
+        self.assertAlmostEqual(out["a"]["adjusted"], 0.03)
+        self.assertAlmostEqual(out["c"]["adjusted"], 0.06)
+        self.assertAlmostEqual(out["b"]["adjusted"], 0.06)  # kept monotone
+        self.assertEqual([k for k, v in out.items() if v["reject"]], ["d", "a"])
+
+    def test_stricter_than_bh(self):
+        ps = {"a": 0.01, "b": 0.02, "c": 0.03}
+        h, b = multiple.holm(ps), multiple.benjamini_hochberg(ps)
+        for k in ps:
+            self.assertGreaterEqual(h[k]["adjusted"], b[k]["q"] - 1e-12)
+
+
+class HistoryGain(unittest.TestCase):
+    def _log(self, days, rule, seed):
+        rng = random.Random(seed)
+        insp, crime = [], []
+        for t in range(days):
+            crime.append([rng.random() < 4 / 15 for _ in range(6)])
+            insp.append([rule(rng, t, d, insp) for d in range(6)])
+        return insp, crime
+
+    def test_random_police_not_predictable(self):
+        insp, crime = self._log(60, lambda rng, t, d, h: rng.random() < 0.25, seed=3)
+        out = predictability.history_gain(insp, crime)
+        self.assertLess(out["z"], 2.0)
+
+    def test_alternating_police_predictable(self):
+        # Inspect a district exactly when it wasn't inspected yesterday.
+        rule = lambda rng, t, d, h: (not h[t - 1][d]) if t else rng.random() < 0.5
+        insp, crime = self._log(40, rule, seed=4)
+        out = predictability.history_gain(insp, crime)
+        self.assertGreater(out["gain_per_district_day"], 0.1)

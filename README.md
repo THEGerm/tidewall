@@ -8,7 +8,7 @@ Tidewall is an island city-state behind a sea wall where three AI models take tu
 
 | Folder | What goes there |
 |---|---|
-| [docs/](docs/) | The plan, [how keys are kept safe](docs/security.md), the world bible, the payoff tables, hypotheses, and [decisions/](docs/decisions/) |
+| [docs/](docs/) | The [plan](docs/plan.md), the [rules](docs/rules.md) the engine follows, [how keys are kept safe](docs/security.md), and [decisions/](docs/decisions/) |
 | [worker/](worker/) | Cloudflare Worker: engine, provider adapters, key store, token ledger, D1 schema, tests |
 | [prompts/](prompts/) | Every prompt a model sees, versioned |
 | [dashboard/](dashboard/) | Static front end, served by the Worker |
