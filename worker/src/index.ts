@@ -2,6 +2,7 @@
 // they don't match lands here. /me/* and /api/me/* sit behind Cloudflare Access.
 
 import { handleMe } from "./api/me";
+import { tick } from "./engine/runner";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -43,5 +44,11 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
+  },
+
+  // Cron (wrangler.jsonc): one scheduler tick plays at most one game day.
+  async scheduled(_event: ScheduledController, env: Env): Promise<void> {
+    const outcome = await tick(env);
+    console.log("tick", JSON.stringify(outcome));
   },
 } satisfies ExportedHandler<Env>;

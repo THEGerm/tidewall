@@ -55,8 +55,8 @@ export async function getRun(db: D1Database, id: string): Promise<RunRow | null>
   return { id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation, seating: JSON.parse(r.seating), rules_version: r.rules_version, status: r.status, state: JSON.parse(r.state) };
 }
 
-export async function setStatus(db: D1Database, id: string, status: Status) {
-  await db.prepare("UPDATE runs SET status = ?, updated_at = ? WHERE id = ?").bind(status, now(), id).run();
+export async function setStatus(db: D1Database, id: string, status: Status, reason: string | null = null) {
+  await db.prepare("UPDATE runs SET status = ?, pause_reason = ?, updated_at = ? WHERE id = ?").bind(status, reason, now(), id).run();
 }
 
 // What the next day needs from the day before: its public events and Wire.
@@ -81,7 +81,7 @@ function rowToEvent(e: Record<string, any>): Event {
 
 // Saves one played day and the run's new state, all or nothing. Refuses a
 // day out of order, so a retried request can't write a day twice.
-export async function saveDay(db: D1Database, runId: string, r: DayResult, confidant: ConfidantRow[] = []): Promise<void> {
+export async function saveDay(db: D1Database, runId: string, r: DayResult, confidant: ConfidantRow[] = [], extra: D1PreparedStatement[] = []): Promise<void> {
   const run = await getRun(db, runId);
   if (!run) throw new Error(`no run ${runId}`);
   if (run.state.day !== r.day || run.status === "over" || run.status === "truncated") {
@@ -111,8 +111,9 @@ export async function saveDay(db: D1Database, runId: string, r: DayResult, confi
   for (const c of confidant)
     q("INSERT INTO confidant (run_id, day, player, window, text, reply) VALUES (?, ?, ?, ?, ?, ?)", runId, d, c.player, c.window, c.text, c.reply);
 
+  s.push(...extra);
   const status: Status = r.state.over ? (r.state.truncated ? "truncated" : "over") : "running";
-  q("UPDATE runs SET state = ?, status = ?, updated_at = ? WHERE id = ?", json(r.state), status, t, runId);
+  q("UPDATE runs SET state = ?, status = ?, pause_reason = NULL, updated_at = ? WHERE id = ?", json(r.state), status, t, runId);
   await db.batch(s);
 }
 
