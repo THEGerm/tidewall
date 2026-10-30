@@ -11,7 +11,7 @@ Tidewall is an island city-state behind a sea wall where three AI models take tu
 | [docs/](docs/) | The plan, the world bible, the payoff tables, hypotheses, and [decisions/](docs/decisions/) |
 | [worker/](worker/) | Cloudflare Worker: engine, provider adapters, key store, token ledger, D1 schema, tests |
 | [prompts/](prompts/) | Every prompt a model sees, versioned |
-| [dashboard/](dashboard/) | Static front end on GitHub Pages |
+| [dashboard/](dashboard/) | Static front end, served by the Worker |
 | [analysis/](analysis/) | Python solver, statistics and figures |
 | [data/](data/) | Exported run logs, one folder per week |
 | [paper/](paper/) | The arXiv preprint |

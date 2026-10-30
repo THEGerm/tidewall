@@ -12,4 +12,15 @@ The Cloudflare Worker: game engine, provider calls, encrypted key store, token l
 | `migrations/` | D1 database schema |
 | `test/` | Unit tests; engine tests check the equilibria against `analysis/solver/` |
 
+## Run it
+
+```bash
+cd worker
+npm install
+npm run dev      # local copy at http://localhost:8787
+npm run check    # typecheck and a dry-run build
+```
+
+`/api/health` answers with the project's status. Every other path that isn't a file in `dashboard/` returns the 404 page.
+
 Secrets never go in this folder. Local secrets live in `.dev.vars`, which git ignores.

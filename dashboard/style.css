@@ -1,0 +1,61 @@
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --text: #1c2430;
+  --muted: #5b6573;
+  --line: #dcd7cc;
+  --accent: #1f5f7a;
+  --ok: #2e7d4f;
+  --off: #b0a99a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d;
+    --surface: #18202a;
+    --text: #e6e9ee;
+    --muted: #9aa5b3;
+    --line: #2a3441;
+    --accent: #6fb3cf;
+    --ok: #5cc28a;
+    --off: #5b6573;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d;
+  --surface: #18202a;
+  --text: #e6e9ee;
+  --muted: #9aa5b3;
+  --line: #2a3441;
+  --accent: #6fb3cf;
+  --ok: #5cc28a;
+  --off: #5b6573;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto;
+  max-width: 920px;
+  padding: 48px 16px 32px;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+h1 { font-size: clamp(2.4rem, 7vw, 3.6rem); margin: 0 0 12px; letter-spacing: -0.02em; }
+h2 { font-size: 1.25rem; margin: 40px 0 12px; }
+h3 { font-size: 1rem; margin: 0 0 6px; color: var(--accent); }
+.eyebrow { margin: 0; color: var(--muted); font-size: 0.85rem; letter-spacing: 0.08em; }
+.lede { font-size: 1.15rem; max-width: 60ch; margin: 0 0 16px; }
+.status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.95rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--off); flex: none; }
+.dot.ok { background: var(--ok); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.cards article { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.cards p { margin: 0; color: var(--muted); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+.soon { padding-left: 20px; }
+.soon li { margin: 6px 0; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 20px; color: var(--muted); font-size: 0.9rem; }
+a { color: var(--accent); }

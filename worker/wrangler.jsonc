@@ -1,0 +1,13 @@
+{
+  // Tidewall: one Worker serves the dashboard (static files) and the API.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tidewall",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-15",
+  "assets": {
+    "directory": "../dashboard",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page"
+  },
+  "observability": { "enabled": true }
+}

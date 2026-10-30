@@ -209,7 +209,7 @@ Below it: running totals per participant for the week and the study. Cost is wor
 
 ### How it's built
 
-- **Front end:** a static page in `dashboard/`, published with GitHub Pages
+- **Front end:** static files in `dashboard/`, served by the same Worker as the API, at one address (Germ, 30 Oct 2026; replaces GitHub Pages)
 - **Back end:** a Cloudflare Worker that runs the engine, calls the 3 providers, and holds the keys encrypted in its database (D1), with the encryption key as a Worker secret
 - **Sign-in:** Cloudflare Access, one email each for Germ and Shazz
 - **Schedule:** a Worker cron plays 8 game days a day; the pause button stops it
@@ -281,3 +281,4 @@ Settled by Germ, 29 Oct 2026:
 3. **Length:** 3 cycles, 9 weeks.
 4. **Venue:** arXiv preprint.
 5. **Front end:** one dashboard; participants' own keys; turns alternate; token ledger after every day.
+6. **Hosting** (30 Oct): the dashboard and the API are one Cloudflare Worker. Keys are stored on Cloudflare, option (a), pending Shazz's confirmation.

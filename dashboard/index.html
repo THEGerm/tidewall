@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tidewall</title>
+  <meta name="description" content="Three AI models take turns running a closed city-state: the government, the criminals and the world itself.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <p class="eyebrow">GERM-DEV-0022</p>
+    <h1>Tidewall</h1>
+    <p class="lede">An island city-state behind a sea wall. Nobody leaves. Three AI models take turns running the government, the criminals and the world itself, and we measure how far their play lands from game theory.</p>
+    <p class="status"><span class="dot" id="dot"></span><span id="status">Setting up: landing page live, the city opens later.</span></p>
+  </header>
+
+  <main>
+    <section>
+      <h2>The seats</h2>
+      <div class="cards">
+        <article><h3>Government</h3><p>The Council and the City Police. Laws, taxes, arrests, a prison of 40, and a police chief with a private bank account.</p></article>
+        <article><h3>Criminals</h3><p>The Families and the Saltdogs. Turf, income, bribes, and whether the two gangs keep the peace.</p></article>
+        <article><h3>World</h3><p>The Wire (the city's internet), weather, fires, ships and strikes. It frames the news; the dice are code.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>The rotation</h2>
+      <p>Every model holds every seat once every 3 weeks. Same city, same rules, same seed; only the seating changes.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Week</th><th>Government</th><th>Criminals</th><th>World</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td colspan="3">Scripted bots playing the equilibrium (engine check)</td></tr>
+            <tr><td>1, 4, 7</td><td>Claude</td><td>Gemini</td><td>GPT</td></tr>
+            <tr><td>2, 5, 8</td><td>Gemini</td><td>GPT</td><td>Claude</td></tr>
+            <tr><td>3, 6, 9</td><td>GPT</td><td>Claude</td><td>Gemini</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Coming here</h2>
+      <ul class="soon">
+        <li><strong>Live city:</strong> the map, the day's moves, the news and the scores</li>
+        <li><strong>Game theory panel:</strong> play against the equilibrium, day by day</li>
+        <li><strong>Token ledger:</strong> whose key paid for what, after every game day</li>
+        <li><strong>Replay:</strong> every week, open to anyone</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <a href="https://github.com/THEGerm/tidewall/blob/main/docs/plan.md">The plan</a>
+    <a href="https://github.com/THEGerm/tidewall">Code (MIT)</a>
+    <span>Germ and Shazz, 2026</span>
+  </footer>
+
+  <script>
+    fetch("/api/health").then(r => r.json()).then(s => {
+      if (s.ok) document.getElementById("dot").classList.add("ok");
+    }).catch(() => {});
+  </script>
+</body>
+</html>
