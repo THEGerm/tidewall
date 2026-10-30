@@ -1,16 +1,21 @@
 // Tidewall Worker. Static files in ../dashboard are served first; any path
-// they don't match lands here. Only /api/* is handled so far.
+// they don't match lands here. /me/* and /api/me/* sit behind Cloudflare Access.
+
+import { handleMe } from "./api/me";
 
 export interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  ACCESS_TEAM_DOMAIN: string;
+  ACCESS_AUD: string;
+  KEY_ENC_SECRET: string;
 }
 
 const STATUS = {
   project: "Tidewall",
   id: "GERM-DEV-0022",
   phase: "setup",
-  step: "3 of 5: live",
+  step: "5 of 5: My keys",
 };
 
 export default {
@@ -27,6 +32,10 @@ export default {
         database: row ? `schema ${row.value}` : "unreachable",
         time: new Date().toISOString(),
       });
+    }
+
+    if (url.pathname === "/api/me" || url.pathname.startsWith("/api/me/")) {
+      return handleMe(request, env, url);
     }
 
     if (url.pathname.startsWith("/api/")) {

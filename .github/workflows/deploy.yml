@@ -48,3 +48,12 @@ jobs:
       - run: npm ci
       - run: npx wrangler d1 migrations apply tidewall --remote
       - run: npx wrangler deploy
+      # Creates the key-encryption secret once. Never replaced: a new one
+      # would make every saved key unreadable. The value is never printed.
+      - name: Ensure KEY_ENC_SECRET exists
+        run: |
+          if npx wrangler secret list --format json | grep -q '"KEY_ENC_SECRET"'; then
+            echo "KEY_ENC_SECRET already set"
+          else
+            openssl rand -base64 32 | npx wrangler secret put KEY_ENC_SECRET
+          fi
