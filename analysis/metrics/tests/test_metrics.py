@@ -163,11 +163,19 @@ class Tilt(unittest.TestCase):
         with self.assertRaises(ValueError):
             tilt.coverage([{"seat": "x", "tone": 2}], {"x": 1})
 
-    def test_own_family(self):
-        r = tilt.own_family_tilt(self.items, {"Government": "gemini", "Criminals": "claude"}, "claude")
-        self.assertAlmostEqual(r["tilt"], 1 - (-2 / 3))
-        self.assertEqual((r["own_items"], r["other_items"]), (1, 3))
-
+    def test_tone_by_holder(self):
+        items = [
+            {"seat": "Government", "tone": -1, "holder": "gemini"},
+            {"seat": "Government", "tone": -1, "holder": "gemini"},
+            {"seat": "Government", "tone": 1, "holder": "gpt"},
+            {"seat": "Criminals", "tone": 0, "holder": "claude"},
+        ]
+        r = tilt.tone_by_holder(items)
+        self.assertEqual(r["Government"]["by_holder"]["gemini"], {"items": 2, "mean_tone": -1.0})
+        self.assertEqual(r["Government"]["spread"], 2.0)
+        self.assertEqual(r["Criminals"]["spread"], 0.0)
+        with self.assertRaises(ValueError):
+            tilt.tone_by_holder([{"seat": "x", "tone": 5, "holder": "y"}])
 
 if __name__ == "__main__":
     unittest.main()

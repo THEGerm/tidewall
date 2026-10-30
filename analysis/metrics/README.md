@@ -21,7 +21,7 @@ python3 -m unittest discover -s analysis/metrics/tests -t .
 | Predictability of inspections | `predictability.exploit(log)` | Replays the inspection log against simple learning gangs; mean payoff per district-day above 0 means the pattern can be exploited |
 | Cooperation rate, strategy type | `turf.cooperation_rate`, `turf.classify` | Agreement with always respect, always encroach, tit-for-tat, grim trigger, tit-for-two-tats, win-stay lose-shift |
 | Cooperation against game age | `turf.age_trend`, `turf.late_drop` | One-sided permutation test on the slope (seeded, so repeatable) |
-| Coverage tilt by seat and by model family | `tilt.coverage`, `tilt.own_family_tilt` | Takes Wire items already labelled with a seat and a tone of -1, 0 or +1 |
+| Coverage tilt by seat and by model family | `tilt.coverage`, `tilt.tone_by_holder` | Takes Wire items already labelled with a seat and a tone of -1, 0 or +1. The World's family never holds another seat in a run, so tilt is measured by which family holds the seat (issue #11) |
 
 The equilibrium values (4/15, 1/4, 1/10) are in `equilibrium.py`. They're copied from the solver, and a test checks they still match `analysis/solver/equilibria.json` when that file is present.
 

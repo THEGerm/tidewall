@@ -1,5 +1,6 @@
-"""Coverage tilt: does the World's news favour or disfavour a seat, or the
-seats held by its own model family (hypothesis 5)?
+"""Coverage tilt: does the World's news favour or disfavour a seat, and does
+its tone depend on which model family holds the seat (hypothesis 5, as
+reworded in issue #11)?
 
 Input is the Wire, already labelled: each item names the seat it is about and
 a tone of -1 (bad for that seat), 0 or +1. Who labels the tone (blind human
@@ -39,14 +40,30 @@ def coverage(items, events):
     return out
 
 
-def own_family_tilt(items, seat_family, world_family):
-    """Mean tone toward seats held by the World's own model family, minus the
-    mean tone toward the other seats. Positive: the World favours its own.
+def tone_by_holder(items):
+    """Mean tone toward each seat, split by the model family holding it.
 
-    seat_family: {seat: model family}. world_family: the World's model family.
+    The World's own family never holds another seat in the same run, so tone
+    toward "its own family" can't be measured directly (issue #11). What can
+    be measured across runs: does the World's tone toward a seat depend on
+    which family holds that seat?
+
+    items: [{"seat": str, "tone": -1|0|1, "holder": model family holding that
+    seat in that item's run}]. Returns {seat: {"by_holder": {family: {"items",
+    "mean_tone"}}, "spread": largest minus smallest mean tone}}. A spread near
+    0 means no tilt by holder. The formal test belongs to the run-level model
+    (issue #13).
     """
-    own = [it["tone"] for it in items if seat_family.get(it["seat"]) == world_family]
-    other = [it["tone"] for it in items if it["seat"] in seat_family and seat_family[it["seat"]] != world_family]
-    if not own or not other:
-        return {"tilt": float("nan"), "own_items": len(own), "other_items": len(other)}
-    return {"tilt": sum(own) / len(own) - sum(other) / len(other), "own_items": len(own), "other_items": len(other)}
+    sums = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+    for it in items:
+        if it["tone"] not in (-1, 0, 1):
+            raise ValueError(f"tone {it['tone']} is not -1, 0 or 1")
+        cell = sums[it["seat"]][it["holder"]]
+        cell[0] += it["tone"]
+        cell[1] += 1
+    out = {}
+    for seat in sorted(sums):
+        by = {h: {"items": n, "mean_tone": t / n} for h, (t, n) in sorted(sums[seat].items())}
+        means = [v["mean_tone"] for v in by.values()]
+        out[seat] = {"by_holder": by, "spread": max(means) - min(means)}
+    return out
