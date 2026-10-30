@@ -4,6 +4,7 @@ import type { Env } from "../index";
 import { accessEmail } from "../access";
 import { deleteKey, isProvider, keyStatus, readKey, saveKey } from "../keys/store";
 import { checkKey } from "../providers/check";
+import { handleControl } from "./control";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
@@ -24,6 +25,10 @@ export async function handleMe(request: Request, env: Env, url: URL): Promise<Re
 
   if (url.pathname === "/api/me" || url.pathname === "/api/me/") {
     return json({ ok: true, email, ...participant, keys: await keyStatus(env.DB, email) });
+  }
+
+  if (url.pathname.startsWith("/api/me/control/")) {
+    return handleControl(request, env, url.pathname.slice("/api/me/control/".length));
   }
 
   const test = url.pathname.match(/^\/api\/me\/keys\/([a-z]+)\/test$/);

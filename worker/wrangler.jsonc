@@ -22,6 +22,9 @@
     "ACCESS_TEAM_DOMAIN": "winter-bread-4f16.cloudflareaccess.com",
     "ACCESS_AUD": "bd6d09b8f108cd33bb9a96a8f06bb58653a8aab1a4acee201198e24ca7ddc246"
   },
+  // Scheduler: one tick every 10 minutes plays at most one game day, and only
+  // when the schedule is on (meta.schedule, set from the Control page).
+  "triggers": { "crons": ["*/10 * * * *"] },
   // KEY_ENC_SECRET is a Worker secret, created once by the deploy workflow.
   "observability": { "enabled": true }
 }
