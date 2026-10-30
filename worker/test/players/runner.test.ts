@@ -130,6 +130,17 @@ describe("scheduler", () => {
     expect(await playNextDay(env, "r", opts)).toEqual({ played: false, reason: "another tick is playing this run" });
   });
 
+  it("a test run uses the cheap model set, priced", async () => {
+    const env = await setup();
+    await createRun(env.DB, { id: "test-1", seed: "seed-test-set", triple: 0, rotation: 1, seating: { Government: "claude", Criminals: "gemini", World: "gpt" }, model_set: "test" });
+    await on(env);
+    expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 });
+    const models = (await env.DB.prepare("SELECT DISTINCT model FROM ledger ORDER BY model").all<{ model: string }>()).results.map((r) => r.model);
+    expect(models).toEqual(["claude-haiku-5-5", "gemini-3-flash-preview", "o3-2025-04-16"]);
+    const unpriced = await env.DB.prepare("SELECT COUNT(*) AS n FROM ledger WHERE cost_usd IS NULL").first<{ n: number }>();
+    expect(unpriced!.n).toBe(0);
+  });
+
   it("plays a run to its end, then moves to the next run", async () => {
     const env = await setup();
     await createRun(env.DB, { id: "t1-r1", seed: "seed-first", triple: 1, rotation: 1, seating });

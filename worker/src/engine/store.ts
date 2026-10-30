@@ -20,6 +20,7 @@ export interface Seating {
 
 export interface RunRow {
   id: string;
+  model_set: "study" | "test";
   seed: string;
   triple: number;
   rotation: 1 | 2 | 3;
@@ -39,20 +40,21 @@ export interface ConfidantRow {
 const now = () => new Date().toISOString();
 const json = (v: unknown) => JSON.stringify(v);
 
-export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating }): Promise<RunRow> {
+export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: "study" | "test" }): Promise<RunRow> {
+  const modelSet = run.model_set ?? "study";
   const state = newGame(run.seed);
   const t = now();
   await db
-    .prepare("INSERT INTO runs (id, seed, triple, rotation, seating, rules_version, status, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?)")
-    .bind(run.id, run.seed, run.triple, run.rotation, json(run.seating), RULES_VERSION, json(state), t, t)
+    .prepare("INSERT INTO runs (id, seed, triple, rotation, seating, rules_version, status, state, created_at, updated_at, model_set) VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?, ?)")
+    .bind(run.id, run.seed, run.triple, run.rotation, json(run.seating), RULES_VERSION, json(state), t, t, modelSet)
     .run();
-  return { ...run, rules_version: RULES_VERSION, status: "ready", state };
+  return { ...run, model_set: modelSet, rules_version: RULES_VERSION, status: "ready", state };
 }
 
 export async function getRun(db: D1Database, id: string): Promise<RunRow | null> {
   const r = await db.prepare("SELECT * FROM runs WHERE id = ?").bind(id).first<Record<string, any>>();
   if (!r) return null;
-  return { id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation, seating: JSON.parse(r.seating), rules_version: r.rules_version, status: r.status, state: JSON.parse(r.state) };
+  return { id: r.id, model_set: r.model_set ?? "study", seed: r.seed, triple: r.triple, rotation: r.rotation, seating: JSON.parse(r.seating), rules_version: r.rules_version, status: r.status, state: JSON.parse(r.state) };
 }
 
 export async function setStatus(db: D1Database, id: string, status: Status, reason: string | null = null) {
