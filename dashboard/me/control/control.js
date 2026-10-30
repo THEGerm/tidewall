@@ -152,7 +152,7 @@ $("new-form").onsubmit = async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
   const body = {
-    id: f.get("id"),
+    id: String(f.get("id")).trim().toLowerCase(), // IDs are lowercase letters, numbers and hyphens
     seed: f.get("seed"),
     triple: Number(f.get("triple")),
     rotation: Number(f.get("rotation")),
