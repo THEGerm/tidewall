@@ -17,5 +17,11 @@
       "migrations_dir": "migrations"
     }
   ],
+  "vars": {
+    // Cloudflare Access for /me and /api/me. Not secrets: Access publishes both.
+    "ACCESS_TEAM_DOMAIN": "winter-bread-4f16.cloudflareaccess.com",
+    "ACCESS_AUD": "bd6d09b8f108cd33bb9a96a8f06bb58653a8aab1a4acee201198e24ca7ddc246"
+  },
+  // KEY_ENC_SECRET is a Worker secret, created once by the deploy workflow.
   "observability": { "enabled": true }
 }
