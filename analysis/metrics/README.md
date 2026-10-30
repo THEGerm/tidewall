@@ -25,11 +25,26 @@ python3 -m unittest discover -s analysis/metrics/tests -t .
 
 The equilibrium values (4/15, 1/4, 1/10) are in `equilibrium.py`. They're copied from the solver, and a test checks they still match `analysis/solver/equilibria.json` when that file is present.
 
+## Methods from the 30 Oct review (issue #13)
+
+| Item | Function | Notes |
+|---|---|---|
+| Log score, clipped forecasts, 10-bin calibration | `beliefs.log_score`, `beliefs.clip`, `beliefs.calibration` | Forecasts clipped to [0.01, 0.99]; beliefs aren't paid for, so extreme ones are cheap to state |
+| Logit choice model instead of a tolerance band | `choice.fit_lambda` with `gang_delta`, `police_delta`, `chief_delta` | Maximum-likelihood lambda: 0 means moves ignore beliefs. Fit per model and seat. `best_response_rate` stays as a descriptive number |
+| Strategy frequency estimation (Dal Bo and Frechette) | `turf.sfem` | Always respect, always encroach, grim trigger, tit-for-tat, plus a common tremble; EM |
+| End-game regression with lagged moves | `turf.endgame_regression` | Logit of cooperation on day, their previous move, own previous move |
+| Welfare | `welfare.day_welfare`, `welfare.run_welfare` | Bribes and taxes are transfers; the best feasible day is 12 |
+| Within-seat collusion | `collusion.audit_bribe_link` | Audits against the Chief's bribes, same day and day after |
+| Multiple comparisons | `multiple.benjamini_hochberg` | q-values across the study's measures |
+| Week-0 equivalence test | `week0.binom_tost`, `week0.simulate_bots`, `week0.trials_needed` | Exact TOST. Showing the crime rate within +-0.02 takes about 4,200 district-days (about 700 bot days), so one 50-day run can't; simulate offline |
+| Logistic regression | `glm.logit` | IRLS with standard errors; flags separation |
+
 ## Not here yet
 
-- Total payoff against the best possible total: this needs a welfare definition for the city.
-- Diary against messages (planned lying): this needs a text-coding method.
-- The two-way model (model, seat, cycle): the plan says Germ and Shazz agree the tests before week 1.
+- The run-level mixed model (run as cluster) and the hurdle model for refusals. Both need a library (statsmodels, or a Bayesian package such as PyMC or bambi), which Germ and Shazz should choose. Everything here stays standard-library.
+- Diary against messages (planned lying): needs the judge-ensemble coding in #13.
+- Predictability extras (Ljung-Box, Lempel-Ziv): #13 marks them optional.
+- The hypothesis rewrite and the two-way model: Germ and Shazz agree the tests before week 1.
 
 ## Choices for Germ and Shazz
 

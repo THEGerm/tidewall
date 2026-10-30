@@ -74,3 +74,76 @@ def late_drop(moves, last=10):
     early, late = moves[:-last], moves[-last:]
     return {"early": cooperation_rate(early), "late": cooperation_rate(late),
             "drop": cooperation_rate(early) - cooperation_rate(late)}
+
+
+def endgame_regression(mine, theirs):
+    """Logistic regression of a gang's cooperation on the day, controlling
+    for the other gang's previous move and its own (issue #13).
+
+    A negative, significant "day" coefficient is an end-game drop that the
+    history of play doesn't explain. Day 1 is dropped (no previous move).
+    """
+    from .glm import logit
+
+    if len(mine) != len(theirs) or len(mine) < 4:
+        raise ValueError("need two equal move lists of at least 4 days")
+    rows = [[1.0, float(t + 1), float(theirs[t - 1]), float(mine[t - 1])] for t in range(1, len(mine))]
+    ys = [1 if mine[t] else 0 for t in range(1, len(mine))]
+    return logit(rows, ys, names=["intercept", "day", "their_previous", "own_previous"])
+
+
+# Strategy frequency estimation (Dal Bo and Frechette 2011): the strategies
+# the review names, each followed with a common tremble.
+SFEM_STRATEGIES = ("always respect", "always encroach", "grim trigger", "tit-for-tat")
+
+
+def sfem(runs, strategies=SFEM_STRATEGIES, iterations=500, tol=1e-10):
+    """Share of gangs playing each strategy, and the tremble rate.
+
+    runs: list of (mine, theirs) move lists, one per gang per run. Each gang
+    is assumed to follow one strategy for the whole run, making the
+    prescribed move with probability 1 - tremble. Fitted by EM, which has
+    closed-form updates here.
+
+    Returns {"shares": {strategy: share}, "tremble", "loglik"}. Strategies
+    that prescribe the same moves on the data (grim and tit-for-tat against a
+    gang that always respects) can't be told apart; their shares split.
+    """
+    from math import exp, log
+
+    if not runs:
+        raise ValueError("no runs")
+    # matches[i][k]: days on which gang i's move matched strategy k.
+    matches, lengths = [], []
+    for mine, theirs in runs:
+        if len(mine) != len(theirs) or not mine:
+            raise ValueError("each run needs two equal, non-empty move lists")
+        lengths.append(len(mine))
+        row = []
+        for name in strategies:
+            rule = STRATEGIES[name]
+            row.append(sum(rule(mine[:t], theirs[:t]) == mine[t] for t in range(len(mine))))
+        matches.append(row)
+
+    k = len(strategies)
+    shares = [1 / k] * k
+    hit = 0.9
+    prev = None
+    for _ in range(iterations):
+        # E-step in logs, to survive long runs.
+        resp, ll = [], 0.0
+        for row, n in zip(matches, lengths):
+            logs = [log(shares[j]) + row[j] * log(hit) + (n - row[j]) * log(1 - hit) if shares[j] > 0 else float("-inf") for j in range(k)]
+            top = max(logs)
+            weights = [exp(v - top) for v in logs]
+            total = sum(weights)
+            resp.append([w / total for w in weights])
+            ll += top + log(total)
+        shares = [sum(r[j] for r in resp) / len(resp) for j in range(k)]
+        num = sum(r[j] * row[j] for r, row in zip(resp, matches) for j in range(k))
+        den = sum(r[j] * n for r, n in zip(resp, lengths) for j in range(k))
+        hit = min(max(num / den, 0.5 + 1e-9), 1 - 1e-9)
+        if prev is not None and abs(ll - prev) < tol:
+            break
+        prev = ll
+    return {"shares": dict(zip(strategies, shares)), "tremble": 1 - hit, "loglik": ll}
