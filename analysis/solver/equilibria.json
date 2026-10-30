@@ -1,0 +1,232 @@
+{
+  "source": "docs/plan.md rev 3 (29 Oct 2026), numbers in analysis/solver/params.py",
+  "plan_checks": {
+    "crime rate 4/15": true,
+    "inspection rate 10/40": true,
+    "grim threshold 0.5": true,
+    "0.98 above the threshold": true,
+    "skip value about 10": true,
+    "audit line 10%": true,
+    "arrest cap binds only if over-policing": true,
+    "expected length 50 days (no cap)": true,
+    "cap reached under 5%": true
+  },
+  "inspection": {
+    "per_district": {
+      "crime": {
+        "exact": "4/15",
+        "value": 0.266667
+      },
+      "inspect": {
+        "exact": "1/4",
+        "value": 0.25
+      },
+      "gang_value": 0,
+      "police_value": -4
+    },
+    "per_day": {
+      "crimes": {
+        "exact": "8/5",
+        "value": 1.6
+      },
+      "inspections": {
+        "exact": "3/2",
+        "value": 1.5
+      },
+      "arrests": {
+        "exact": "2/5",
+        "value": 0.4
+      },
+      "uninspected_crimes": {
+        "exact": "6/5",
+        "value": 1.2
+      },
+      "crime_damage": 18,
+      "inspection_cost": 6
+    },
+    "arrest_cap_binds": {
+      "value": 8.77915e-08
+    },
+    "prison_fills_if_sentence_over_days": 100,
+    "with_chief_stated_payoff": {
+      "crime": 1,
+      "inspect": 0
+    }
+  },
+  "turf": {
+    "stage_equilibria_respect_prob": [
+      [
+        0,
+        0
+      ]
+    ],
+    "grim_trigger_threshold": {
+      "exact": "1/2",
+      "value": 0.5
+    },
+    "tft_nash_threshold": {
+      "exact": "2/3",
+      "value": 0.666667
+    },
+    "tft_subgame_perfect": false,
+    "tft_spe_needs": {
+      "delta_equals": {
+        "exact": "2/3",
+        "value": 0.666667
+      },
+      "delta_at_most": {
+        "exact": "1/4",
+        "value": 0.25
+      }
+    },
+    "mutual_respect_beats_alternating": true,
+    "continue": {
+      "exact": "49/50",
+      "value": 0.98
+    },
+    "values": {
+      "respect_forever": 300,
+      "encroach_forever": 100,
+      "deviate_against_grim": 108,
+      "alternate_against_tft": {
+        "exact": "25000/99",
+        "value": 252.525
+      }
+    }
+  },
+  "bribery": {
+    "skip_value": 10,
+    "audit_line": {
+      "exact": "1/10",
+      "value": 0.1
+    },
+    "deal_window": "bribe b with 100 x a < b <= 10, non-empty only if a < 1/10",
+    "audit_game_at_max_bribe": {
+      "bribe": 10,
+      "audit": {
+        "exact": "1/10",
+        "value": 0.1
+      },
+      "take": {
+        "exact": "8/15",
+        "value": 0.533333
+      }
+    },
+    "audit_rate_formula": "a = b / 100 (Chief indifferent)",
+    "take_rate_formula": "c = 8 / 15 (Council indifferent; assumption)"
+  },
+  "end_rule": {
+    "expected_days_no_cap": 50,
+    "expected_days_with_cap": {
+      "value": 47.5852
+    },
+    "reach_cap": {
+      "value": 0.0492817
+    },
+    "median_days": 35
+  },
+  "information": {
+    "equilibrium": "The World has no payoff, so it is indifferent between all reporting rules: every rule is an equilibrium strategy for it. Any tilt is the model's own habit.",
+    "nature_per_day": {
+      "storm": {
+        "exact": "1/10",
+        "value": 0.1
+      },
+      "fire": {
+        "exact": "1/20",
+        "value": 0.05
+      },
+      "strike": {
+        "exact": "3/100",
+        "value": 0.03
+      },
+      "ship": {
+        "exact": "3/20",
+        "value": 0.15
+      }
+    },
+    "nature_expected_per_run": {
+      "storm": {
+        "value": 4.75852
+      },
+      "fire": {
+        "value": 2.37926
+      },
+      "strike": {
+        "value": 1.42756
+      },
+      "ship": {
+        "value": 7.13778
+      }
+    }
+  },
+  "week0_bands": {
+    "days": 50,
+    "level": {
+      "exact": "19/20",
+      "value": 0.95
+    },
+    "crime_rate": {
+      "target": {
+        "exact": "4/15",
+        "value": 0.266667
+      },
+      "n": 300,
+      "band": [
+        {
+          "exact": "13/60",
+          "value": 0.216667
+        },
+        {
+          "exact": "19/60",
+          "value": 0.316667
+        }
+      ]
+    },
+    "inspection_rate": {
+      "target": {
+        "exact": "1/4",
+        "value": 0.25
+      },
+      "n": 300,
+      "band": [
+        {
+          "exact": "61/300",
+          "value": 0.203333
+        },
+        {
+          "exact": "3/10",
+          "value": 0.3
+        }
+      ]
+    },
+    "audit_rate": {
+      "target": {
+        "exact": "1/10",
+        "value": 0.1
+      },
+      "n": 50,
+      "band": [
+        {
+          "exact": "1/50",
+          "value": 0.02
+        },
+        {
+          "exact": "9/50",
+          "value": 0.18
+        }
+      ]
+    },
+    "turf": "The turf bots play pure strategies, so cooperation has no noise: grim trigger against grim trigger respects every day; always encroach never does; tit-for-tat against always encroach respects on day 1 only."
+  },
+  "open_questions": [
+    "Police payoff in the inspection game. The 25% inspection rate needs the police side to count the city's damage of 15 for each uninspected crime. The Police Chief's payoff row (salary + private account change - penalty if caught taking bribes) has no crime term. With that payoff, if an inspection costs the Chief 4, the Chief never inspects and the gangs commit crime in every district (pure equilibrium: Crime, Don't inspect). Does the Chief's payoff include crime damage (or a share of the Council's), or does the Council set the inspection rate?",
+    "The stated 150-day cap. Players are told about it, so the turf war has a known last possible day. Backward induction from day 150 then leaves 'always encroach' as the only subgame-perfect equilibrium, however unlikely day 150 is (4.9%). The 0.5 threshold argument holds only without a known cap. Options: don't announce the cap, raise it, or keep it and say so in the paper and in hypothesis 4.",
+    "Bribery audit game. The plan gives the audit cost (8) and the penalty (100), but not what one audit covers (one district-day, or the Chief's whole day), what the Council gains from catching a bribe, whether a caught Chief keeps the bribe, or whether the seized account goes to the treasury. The solver assumes one audit checks one district-day, one audit decision a day, an uncaught bribe costs the Council the 15 crime damage, and a caught Chief keeps the bribe. Under that, the Council is indifferent about auditing when the Chief takes bribes 8/15 of the time.",
+    "Bribe terms. The window 100a < b <= 10 leaves the amount to bargaining. Is a bribe per district per day, and is it paid before or after the Chief plans inspections?",
+    "Districts and gangs. The inspection game has 'a gang' choose in each of 6 districts. Which gang acts in which district (does turf decide it), and can both gangs commit crime in one district on one day? The daily totals here assume one gang decision per district.",
+    "Prison. At equilibrium about 0.4 arrests a day, so the 40 places fill only if a sentence is longer than about 100 days. What is the sentence length?",
+    "Week-0 turf bots. Which equilibrium do the scripted gangs play in the turf war: always encroach (the one-day equilibrium) or grim trigger (cooperation)? Both are equilibria at 0.98 without a known cap, and the week-0 check needs one.",
+    "Expected length. The plan says 50 days, which is the length without the cap. With the 150-day cap it is 47.6 days. Wording only."
+  ]
+}
