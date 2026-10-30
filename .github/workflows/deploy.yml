@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ["worker/**", "dashboard/**", ".github/workflows/deploy.yml"]
   pull_request:
-    paths: ["worker/**", "dashboard/**", ".github/workflows/deploy.yml"]
+    paths: ["worker/**", "dashboard/**", "analysis/**", ".github/workflows/deploy.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -27,6 +27,16 @@ jobs:
           cache-dependency-path: worker/package-lock.json
       - run: npm ci
       - run: npm run check
+      - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python tests (solver, metrics)
+        working-directory: .
+        run: |
+          for d in analysis/*/tests; do
+            python -m unittest discover -s "$d" -t .
+          done
 
   deploy:
     needs: check
