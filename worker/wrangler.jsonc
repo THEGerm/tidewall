@@ -9,5 +9,13 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tidewall",
+      "database_id": "23f1d327-2ec2-453e-a67e-0ebc39c5bdc6",
+      "migrations_dir": "migrations"
+    }
+  ],
   "observability": { "enabled": true }
 }
