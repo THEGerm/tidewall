@@ -5,6 +5,8 @@ about the world and still not act on it." brier() measures the first,
 best_response_rate() the second.
 """
 
+from math import log
+
 from . import equilibrium as eq
 
 
@@ -33,7 +35,7 @@ def brier_skill(pairs):
     return float("nan") if reference == 0 else 1 - brier(pairs) / reference
 
 
-def calibration(pairs, bins=5):
+def calibration(pairs, bins=10):
     """Forecasts grouped into equal-width bins: mean forecast against observed rate."""
     groups = [[] for _ in range(bins)]
     for p, o in pairs:
@@ -48,6 +50,28 @@ def calibration(pairs, bins=5):
                 "observed": sum(o for _, o in g) / len(g),
             })
     return out
+
+
+def clip(p, eps=0.01):
+    """Pull a forecast into [eps, 1 - eps], so one stated 0 or 1 can't make
+    the log score infinite. Beliefs aren't paid for in the game, so extreme
+    forecasts are cheap to state (issue #13)."""
+    return min(max(p, eps), 1 - eps)
+
+
+def log_score(pairs, eps=0.01):
+    """Mean log score of (forecast, outcome) pairs, forecasts clipped to
+    [eps, 1 - eps]. Higher is better; a coin scores log(0.5)."""
+    pairs = list(pairs)
+    if not pairs:
+        raise ValueError("no forecasts")
+    total = 0.0
+    for p, o in pairs:
+        if not 0 <= p <= 1:
+            raise ValueError(f"forecast {p} is not a probability")
+        q = clip(p, eps)
+        total += log(q) if o else log(1 - q)
+    return total / len(pairs)
 
 
 # Best responses to a stated belief. Each returns True (do it), False (don't)
