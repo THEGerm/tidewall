@@ -22,17 +22,15 @@ export const PRICES: Record<string, Price | null> = {
   "gemini-4-argon": { input: 2, cachedInput: 0.1, cacheWrite: 0, output: 10, checked: "2026-10-30" },
 
   // Test-run models (Germ, 30 Oct).
-  // Claude Haiku 5.5, Claude docs, checked 30 Oct 2026: $0.10 in and $0.50 out for
-  // prompts up to 100K tokens. Cache read and write follow Anthropic's usual
-  // multipliers (0.1x and 1.25x input).
+  // Claude Haiku 5.5, Claude pricing page, checked 30 Oct 2026, prompts up to 100K
+  // tokens: $0.10 in, $0.125 for 5-minute cache writes, $0.01 cache hits, $0.50 out.
   "claude-haiku-5-5": { input: 0.1, cachedInput: 0.01, cacheWrite: 0.125, output: 0.5, checked: "2026-10-30" },
   // Gemini 3 Flash Preview, Google pricing page, Standard tier, checked 30 Oct
   // 2026. Implicit caching: no write charge.
   "gemini-3-flash-preview": { input: 0.5, cachedInput: 0.05, cacheWrite: 0, output: 3, checked: "2026-10-30" },
-  // GPT-6 Luna, OpenAI models page, checked 30 Oct 2026: $0.10 in, $0.50 out.
-  // ASSUMED until checked on its model page: cached input at 5% and cache
-  // writes at 1.25x of input, as on GPT-6.1 Sol's page.
-  "gpt-6-luna": { input: 0.1, cachedInput: 0.005, cacheWrite: 0.125, output: 0.5, checked: "2026-10-30, cache rates assumed" },
+  // GPT-6 Luna, OpenAI pricing page, checked 30 Oct 2026, short context (up to
+  // 272K input): $0.10 in, $0.01 cached input, $0.125 for 30-minute cache writes, $0.50 out.
+  "gpt-6-luna": { input: 0.1, cachedInput: 0.01, cacheWrite: 0.125, output: 0.5, checked: "2026-10-30" },
 };
 
 // Announced price changes: from that date (UTC), the new price applies.
