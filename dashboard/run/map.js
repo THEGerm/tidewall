@@ -879,13 +879,13 @@
 
   /* ---------- the day's events, drawn over the city ---------- */
 
-  function flare(P, sx, sy, r) {
-    P.stroke([sx + 3, sy + 50, sx + 1, sy + 26, sx, sy + 2], 1.4, [0.1, 0.7, 0.3, 0], { taper: true, wob: 0.8 });
-    P.rings(sx, sy, r * 0.9, r * 2.6, 4, [0, 0.1, 0.1, 0]);
-    const st = [];
-    for (let i = 0; i < 20; i++) { const a = (i / 20) * TAU, rr = i % 2 ? r * 0.45 : r; st.push(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr); }
-    P.poly(st, [0, 0.95, 0.25, 0], { ko: true, wob: 0.3, line: 0.7 });
-    P.ell(sx, sy, r * 0.42, r * 0.42, [0, 0.15, 1, 0], { ko: true, wob: 0.1 });
+  // Crime: a red signpost arrow lettered CRIME, pointing at the spot on the ground (Germ, 30 Oct: no sun)
+  function crimeMark(P, sx, sy) {
+    P.rings(sx, sy, 5, 30, 4, [0, 0.16, 0.04, 0], 0.5); // red glow on the ground
+    const by = sy - 30, w = 40, h = 13;
+    P.poly([sx - w / 2, by - h, sx + w / 2, by - h, sx + w / 2, by, sx + 6, by, sx, by + 9, sx - 6, by, sx - w / 2, by], [0.05, 0.95, 0.2, 0], { wob: 0.25, line: 0.7 });
+    P.text("CRIME", sx, by - 3.2, 8.5, [0, 0, 0, 0], { bold: true });
+    P.dot(sx, sy, 2.4, [0.6, 0.9, 0, 0]);
   }
   function smoke(P, sx, sy, n, s, dark) {
     for (let i = 0; i < n; i++) {
@@ -979,10 +979,9 @@
         for (let i = 0; i < 4; i++) flame(P, sx - 18 + i * 12 + (er() - 0.5) * 3, sy + 2 - (i === 1 || i === 2 ? 4 : 0), 17 + er() * 9, i + er() * 6);
         G(i0, sx, sy);
       } else if (e.kind === "crime" && POLY[d]) {
-        const [x, y] = at(d), [sx, sy] = q(x, y, LAND + 80), i0 = P.ops.length;
-        smoke(P, sx + 8, sy + 46, 4, 6.5, false);
-        flare(P, sx, sy, 13);
-        G(i0, sx, sy + 50);
+        const [x, y] = at(d), [sx, sy] = q(x, y, LAND + 2), i0 = P.ops.length;
+        crimeMark(P, sx, sy);
+        G(i0, sx, sy);
       } else if ((e.kind === "bribe_offer" || e.kind === "bribe_accepted" || e.kind === "bribe_refused") && POLY[d]) {
         const [x, y] = at(d), [sx, sy] = q(x, y, LAND + 36);
         const i0 = P.ops.length;
