@@ -14,7 +14,10 @@ export const PRICES: Record<string, Price | null> = {
   // Anthropic list price, checked 30 Oct 2026 (Claude API skill table). Cache
   // writes are billed at 1.25 x input for the 5-minute cache.
   "claude-opus-5-5": { input: 4, cachedInput: 0.2, cacheWrite: 5, output: 20, checked: "2026-10-30" },
-  // Gemini and GPT: set with the pinned model IDs (players/models.ts).
+  // OpenAI model page, checked 30 Oct 2026. Prompts over 272K input tokens
+  // cost more; Tidewall prompts stay far below that.
+  "gpt-6.1-sol": { input: 2, cachedInput: 0.1, cacheWrite: 2.5, output: 10, checked: "2026-10-30" },
+  // Gemini: set with its pinned model ID (players/models.ts).
 };
 
 export function priceOf(model: string): Price | null {
