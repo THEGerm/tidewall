@@ -5,6 +5,7 @@ import type { Env } from "../index";
 import { createRun, getRun, setStatus, type Seating } from "../engine/store";
 import { blocker, playNextDay } from "../engine/runner";
 import { runLedger, studySpend } from "../ledger/ledger";
+import { EFFORT, MODELS, TEST_MODELS } from "../players/models";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
@@ -13,7 +14,7 @@ export async function handleControl(request: Request, env: Env, path: string): P
 
   if (path === "status" && request.method === "GET") {
     const { results: runs } = await env.DB.prepare("SELECT id, model_set, triple, rotation, seating, status, pause_reason, json_extract(state, '$.day') AS day FROM runs ORDER BY triple, rotation").all();
-    return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")), spend: await studySpend(env.DB), runs });
+    return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")), spend: await studySpend(env.DB), models: { study: MODELS, test: TEST_MODELS }, effort: EFFORT, runs });
   }
 
   if (path === "schedule" && request.method === "POST") {
