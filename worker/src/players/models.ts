@@ -26,7 +26,7 @@ export const EFFORT = "medium" as const;
 export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = {
   claude: { provider: "anthropic", model: "claude-haiku-5-5" },
   gemini: { provider: "google", model: "gemini-3-flash-preview" },
-  gpt: { provider: "openai", model: "o3-2025-04-16" }, // deprecated by OpenAI; dated snapshot
+  gpt: { provider: "openai", model: "gpt-6-luna" }, // Germ, 30 Oct: current, same generation as Sol
 };
 
 export type ModelSet = "study" | "test";

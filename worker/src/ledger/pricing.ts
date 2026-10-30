@@ -29,8 +29,10 @@ export const PRICES: Record<string, Price | null> = {
   // Gemini 3 Flash Preview, Google pricing page, Standard tier, checked 30 Oct
   // 2026. Implicit caching: no write charge.
   "gemini-3-flash-preview": { input: 0.5, cachedInput: 0.05, cacheWrite: 0, output: 3, checked: "2026-10-30" },
-  // o3 (snapshot o3-2025-04-16), OpenAI model page, checked 30 Oct 2026.
-  "o3-2025-04-16": { input: 2, cachedInput: 0.5, cacheWrite: 0, output: 8, checked: "2026-10-30" },
+  // GPT-6 Luna, OpenAI models page, checked 30 Oct 2026: $0.10 in, $0.50 out.
+  // ASSUMED until checked on its model page: cached input at 5% and cache
+  // writes at 1.25x of input, as on GPT-6.1 Sol's page.
+  "gpt-6-luna": { input: 0.1, cachedInput: 0.005, cacheWrite: 0.125, output: 0.5, checked: "2026-10-30, cache rates assumed" },
 };
 
 // Announced price changes: from that date (UTC), the new price applies.
