@@ -2,19 +2,20 @@
 // interface, checks every answer, gives one retry with the errors, and falls
 // back to a legal move when a player refuses or fails twice (section 7).
 
-import { GANGS, PLAYERS, TURF, type District, type Gang, type PlayerName } from "./config";
+import { CONFIDANTS, GANGS, PLAYERS, TURF, type District, type Gang, type PlayerName } from "./config";
+import { confidantReply } from "./confidant";
 import { afterDay } from "./continuation";
 import { fallbackAudit, fallbackCrime, fallbackInspect, fallbackTurf } from "./fallback";
 import { drawNature, openDistricts } from "./nature";
 import { resolveDay } from "./resolve";
 import {
   Refusal,
-  type ActAnswer, type AnswersAnswer, type ChiefAct, type CouncilAct, type DayMoves, type Event, type Forecasts,
+  type ActAnswer, type AnswersAnswer, type ChiefAct, type ConfidantExchange, type ConfideAnswer, type ConfideWindow, type CouncilAct, type DayMoves, type Event, type Forecasts,
   type GameState, type GangAct, type Message, type MessagesAnswer, type OffersAnswer, type Player,
   type Scores, type StepRecord, type View, type WireAnswer, type WireItem,
 } from "./types";
 import {
-  checkAnswers, checkChiefAct, checkCouncilAct, checkGangAct, checkMessages, checkOffers, checkWire, checkWorldAct, ownOpen,
+  checkAnswers, checkChiefAct, checkConfide, checkCouncilAct, checkGangAct, checkMessages, checkOffers, checkWire, checkWorldAct, ownOpen,
 } from "./validate";
 
 export interface DayInput {
@@ -39,6 +40,7 @@ export interface DayResult {
   delta: Scores;
   welfare: number;
   records: StepRecord[];
+  confidant: { player: PlayerName; window: ConfideWindow; text: string | null; reply: string }[];
 }
 
 type Step = StepRecord["step"];
@@ -98,6 +100,20 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
     const a = await ask<OffersAnswer>(records, g, "offers", (errs) => players[g].bribeOffers!({ ...base(g), inbox: inbox(g), retryErrors: errs } as View), (x) => checkOffers(x, g, open));
     for (const [d, v] of Object.entries(a?.bribe_offers ?? {})) if (typeof v === "number") offers[g][d as District] = v;
   }));
+  // Steps 3.2 and 4.2: texting the confidant. Each player sees only its own
+  // texts and Sam's replies; nothing here reaches another player, the World,
+  // the event log or the Wire, and nothing changes the game.
+  const sam: Partial<Record<PlayerName, ConfidantExchange[]>> = {};
+  const own = (p: PlayerName) => (sam[p] ? { confidantToday: [...sam[p]!] } : {});
+  const confide = (window: ConfideWindow, extra: (p: PlayerName) => Partial<View>) =>
+    Promise.all(CONFIDANTS.filter((p) => players[p].confide).map(async (p) => {
+      const a = await ask<ConfideAnswer>(records, p, `confide_${window}`,
+        (errs) => players[p].confide!({ ...base(p), inbox: inbox(p), ...own(p), ...extra(p), retryErrors: errs } as View, window),
+        checkConfide);
+      (sam[p] ??= []).push({ window, text: a?.text ?? null, reply: confidantReply(seed, day, p, window) }); // fallback: no text
+    }));
+  await confide("before", () => ({}));
+
   const allOffers = { ...offers.Families, ...offers.Saltdogs };
   const offered = Object.keys(allOffers) as District[];
 
@@ -105,10 +121,13 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
   let accepted: District[] = [];
   if (offered.length && players.Chief.bribeAnswers) {
     const a = await ask<AnswersAnswer>(records, "Chief", "answers",
-      (errs) => players.Chief.bribeAnswers!({ ...base("Chief"), inbox: inbox("Chief"), offersToAnswer: allOffers, retryErrors: errs } as View),
+      (errs) => players.Chief.bribeAnswers!({ ...base("Chief"), inbox: inbox("Chief"), ...own("Chief"), offersToAnswer: allOffers, retryErrors: errs } as View),
       (x) => checkAnswers(x, offered));
     accepted = a ? offered.filter((d) => a.bribe_answers[d] === "accept") : []; // fallback: refuse all
   }
+
+  await confide("after", (p) =>
+    p === "Chief" ? { acceptedToday: accepted } : p === "Families" || p === "Saltdogs" ? { ownOffersAccepted: accepted.filter((d) => TURF[d] === p) } : {});
 
   // Step 5: forecasts, moves, diaries
   const prev = state.previous;
@@ -126,7 +145,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
     ...GANGS.map(async (g) => {
       const mine = ownOpen(g, open);
       const a = await ask<GangAct>(records, g, "act",
-        (errs) => players[g].act({ ...base(g), inbox: inbox(g), ownOffersAccepted: accepted.filter((d) => TURF[d] === g), retryErrors: errs } as View),
+        (errs) => players[g].act({ ...base(g), inbox: inbox(g), ...own(g), ownOffersAccepted: accepted.filter((d) => TURF[d] === g), retryErrors: errs } as View),
         (x) => checkGangAct(x, g, open));
       keep(g, a);
       Object.assign(crime, a ? Object.fromEntries(mine.map((d) => [d, a.moves.crime[d]])) : fallbackCrime(seed, day, g, open, prev));
@@ -134,14 +153,14 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
     }),
     (async () => {
       const a = await ask<ChiefAct>(records, "Chief", "act",
-        (errs) => players.Chief.act({ ...base("Chief"), inbox: inbox("Chief"), acceptedToday: accepted, retryErrors: errs } as View),
+        (errs) => players.Chief.act({ ...base("Chief"), inbox: inbox("Chief"), ...own("Chief"), acceptedToday: accepted, retryErrors: errs } as View),
         (x) => checkChiefAct(x, open, accepted));
       keep("Chief", a);
       inspect = a ? a.moves.inspect : fallbackInspect(seed, day, open, accepted, prev);
     })(),
     (async () => {
       const a = await ask<CouncilAct>(records, "Council", "act",
-        (errs) => players.Council.act({ ...base("Council"), inbox: inbox("Council"), retryErrors: errs } as View),
+        (errs) => players.Council.act({ ...base("Council"), inbox: inbox("Council"), ...own("Council"), retryErrors: errs } as View),
         (x) => checkCouncilAct(x, open));
       keep("Council", a);
       audit = a ? a.moves.audit : fallbackAudit(seed, day, open, prev);
@@ -170,5 +189,6 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
   const end = afterDay(seed, day);
   const next: GameState = { ...r.state, day: end.over ? day : day + 1, over: end.over, truncated: end.truncated };
 
-  return { state: next, day, nature, open, moves, events: r.events, publicEvents, wire, messages: sent, forecasts, diaries, delta: r.delta, welfare: r.welfare, records };
+  return { state: next, day, nature, open, moves, events: r.events, publicEvents, wire, messages: sent, forecasts, diaries, delta: r.delta, welfare: r.welfare, records,
+    confidant: CONFIDANTS.flatMap((p) => (sam[p] ?? []).map((c) => ({ player: p, ...c }))) };
 }

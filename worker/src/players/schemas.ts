@@ -25,6 +25,8 @@ export function offersSchema(v: View): Schema {
   return obj({ bribe_offers: perDistrict(mine, { anyOf: [{ type: "integer", minimum: BRIBE_MIN, maximum: BRIBE_MAX }, { type: "null" }] }) });
 }
 
+export const confideSchema = (): Schema => obj({ text: { anyOf: [text(60), { type: "null" }] } });
+
 export function answersSchema(v: View): Schema {
   const offered = Object.keys(v.offersToAnswer ?? {}) as District[];
   return obj({ bribe_answers: perDistrict(offered, { type: "string", enum: ["accept", "refuse"] }) });

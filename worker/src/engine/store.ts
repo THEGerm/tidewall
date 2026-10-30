@@ -83,7 +83,7 @@ function rowToEvent(e: Record<string, any>): Event {
 
 // Saves one played day and the run's new state, all or nothing. Refuses a
 // day out of order, so a retried request can't write a day twice.
-export async function saveDay(db: D1Database, runId: string, r: DayResult, confidant: ConfidantRow[] = [], extra: D1PreparedStatement[] = []): Promise<void> {
+export async function saveDay(db: D1Database, runId: string, r: DayResult, confidant: ConfidantRow[] = r.confidant ?? [], extra: D1PreparedStatement[] = []): Promise<void> {
   const run = await getRun(db, runId);
   if (!run) throw new Error(`no run ${runId}`);
   if (run.state.day !== r.day || run.status === "over" || run.status === "truncated") {

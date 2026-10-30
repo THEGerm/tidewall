@@ -9,7 +9,7 @@ import { Refusal, type Event, type Player, type View } from "../engine/types";
 import { ProviderError, callModel, withRetry, type ChatRequest, type ChatResult, type Provider, type Usage } from "../providers";
 import type { KeyCandidate } from "./keys";
 import type { Prompts } from "./prompts";
-import { actSchema, answersSchema, messagesSchema, offersSchema, wireSchema } from "./schemas";
+import { actSchema, answersSchema, confideSchema, messagesSchema, offersSchema, wireSchema } from "./schemas";
 
 export interface CallRecord {
   player: PlayerName;
@@ -96,6 +96,7 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
     messages: (v) => ask("messages", v.day, user("messages", v), "messages", messagesSchema(o.name)) as any,
     act: (v) => ask("act", v.day, user("act", v), "act", actSchema(v)) as any,
   };
+  if (o.name !== "World") player.confide = (v, window) => ask(`confide_${window}`, v.day, user(`confide_${window}`, v), "confidant_text", confideSchema()) as any;
   if (o.name === "Families" || o.name === "Saltdogs") player.bribeOffers = (v) => ask("offers", v.day, user("offers", v), "bribe_offers", offersSchema(v)) as any;
   if (o.name === "Chief") player.bribeAnswers = (v) => ask("answers", v.day, user("answers", v), "bribe_answers", answersSchema(v)) as any;
   if (o.name === "World") {

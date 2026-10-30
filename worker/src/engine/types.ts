@@ -26,6 +26,15 @@ export interface Message {
 export interface MessagesAnswer {
   messages: Message[];
 }
+export interface ConfideAnswer {
+  text: string | null;
+}
+export type ConfideWindow = "before" | "after";
+export interface ConfidantExchange {
+  window: ConfideWindow;
+  text: string | null;
+  reply: string;
+}
 export interface OffersAnswer {
   bribe_offers: Partial<Record<District, number | null>>;
 }
@@ -85,7 +94,7 @@ export interface Event {
 // What happened to each player's answer at each step: used, or a fallback.
 export interface StepRecord {
   player: PlayerName;
-  step: "messages" | "offers" | "answers" | "act" | "wire";
+  step: "messages" | "offers" | "confide_before" | "answers" | "confide_after" | "act" | "wire";
   source: "player" | "retry" | "fallback";
   reason?: "refused" | "invalid" | "error";
   errors?: string[];
@@ -124,6 +133,7 @@ export interface View {
   ownOffersAccepted?: District[]; // gangs, step 5
   offersToAnswer?: Partial<Record<District, number>>; // Chief, step 4
   acceptedToday?: District[]; // Chief, step 5
+  confidantToday?: ConfidantExchange[]; // this player's own texts to Sam today, never anyone else's
   retryErrors?: string[]; // set on the one retry: what was wrong last time
 }
 
@@ -131,6 +141,7 @@ export interface Player {
   name: PlayerName;
   messages(view: View): Promise<MessagesAnswer>;
   bribeOffers?(view: View): Promise<OffersAnswer>;
+  confide?(view: View, window: ConfideWindow): Promise<ConfideAnswer>; // steps 3.2 and 4.2; the reply is the engine's
   bribeAnswers?(view: View): Promise<AnswersAnswer>;
   act(view: View): Promise<ActAnswer>;
   wire?(events: Event[], retryErrors?: string[]): Promise<WireAnswer>;
