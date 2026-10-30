@@ -48,9 +48,9 @@ Figures use the same functions as `analysis/metrics`, ported to the page or prec
 
 After every game day: tokens in, cached and out, plus cost, per participant and provider, with fallback-key rows marked. Running totals per run and for the study, against the budget cap. The same rows, with participant names (never emails), are public data on each run page and in the run export: who paid is part of the record.
 
-### 5. Control `/me/control/` (signed in)
+### 5. Control `/me/control/` (signed in, built)
 
-- Create the 27 runs from the triple seeds and seating (once).
+- Create a run by hand (a test run, or one study run). The 27 study runs come from a script with the published seeds (#38).
 - Start, pause and resume the schedule; play one day by hand (useful for the cheap test run).
 - Key check: for each provider, who has a working key today. A run that can't find a key pauses here with the reason.
 - Spending cap: total so far against the cap, and the setting.
@@ -58,7 +58,7 @@ After every game day: tokens in, cached and out, plus cost, per participant and 
 
 ### 6. My keys `/me/` (built)
 
-As now: save, test, delete. Add a link to the ledger and control pages.
+As now: save, test, delete. Links to the Control page.
 
 ## Data and API
 
@@ -137,7 +137,7 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 | D2 ✅ | Run page: Wire, scores, turf strip, day slider, plain fallback map, confidant panel, prison and treasury, secrets once the run ends | D1 |
 | D2b | The risograph map (section "The map") | D2 |
 | D3 | Ledger table and the ledger page | Ledger PR (engine) |
-| D4 | Control page: create runs, start, pause, step, key check, cap | Scheduler PR (engine) |
+| D4 ✅ | Control page: create runs, start, pause, step, key check, cap, models in use | Scheduler PR (engine) |
 | D5 | Game theory panel | Metrics in the run export |
 | D6 | Finished-run tabs: messages, diaries, confidant, forecasts | D2 |
 

@@ -151,3 +151,20 @@ svg .line.wire { stroke: var(--wire); } svg .pt.wire { fill: var(--wire); }
 .confidant .sam { color: var(--muted); font-style: italic; }
 .block h3 { margin-top: 16px; }
 .block ul { padding-left: 20px; }
+
+/* Control page (D4) */
+.small { font-size: 0.8rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions button { padding: 6px 10px; font-size: 0.85rem; }
+form.inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+form.inline input { width: 7em; }
+.grid-form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end; }
+.grid-form label { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+form.inline input, .grid-form input, .grid-form select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; min-width: 0; }
+@media (max-width: 700px) {
+  table.stack thead { display: none; }
+  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; }
+  table.stack tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+  table.stack td { border: none; padding: 4px 12px; }
+  table.stack td[data-label]:not([data-label=""])::before { content: attr(data-label) ": "; color: var(--muted); font-size: 0.85rem; }
+}
