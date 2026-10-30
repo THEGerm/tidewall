@@ -23,7 +23,7 @@ function fill(s: any): any {
     case "string": return "ok";
   }
 }
-const fake = async (_p: any, _k: string, req: ChatRequest): Promise<ChatResult> => ({
+const fake = async (_p: any, _k: string, req: ChatRequest): Promise<ChatResult> => (efforts.push(req.effort), {
   provider: "anthropic", model: req.model, modelReported: req.model, text: JSON.stringify(fill(req.json!.schema)),
   stop: "done", stopDetail: "end_turn", usage, requestId: null, latencyMs: 3,
 });
@@ -31,6 +31,7 @@ const opts = { call: fake as any, retry: <T,>(f: () => Promise<T>) => f() };
 const seating = { Government: "claude", Criminals: "gemini", World: "gpt" };
 
 const saved = { gemini: MODELS.gemini.model, gpt: MODELS.gpt.model };
+const efforts: (string | undefined)[] = [];
 beforeEach(() => {
   MODELS.gemini.model = "gemini-test";
   MODELS.gpt.model = "gpt-test";
@@ -53,6 +54,11 @@ async function setup(keys: ("anthropic" | "google" | "openai")[] = ["anthropic",
 const on = (env: RunnerEnv) => env.DB.prepare("UPDATE meta SET value = 'on' WHERE key = 'schedule'").run();
 
 describe("pricing", () => {
+  it("has GPT-6.1 Sol pinned and priced", () => {
+    expect(saved.gpt).toBe("gpt-6.1-sol");
+    expect(PRICES["gpt-6.1-sol"]).toMatchObject({ input: 2, cachedInput: 0.1, cacheWrite: 2.5, output: 10 });
+  });
+
   it("costs fresh, cached and output tokens separately", () => {
     expect(costOf("claude-opus-5-5", usage)).toBeCloseTo((200 * 4 + 800 * 0.2 + 200 * 20) / 1e6, 10);
     expect(costOf("unknown-model", usage)).toBeNull();
@@ -80,6 +86,8 @@ describe("scheduler", () => {
     expect(rows.find((r) => r.provider === "google")!.payer_name).toBe("Shazz");
     expect(rows.find((r) => r.provider === "anthropic")!.payer_name).toBe("Germ");
     expect((await studySpend(env.DB)).usd).toBeGreaterThan(0);
+    expect(efforts.length).toBeGreaterThan(0);
+    expect(efforts.every((e) => e === "medium")).toBe(true);
   });
 
   it("pauses with a reason when nobody has a key for a provider", async () => {

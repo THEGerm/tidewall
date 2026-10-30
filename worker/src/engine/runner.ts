@@ -15,7 +15,7 @@ import { priceOf } from "../ledger/pricing";
 import type { callModel } from "../providers";
 import { keyChain, participants } from "../players/keys";
 import { modelPlayer, type CallRecord } from "../players/model";
-import { MODELS, isPinned, type Family } from "../players/models";
+import { EFFORT, MODELS, isPinned, type Family } from "../players/models";
 import { placeholderPrompts, type Prompts } from "../players/prompts";
 
 export interface RunnerEnv {
@@ -85,7 +85,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
     const players = Object.fromEntries(PLAYERS.map((name) => {
       const m = MODELS[run.seating[SEAT_OF[name]] as Family];
       return [name, modelPlayer({
-        name, provider: m.provider, model: m.model, prompts,
+        name, provider: m.provider, model: m.model, prompts, effort: EFFORT,
         keys: (d) => keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, d),
         onCall: (r) => { calls.push(r); },
         ...(o.call ? { call: o.call } : {}),

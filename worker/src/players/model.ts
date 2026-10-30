@@ -35,6 +35,7 @@ export interface ModelPlayerOptions {
   keys: (day: number) => Promise<KeyCandidate[]>;
   onCall: (r: CallRecord) => void | Promise<void>;
   maxOutputTokens?: number;
+  effort?: "low" | "medium" | "high";
   call?: typeof callModel; // injected in tests
   retry?: typeof withRetry; // injected in tests (no sleeping)
 }
@@ -56,6 +57,7 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
       system: o.prompts.system(o.name),
       messages: [{ role: "user", text: user }],
       maxOutputTokens: o.maxOutputTokens ?? 4000,
+      ...(o.effort ? { effort: o.effort } : {}),
       json: { name: schemaName, schema },
       cacheKey: `tidewall-${o.name}`,
     };
