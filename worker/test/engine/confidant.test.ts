@@ -85,10 +85,10 @@ describe("confidant (rules 3.6)", () => {
     const replies = (rs: typeof a) => rs.map((r) => r.confidant.map((c) => `${c.player}/${c.window}/${c.reply}`));
     expect(replies(a)).toEqual(replies(b));
     expect(a.flatMap((r) => r.confidant).every((c) => (CONFIDANT_REPLIES as readonly string[]).includes(c.reply))).toBe(true);
-    // the schedule varies by day, player and window, and uses all six lines
+    // the schedule varies by day, player and window, and uses every line
     const all = new Set<string>();
     for (let d = 1; d <= 60; d++) for (const c of CONFIDANTS) for (const w of ["before", "after"] as const) all.add(confidantReply("s", d, c, w));
-    expect(all.size).toBe(6);
+    expect(all.size).toBe(CONFIDANT_REPLIES.length);
   });
 
   it("changes nothing in the game", async () => {
