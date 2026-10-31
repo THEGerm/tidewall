@@ -57,7 +57,11 @@ function render() {
       render();
     } catch (e) { $("run-msg").textContent = e.message; }
   };
+  $("sched-note").textContent = on
+    ? `A day every ${state.pace_minutes} minutes${state.next_due ? `; the next is due about ${clock(state.next_due)}` : ""}. You can close this page.`
+    : `When on, the first live run plays a day every ${state.pace_minutes} minutes. You can close this page.`;
   $("spend").textContent = `$${state.spend.usd.toFixed(2)} of $${state.cap_usd}`;
+  renderLog();
   $("unpriced").textContent = state.spend.unpriced ? `${state.spend.unpriced} calls have no price yet.` : "Every call so far is priced.";
   if (document.activeElement !== $("cap")) $("cap").value = state.cap_usd;
 
@@ -83,7 +87,7 @@ function runRow(r) {
   link.textContent = r.id;
   const first = document.createElement("td");
   first.append(link);
-  const status = cell(STATUS[r.status] || r.status);
+  const status = cell(r.playing ? `Playing day ${r.day}` : r.step_queued ? `Day ${r.day} queued` : STATUS[r.status] || r.status);
   if (r.pause_reason) {
     const why = document.createElement("div");
     why.className = "muted small";
@@ -123,10 +127,7 @@ function runRow(r) {
 }
 
 function explain(label, id, out) {
-  if (label === "Step") {
-    const o = out.outcome;
-    return o.played ? `${id}: day ${o.day} played, ${o.calls} model calls${o.over ? ". The run is over." : "."}` : `${id}: no day played. ${o.reason}`;
-  }
+  if (out.message) return out.message;
   if (label === "Check") return out.blocker ? `${id} can't play: ${out.blocker}` : `${id}: ready to play the next day.`;
   if (label === "Ledger") {
     const rows = out.ledger;
@@ -168,4 +169,25 @@ $("new-form").onsubmit = async (e) => {
   } catch (err) { $("new-msg").textContent = err.message; }
 };
 
+// "20:31" in the reader's own time zone.
+const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+function renderLog() {
+  const box = $("log");
+  box.replaceChildren(...(state.log.length ? state.log.map((l) => {
+    const li = document.createElement("li");
+    li.className = l.level;
+    const t = document.createElement("time");
+    t.dateTime = l.at;
+    t.textContent = clock(l.at);
+    li.append(t, " ", l.text);
+    return li;
+  }) : [Object.assign(document.createElement("li"), { textContent: "Nothing yet.", className: "info" })]));
+}
+
 load();
+// Keep the page current: runs, spending and the log every 15 seconds while it's open.
+setInterval(async () => {
+  if (!state || document.hidden || document.activeElement?.tagName === "INPUT") return;
+  try { state = await api("status"); render(); } catch {}
+}, 15000);

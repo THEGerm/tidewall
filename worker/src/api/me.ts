@@ -34,7 +34,7 @@ export async function handleMe(request: Request, env: Env, url: URL): Promise<Re
   }
 
   if (url.pathname.startsWith("/api/me/control/")) {
-    return handleControl(request, env, url.pathname.slice("/api/me/control/".length));
+    return handleControl(request, env, url.pathname.slice("/api/me/control/".length), participant.name);
   }
 
   const test = url.pathname.match(/^\/api\/me\/keys\/([a-z]+)\/test$/);

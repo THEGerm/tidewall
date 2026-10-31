@@ -178,3 +178,11 @@ table.num td, table.num th { white-space: nowrap; }
 
 /* The risograph print (D2b) */
 .print { margin: 16px 0 0; }
+
+/* Control log */
+.log { list-style: none; padding: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-size: 0.9rem; }
+.log li { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.log li:last-child { border-bottom: none; }
+.log time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.log li.warn { border-left: 3px solid var(--wire); }
+.log li.error { border-left: 3px solid var(--conf); }
