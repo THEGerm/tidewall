@@ -123,6 +123,7 @@ export const interimPrompts: Prompts = {
     `Your balance: ${JSON.stringify(v.balances)}.`,
     v.score !== undefined ? `Your score so far: ${v.score}.` : "",
     `Yesterday's public events: ${JSON.stringify(v.publicYesterday)}.`,
+    v.privateYesterday?.length ? `What only you learned yesterday: ${JSON.stringify(v.privateYesterday)}.` : "",
     `Yesterday's news: ${JSON.stringify(v.wireYesterday)}.`,
     `Messages to you today: ${JSON.stringify(v.inbox)}.`,
     v.acceptedToday ? `Bribes you accepted today: ${JSON.stringify(v.acceptedToday)}.` : "",

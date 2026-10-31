@@ -105,7 +105,7 @@ export interface StepRecord {
   player: PlayerName;
   step: "messages" | "offers" | "confide_before" | "answers" | "confide_after" | "act" | "wire";
   source: "player" | "retry" | "fallback";
-  reason?: "refused" | "invalid" | "error";
+  reason?: "refused" | "invalid" | "error" | "diary_dropped"; // diary_dropped: moves kept, diary entry too long twice (#109)
   errors?: string[];
 }
 
@@ -138,6 +138,7 @@ export interface View {
   open: District[];
   balances: Partial<Balances>;
   publicYesterday: Event[];
+  privateYesterday?: Event[]; // the player's own secret results from yesterday (rules section 4)
   wireYesterday: WireItem[];
   inbox: Message[];
   // Step-specific facts the player is allowed to see.
