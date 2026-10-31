@@ -25,3 +25,6 @@ paper/*.pdf
 
 # OS
 .DS_Store
+
+# Analysis worksheets (built from run exports, never committed)
+analysis/worksheets/out/

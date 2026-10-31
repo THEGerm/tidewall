@@ -3,6 +3,7 @@
 (() => {
   const links = [
     ["/", "Runs"],
+    ["/analysis/", "Analysis"],
     ["/me/control/", "Control"],
     ["/me/ledger/", "Ledger"],
     ["/me/", "My keys"],

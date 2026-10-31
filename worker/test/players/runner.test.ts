@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createRun, exportRun, getRun } from "../../src/engine/store";
-import { playNextDay, tick, type RunnerEnv } from "../../src/engine/runner";
+import { MAX_ATTEMPTS, playNextDay, tick, type RunnerEnv } from "../../src/engine/runner";
 import { fullLedger, runLedger, studySpend } from "../../src/ledger/ledger";
 import { recentLog } from "../../src/engine/log";
 import { PRICES, costOf } from "../../src/ledger/pricing";
@@ -226,7 +226,7 @@ describe("scheduler", () => {
     expect((await studySpend(env.DB)).usd).toBeGreaterThan(0);
   });
 
-  it("pauses after a day when a model is gone, and says so instead of blaming the keys", async () => {
+  it("never saves a day a seat lost to an error: replays it, then pauses after 3 tries", async () => {
     const env = await setup();
     await createRun(env.DB, { id: "t1-r1", seed: "seed-gone", triple: 1, rotation: 1, seating });
     await on(env);
@@ -234,13 +234,46 @@ describe("scheduler", () => {
       if (p === "google") throw new ProviderError("google", "model_unavailable", 404, "NOT_FOUND: no longer available to new users");
       return fake(p, k, req);
     };
-    const out = await tick(env, { ...opts, call: gone as any });
-    expect(out).toMatchObject({ played: true, day: 1 });
+    const o = { ...opts, call: gone as any };
+    for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+      const out = await tick(env, o);
+      expect(out).toMatchObject({ played: false, reason: expect.stringContaining("day 1 not saved") });
+    }
     const run = (await getRun(env.DB, "t1-r1"))!;
+    expect(run.state.day).toBe(1); // nothing was saved
     expect(run.status).toBe("paused");
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM days").first<{ n: number }>())!.n).toBe(0);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM ledger WHERE day_saved = 1").first<{ n: number }>())!.n).toBe(0);
     const reason = (await env.DB.prepare("SELECT pause_reason AS r FROM runs").first<{ r: string }>())!.r;
     expect(reason).toContain("model_unavailable");
     expect(reason).not.toContain("working google key");
-    expect((await recentLog(env.DB)).at(-1)).toMatchObject({ level: "error", text: expect.stringContaining("paused after day 1") });
+    expect((await recentLog(env.DB)).at(-1)).toMatchObject({ level: "error", text: expect.stringContaining("failed 3 times and was not saved") });
+  });
+
+  it("plays a day again after a passing error, saves it whole, and keeps raw answers for the export", async () => {
+    const env = await setup();
+    await createRun(env.DB, { id: "t1-r1", seed: "seed-blip", triple: 1, rotation: 1, seating });
+    await on(env);
+    let blip = true;
+    const flaky = async (p: any, k: string, req: ChatRequest): Promise<ChatResult> => {
+      if (p === "anthropic" && blip) throw new ProviderError("anthropic", "bad_key", 403, "forbidden: Request not allowed");
+      return fake(p, k, req);
+    };
+    const o = { ...opts, call: flaky as any };
+    expect(await tick(env, o)).toMatchObject({ played: false, reason: expect.stringContaining("not saved") });
+    expect((await recentLog(env.DB)).at(-1)).toMatchObject({ level: "warn", text: expect.stringContaining("attempt 1 of 3") });
+    blip = false;
+    expect(await tick(env, o)).toMatchObject({ played: true, day: 1 });
+    const run = (await getRun(env.DB, "t1-r1"))!;
+    expect([run.status, run.day_attempts]).toEqual(["running", 0]);
+    const saved = await env.DB.prepare("SELECT COUNT(*) AS n, MIN(at) AS at FROM ledger WHERE day_saved = 1").first<{ n: number; at: string }>();
+    expect(saved!.n).toBeGreaterThan(0);
+    expect(saved!.at).toMatch(/^\d{4}-\d\d-\d\dT/);
+    const raw = await env.DB.prepare("SELECT COUNT(*) AS n, MIN(length(prompt_sha)) AS h FROM responses").first<{ n: number; h: number }>();
+    expect(raw!.n).toBeGreaterThan(0);
+    expect(raw!.h).toBe(64);
+    const ex = await exportRun(env.DB, "t1-r1");
+    expect(ex.responses.length).toBe(raw!.n);
+    expect(ex.ledger[0]).toHaveProperty("at");
   });
 });

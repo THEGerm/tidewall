@@ -25,6 +25,9 @@ export interface CallRecord {
   usage: Usage | null;
   error: string | null;
   latencyMs: number | null;
+  requestId?: string | null;
+  text?: string | null; // the raw answer, kept for the export of a finished run
+  promptSha?: string; // sha-256 of the system prompt and the step's prompt
 }
 
 export interface ModelPlayerOptions {
@@ -47,6 +50,11 @@ export class NoKeyError extends Error {
   }
 }
 
+async function sha256(s: string): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function modelPlayer(o: ModelPlayerOptions): Player {
   const call = o.call ?? callModel;
   const retry = o.retry ?? withRetry;
@@ -61,6 +69,7 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
       json: { name: schemaName, schema },
       cacheKey: `tidewall-${o.name}`,
     };
+    const promptSha = await sha256(`${req.system}\n\n${user}`);
     const keys = await o.keys(day);
     if (keys.length === 0) {
       await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: null, payer: null, fallbackKey: false, ok: false, stop: null, usage: null, error: "no key", latencyMs: null });
@@ -77,7 +86,7 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
         if (err instanceof ProviderError && err.tryNextKey) continue;
         throw err;
       }
-      await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: result.modelReported, payer: k.email, fallbackKey: !k.owner, ok: true, stop: result.stop, usage: result.usage, error: null, latencyMs: result.latencyMs });
+      await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: result.modelReported, payer: k.email, fallbackKey: !k.owner, ok: true, stop: result.stop, usage: result.usage, error: null, latencyMs: result.latencyMs, requestId: result.requestId, text: result.text, promptSha });
       if (result.stop === "refused") throw new Refusal(result.stopDetail);
       try {
         return JSON.parse(result.text);

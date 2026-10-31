@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analysis · Tidewall</title>
+  <meta name="description" content="Each Tidewall run's results against the game's equilibrium, and its raw logs: model calls, answers, events, messages, diaries, forecasts, the Wire and texts to Sam.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="wide">
+  <header>
+    <p class="eyebrow"><a href="/">Tidewall</a> / Analysis</p>
+    <h1 id="title">Analysis</h1>
+    <p class="lede">Pick a run to see its results and its raw logs. A finished run shows everything; a live run shows what is public so far.</p>
+    <label class="pick" for="pick">Run <select id="pick"><option value="">Loading runs...</option></select></label>
+    <p class="msg" id="note"></p>
+  </header>
+
+  <main id="main" hidden>
+    <section aria-labelledby="h-run">
+      <h2 id="h-run">The run</h2>
+      <div class="facts" id="facts"></div>
+      <div class="cta" id="links"></div>
+    </section>
+
+    <section aria-labelledby="h-results">
+      <h2 id="h-results">Results</h2>
+      <p class="muted" id="results-note"></p>
+      <div id="panel"></div>
+    </section>
+
+    <section aria-labelledby="h-logs">
+      <h2 id="h-logs">Raw logs</h2>
+      <p class="muted">Every row the run recorded, one table per log. Filter by day and player; the download holds every row that matches the filters, on all pages.</p>
+      <div class="tabs" role="tablist" aria-label="Raw logs" id="tabs"></div>
+      <div id="logpanel" role="tabpanel">
+        <p class="muted" id="log-note"></p>
+        <div class="filters" id="filters"></div>
+        <div class="table-wrap"><table class="logs" id="log"></table></div>
+        <div class="pager" id="pager"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="/">All runs</a>
+    <a id="run-link" href="/">The run</a>
+    <a id="theory-link" href="/">Game theory</a>
+    <a id="data-link" href="/">Data and downloads</a>
+  </footer>
+
+  <script src="/nav.js"></script>
+  <script type="module" src="/analysis/analysis.js"></script>
+</body>
+</html>

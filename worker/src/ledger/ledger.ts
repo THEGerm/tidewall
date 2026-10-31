@@ -11,20 +11,24 @@ export function ledgerRow(db: D1Database, runId: string, day: number, seq: numbe
   return db
     .prepare(
       `INSERT INTO ledger (run_id, day, seq, player, step, provider, model, model_reported, payer_name, payer_email,
-         fallback_key, ok, stop, input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+         fallback_key, ok, stop, input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     )
     .bind(
       runId, day, seq, c.player, c.step, c.provider, c.model, c.modelReported,
       c.payer ? (names[c.payer] ?? "unknown") : null, c.payer,
       c.fallbackKey ? 1 : 0, c.ok ? 1 : 0, c.stop,
       c.usage?.input ?? null, c.usage?.cachedInput ?? null, c.usage?.cacheWrite ?? null, c.usage?.output ?? null, c.usage?.reasoning ?? null,
-      c.usage ? costOf(c.model, c.usage) : null, c.error, c.latencyMs,
+      c.usage ? costOf(c.model, c.usage) : null, c.error, c.latencyMs, new Date().toISOString(), c.requestId ?? null,
     );
 }
 
 // The next free seq for a run's day: a day played again after a failure
 // numbers its calls after the failed attempt's.
+// The raw answer behind a ledger row, kept apart from the public ledger.
+export const responseRow = (db: D1Database, runId: string, day: number, seq: number, c: CallRecord) =>
+  db.prepare("INSERT INTO responses (run_id, day, seq, prompt_sha, text) VALUES (?, ?, ?, ?, ?)").bind(runId, day, seq, c.promptSha ?? null, c.text ?? null);
+
 export async function nextSeq(db: D1Database, runId: string, day: number): Promise<number> {
   const r = await db.prepare("SELECT COALESCE(MAX(seq) + 1, 0) AS n FROM ledger WHERE run_id = ? AND day = ?").bind(runId, day).first<{ n: number }>();
   return r?.n ?? 0;
