@@ -155,17 +155,17 @@ async function show(n) {
 
 // The map's colours, for fun only: nothing here is in the game (Germ, 31 Oct;
 // turf never changes hands). Each day a gang encroaches, its colour spreads 10
-// points into the other gang's districts, up to 50%; each day it respects, it
-// pulls back 10 points. Each gang member in prison hands 10% of that gang's
-// districts to the Government colour, up to 80%. Replayed from day 1, so each
-// day remembers the one before.
+// points into the other gang's districts, up to 50%, and stays: respecting
+// never takes it back (Germ, 31 Oct: nothing cancels out). Both gangs' spreads
+// show at once. Each gang member in prison hands 10% of that gang's districts
+// to the Government colour, up to 80%. Replayed from day 1, so each day
+// remembers the one before.
 const ENCROACH_STEP = 0.1, ENCROACH_MAX = 0.5, PER_PRISONER = 0.1, GOV_MAX = 0.8;
 function influence(upto) {
   const reach = { Families: 0, Saltdogs: 0 };
   for (const d of summary.days.slice(0, upto)) {
     for (const g of ["Families", "Saltdogs"]) {
-      const step = d.turf?.[g] === "encroach" ? ENCROACH_STEP : -ENCROACH_STEP;
-      reach[g] = Math.min(ENCROACH_MAX, Math.max(0, reach[g] + step));
+      if (d.turf?.[g] === "encroach") reach[g] = Math.min(ENCROACH_MAX, reach[g] + ENCROACH_STEP);
     }
   }
   const held = summary.days[upto - 1]?.prisonBy || {};
