@@ -22,6 +22,7 @@ Tidewall is an island city-state behind a sea wall where three AI models take tu
 - **Rules and prompts freeze after cycle 1.** Changing one after that needs both Germ and Shazz, recorded in [docs/decisions/](docs/decisions/).
 - **Agent messages** between Germ's and Shazz's agents go through the private bus repo, not here.
 - **Every bug gets an issue** labelled `bug` before it is fixed, and the fixing PR closes it. Each is also labelled `affects method` (it changed what players saw or did, or what the record holds) or `no method impact` (pages, map, messages, cost display). The template is in `.github/ISSUE_TEMPLATE/bug.md`; the list feeds the paper's methods section.
+- **Read an issue's comments before fixing it.** The fix answers each comment, not only the title (#77 was closed with its comment unread).
 
 ## License
 

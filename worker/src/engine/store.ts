@@ -4,7 +4,7 @@
 // analysis side the whole run as one JSON object.
 
 import * as C from "./config";
-import type { PlayerName } from "./config";
+import { PLAYERS, type PlayerName } from "./config";
 import { EFFORT, modelsFor } from "../players/models";
 import type { DayResult } from "./day";
 import { newGame } from "./resolve";
@@ -68,17 +68,34 @@ export async function setStatus(db: D1Database, id: string, status: Status, reas
   await db.prepare("UPDATE runs SET status = ?, pause_reason = ?, updated_at = ? WHERE id = ?").bind(status, reason, now(), id).run();
 }
 
+// The secret events a player may see the morning after (rules section 4,
+// #108): the Chief its bribe offers and answers and its empty inspections;
+// the Council its clean audits (a caught one is public); each gang its own
+// offers and the answers to them. The World sees none.
+export function secretsFor(player: PlayerName, events: Event[]): Event[] {
+  const gangOf = (e: Event) => (e.detail as { gang?: string } | undefined)?.gang ?? e.actor;
+  return events.filter((e) => {
+    if (e.public) return false;
+    if (player === "Chief") return e.kind.startsWith("bribe_") || e.kind === "inspection_empty";
+    if (player === "Council") return e.kind === "audit_clean";
+    if (player === "Families" || player === "Saltdogs") return e.kind.startsWith("bribe_") && gangOf(e) === player;
+    return false;
+  });
+}
+
 // What the next day needs from the days before: yesterday's public events and
-// Wire, and each player's kept diary entries (its memory).
-export async function yesterday(db: D1Database, runId: string, day: number): Promise<{ publicYesterday: Event[]; wireYesterday: WireItem[]; notebooks: Partial<Record<PlayerName, DiaryEntry[]>> }> {
-  if (day <= 1) return { publicYesterday: [], wireYesterday: [], notebooks: {} };
-  const kept = await db.prepare("SELECT day, player, text FROM diaries WHERE run_id = ? AND day < ? AND forgotten_on IS NULL ORDER BY day").bind(runId, day).all<{ day: number; player: PlayerName; text: string }>();
+// Wire, each player's own secret results from yesterday, and each player's
+// kept diary entries (its memory).
+export async function yesterday(db: D1Database, runId: string, day: number): Promise<{ publicYesterday: Event[]; wireYesterday: WireItem[]; notebooks: Partial<Record<PlayerName, DiaryEntry[]>>; privateYesterday: Partial<Record<PlayerName, Event[]>> }> {
+  if (day <= 1) return { publicYesterday: [], wireYesterday: [], notebooks: {}, privateYesterday: {} };
+  const kept = await db.prepare("SELECT day, player, text FROM diaries WHERE run_id = ? AND day < ? AND forgotten_on IS NULL AND text <> '' ORDER BY day").bind(runId, day).all<{ day: number; player: PlayerName; text: string }>();
   const notebooks: Partial<Record<PlayerName, DiaryEntry[]>> = {};
   for (const r of kept.results) (notebooks[r.player] ??= []).push({ day: r.day, text: r.text });
-  const ev = await db.prepare("SELECT * FROM events WHERE run_id = ? AND day = ? AND public = 1 ORDER BY rowid").bind(runId, day - 1).all<Record<string, any>>();
+  const all = (await db.prepare("SELECT * FROM events WHERE run_id = ? AND day = ? ORDER BY rowid").bind(runId, day - 1).all<Record<string, any>>()).results.map(rowToEvent);
   const wi = await db.prepare("SELECT headline, text, events FROM wire WHERE run_id = ? AND day = ? ORDER BY seq").bind(runId, day - 1).all<Record<string, any>>();
   return {
-    publicYesterday: ev.results.map(rowToEvent),
+    publicYesterday: all.filter((e) => e.public),
+    privateYesterday: Object.fromEntries(PLAYERS.map((p) => [p, secretsFor(p, all)]).filter(([, e]) => (e as Event[]).length)),
     wireYesterday: wi.results.map((w) => ({ headline: w.headline, text: w.text, events: JSON.parse(w.events) })),
     notebooks,
   };
