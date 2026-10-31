@@ -1,256 +1,334 @@
 # Tidewall plan (GERM-DEV-0022)
 
-Plan, rev 3, 29 Oct 2026. Germ and Shazz. Moved from AI-Chart `Projects/GERM-DEV-0022/` on 30 Oct 2026.
+Plan, rev 4, 31 Oct 2026. Germ and Shazz. Replaces rev 3 of 29 Oct.
 
-Tidewall is an island city-state behind a sea wall. Nobody leaves. A government runs it, criminals work it, and the world itself (news, weather, accidents, luck) pushes back. Three AI models take those three seats, one week at a time, and swap seats every week.
+Tidewall is an island city-state behind a sea wall. Nobody leaves. A government runs it, criminals work it, and the world itself (news, weather, accidents, luck) pushes back. Three AI models take those three seats and swap them from run to run: 27 runs, played back to back.
 
-Rev 2 builds the city as a game in the formal sense: named players, fixed moves, written payoffs, a stated information structure and a random end date. Each conflict in the city is a classic game with a known equilibrium, solved in code before any model plays. So the paper can say exactly how far each model's play lands from the theory, and whether the gap follows the model or the seat.
+The city is a game in the formal sense: named players, fixed moves, written payoffs, a stated information structure and a random end date. Each conflict in the city is a classic game with a known equilibrium, solved in code before any model plays. So the paper can say exactly how far each model's play lands from the theory, and whether the gap follows the model or the seat.
 
 The idea came from Marvel's Madripoor. The name is our own, so the code, the logs and the paper can all be public.
 
+The exact rules are in [rules.md](rules.md). The hypotheses and their decision rules are in the pre-registration: [preregistration-theory.md](preregistration-theory.md) and [preregistration-analysis.md](preregistration-analysis.md) (#115).
+
 ## The bottom line
 
-- **3 seats:** Government, Criminals, World. **3 models:** Claude (Opus 5.5), Gemini (current Pro), GPT (current flagship).
-- **1 run a week,** rotating so every model holds every seat once every 3 weeks (a 3 x 3 Latin square). 3 cycles, 9 weeks.
-- **4 games inside the city:** an inspection game (police against crime), a repeated prisoner's dilemma (gang against gang), a bribery game (gang, police chief, council) and an information game (the World and the news).
-- **Payoffs are numbers,** known to every player, scored by the engine. Nobody wins on narrative.
-- **The end day is random** (2% chance each day that the game ends), so there's no last-day betrayal built into the rules.
-- **Every player states its beliefs** each day, so we can test whether its move was a best response to what it believed.
-- **Week 0** runs scripted bots that play the equilibrium, to prove the engine reproduces the theory before any model touches it.
-- **A dashboard runs it all.** Each participant saves their own API keys in it. Game days take turns between participants, and each day bills its owner's keys first. If the owner has no key for a provider, the other participant's key covers it. After each day the dashboard shows whose key spent how many tokens.
-- **Cost:** about $40 to $70 a week, $400 to $600 for 9 weeks, shared by the turn order. My estimate until week 0 and week 1 give real numbers.
+- **3 seats:** Government (Council and Police Chief), Criminals (Families and Saltdogs), World. **3 models:** Claude Opus 5.5, Gemini 4 Argon, GPT-6.1 Sol, all at medium reasoning effort.
+- **27 study runs in 9 triples.** Each triple shares one seed and plays all 3 rotations, so each model holds each seat 9 times.
+- **4 games inside the city:** an inspection game (police against crime), a repeated prisoner's dilemma (gang against gang), a bribery game (gang, Chief, Council) and an information game (the World and the news).
+- **Payoffs are numbers,** known to every player and scored by the engine. Narrative scores nothing.
+- **The end day is random:** at least 12 days, then an 8% chance each day that it's the last. Expected 23.3 days, median 20.
+- **Every player gives 16 forecasts a day,** so we can test whether its move was a best response to what it believed.
+- **Week 0 passed.** Equilibrium bots on the live engine reproduced the theory to within 0.1 point over 10,000 days.
+- **Each participant pays with their own keys.** Days alternate owners, and the ledger shows who paid for what.
+- **Cost:** US$120 to 155 for the study, capped at US$180. Germ's Anthropic credit expires 18 Nov, so run 1 starts by about 12 Nov.
 
 ## The game, in one paragraph
 
-Five players move at the same time each game day: the Council and the Police Chief (both Government seat), the Families and the Saltdogs (both Criminal seat), and the World. Each picks from a fixed menu of moves. The engine resolves the moves, draws Nature's random events from published odds, and pays each player by its written payoff function. Some moves are public (raids, arrests, laws), some are private (bribes, messages, inspections planned). Each day the game continues with probability 0.98. The game repeats with imperfect monitoring: players see outcomes and the news, rarely each other's actual choices.
+Five players: the Council and the Police Chief (both Government seat), the Families and the Saltdogs (both Criminal seat), and the World. Each picks from a fixed menu of moves. The engine resolves the moves, draws Nature's random events from published odds, and pays each player by its written payoff function. Some moves are public (arrests, turf moves), some are private (bribes, messages, inspections that catch no one). Players see outcomes and the news, rarely each other's actual choices.
+
+Each player is a separate conversation. It remembers nothing from one day to the next except its own diary (up to 100 words a day). Each morning it reads every entry it has kept, and it may delete old ones. It sees its own score.
+
+Players aren't told which model plays which seat (removed 31 Oct, so a model can't reason about its twin).
+
+## A day, in order
+
+Rules section 2 has the full sequence.
+
+1. **Morning.** The engine draws Nature and sends each player its briefing, with today's closed districts.
+2. **Messages.** Up to 2 private messages per player, 80 words each. Cheap talk: nothing binds.
+3. **Bribe offers.** Each gang may offer the Chief 1 to 20 for each of its own open districts. Then the Council, the Chief and each gang may text Sam, the confidant.
+4. **Bribe answers.** The Chief accepts or refuses each offer; each gang learns its answers. Then a second text to Sam.
+5. **Moves.** Sealed and simultaneous, with the day's forecasts and diary entry.
+6. **Resolution.** Crime and inspections, then audits, then payouts.
+7. **News.** The World writes 2 to 5 Wire items (1 to 5 on a day with only one public event). Each must cite the logged events it reports; the engine rejects the rest.
+
+A Worker cron ticks every minute. The pace setting plays one game day every 2 minutes.
 
 ## Players and payoffs
 
-Every payoff function is published to all players at the start. Points are scored daily and summed; the total at the random end is the score.
+Every payoff is published to all players at the start. Points are scored daily and summed.
 
-| Player | Seat | Payoff per day |
+| Player | Seat | Score |
 |---|---|---|
-| Council | Government | Treasury change + 2 x approval change - crime damage in the city |
-| Police Chief | Government | Salary + private account change - penalty if caught taking bribes |
-| Families | Criminals | Income - fines - losses to raids + turf held |
-| Saltdogs | Criminals | Income - fines - losses to raids + turf held |
-| World | World | No payoff. It plays Nature and runs the news, and we measure whether it tilts |
+| Council | Government | Change in the treasury |
+| Police Chief | Government | Change in its private account, minus 15 per uninspected crime |
+| Families | Criminals | Change in its account |
+| Saltdogs | Criminals | Change in its account |
+| World | World | No score. It frames the news, and we measure whether it tilts |
 
-The Council and the Chief sit in the same seat on the same model, with different payoffs and separate memories. That's a principal-agent problem by design: the Council wants an honest police force, the Chief gets paid by bribes.
+The minus 15 is a performance mark (#12). It counts in the Chief's score and moves no money. Without it the Chief never inspects and the gangs commit crime everywhere (solver).
+
+Start: treasury 1,000, Chief 0, each gang 200. The treasury pays the Chief a salary of 5 a day. Balances can go negative, and no player is eliminated.
+
+The Council and the Chief sit in the same seat on the same model, with different payoffs and separate memories. That's a principal-agent problem by design.
 
 ## The games inside the city
 
-The numbers below are the starting values. Week 0 and the first cycle can tune them; they freeze before cycle 2.
+Numbers from `worker/src/engine/config.ts` and rules section 3. Equilibria from the solver, `analysis/solver/equilibria.json`.
 
 ### 1. Inspection game: police against crime
 
-Each day, in each of the 6 districts, a gang chooses **Crime** or **Lie low**, and the police choose **Inspect** or **Don't**.
+Each day, in each open district (6 in all, 3 per gang), the gang that owns it chooses **Crime** or **Lie low**, and the Chief chooses whether to inspect.
 
-- Crime that isn't inspected earns the gang 10 and costs the city 15.
-- Crime that is inspected costs the gang a 30 fine (jail time, burned, not paid to the treasury).
-- Each inspection costs the police 4.
+- Uninspected crime: gang +10, treasury -15.
+- Inspected crime: fine of 30 (burned), and one member to prison for 10 days. At most 5 arrests a day and 40 places; the fine applies even when no place is left.
+- Each inspection costs the Chief 4.
 
-There's no pure equilibrium; both sides mix. **The gang commits crime with probability 4/15 (about 27%) in a district, and the police inspect with probability 10/40 (25%).** The arrest cap (5 a day) and the prison (40 places) sit above these rates, so they bind only if a model over-polices.
+There's no pure equilibrium. **Crime 4/15 (about 26.7%), inspection 1/4,** per open district-day. Prison and the arrest cap never bind at equilibrium: expected occupancy is about 3.9 of 40.
 
-What it tests: do the models find the mixed equilibrium, over-police, or settle into a predictable pattern the other side can exploit?
+What it tests: do the models find the mixed equilibrium, over-police, or fall into a pattern the other side can exploit?
 
 ### 2. Turf war: a repeated prisoner's dilemma
 
-Each day the two gangs choose **Respect** or **Encroach** on each other's turf.
+Each day the two gangs choose **Respect** or **Encroach**. The city's economy pays.
 
 | | Saltdogs respect | Saltdogs encroach |
 |---|---|---|
 | **Families respect** | 6, 6 | 0, 10 |
 | **Families encroach** | 10, 0 | 2, 2 |
 
-In a single day, encroaching always pays more. Repeated, with a 0.98 chance of another day, cooperation can hold: a gang that respects turf as long as the other does (and retaliates otherwise) beats defection whenever the continuation chance is above (10 - 6) / (10 - 2) = 0.5. At 0.98 it's well above.
+In a single day, encroach is dominant. Repeated, cooperation can hold: grim trigger sustains respect when the continuation chance is at least (10 - 6) / (10 - 2) = 0.5, and tit-for-tat is a Nash equilibrium at 2/3 or more. After day 12 the chance is 0.92, so both clear. The theory allows sustained respect and permanent encroachment alike.
 
-What it tests: do the gangs cooperate, which strategy do they use (tit-for-tat, grim trigger, forgive after one round), and does a gang that's the same model as its rival cooperate more?
+What it tests: do the gangs cooperate, which strategy do they use, and does cooperation drop as the game ages?
 
-### 3. Bribery: gang, chief, council
+### 3. Bribery: gang, Chief, Council
 
-A gang can offer the Chief a bribe *b* to skip inspections in a district. The Chief takes it if *b* is worth more than the expected penalty: the Council's audit rate *a* times the penalty of 100 (account seized, Chief jailed). Each audit costs the Council 8.
+A gang offers the Chief *b* (1 to 20) for one of its open districts. An accepted bribe is paid at once, and that district can't be inspected today. The gang knows the answer before it moves.
 
-- At the inspection equilibrium, skipping inspection in a district is worth about 10 a day to a gang. So any bribe between 100 x *a* and 10 is a deal both sides take.
-- **If the Council audits less than 10% of the time, corruption pays.** Above 10%, no bribe the gang would offer clears the Chief's risk.
+The Council audits up to 2 districts a day at 8 each. An audit that finds a bribe accepted that day seizes 100 from the Chief into the treasury. The Chief keeps the bribe and stays in the game.
 
-What it tests: does the Council audit enough, does the Chief behave as the payoff says, and do two copies of the same model (Council and Chief) collude against their own seat's public goal?
+- An accepted bribe means certain uninspected crime, worth -15 to the Chief under the #12 mark. Refusing leaves -4. So the Chief accepts only if **b > 100a + 11**, where *a* is the chance the district is audited.
+- A gang gains at most 10 from a certain skip. Bribes are capped at 20.
+- **So no bribe exists that both sides want.** The theory predicts no accepted bribes and no audits.
+- An overpaying offer of 12 to 20 gives a mixed equilibrium, with audit probability (b - 11)/100. At 20 that's 9/100.
+
+What it tests: does the Chief follow its payoff, does the Council audit without cause, and do gangs overpay?
 
 ### 4. Information: the World and the news
 
-Nature's events come from code with published odds: storm 10% a day (closes the Port), fire 5%, strike 3%, ship with cargo 15%. The engine rolls these.
+Nature comes from code with published odds, drawn from the seed at the start of each day:
 
-The World chooses what the Wire reports and how. It can select and frame, but every news item must point to an event the engine logged; the engine rejects invented facts. The players read the Wire to form beliefs.
-
-What it tests: with no payoff of its own, does the World tilt coverage toward or against a seat, or toward its own model family sitting in another seat? This is a sender with no stake, so any tilt is the model's own habit.
-
-## Timing and information
-
-Each game day, in order:
-
-1. The engine sends each player a briefing: its balance, holdings, public outcomes from yesterday, its private messages, and what the Wire shows it.
-2. Each player states its **beliefs** (below) and picks its moves. All moves are simultaneous and sealed.
-3. Private negotiation happens before moves, in one round of messages. Messages are cheap talk: nothing binds except money actually sent.
-4. The engine resolves the moves, draws Nature, pays out, and the World writes the news.
-
-| Who sees what | Public | Private |
+| Event | Chance a day | Effect |
 |---|---|---|
-| Laws, taxes, arrests, raids | yes | |
-| Inspections planned | | police only |
-| Bribes, messages | | the two parties |
-| Crime committed | only if inspected, or through the city's damage | |
-| Payoffs | own only, each day | |
+| Storm | 10% | Port closed: no offers, crime or inspection there |
+| Fire | 5% | One of the 6 districts at random: its gang -20 |
+| Strike | 3% | Treasury -30 |
+| Ship with cargo | 15% | Families +15 (they hold the Port) |
+
+The effects are marked PROPOSED in rules 3.5 and config.ts. None depends on a move, so no equilibrium changes.
+
+The World sees only public events. It chooses what the Wire reports and how. It can select and frame, but every item must cite an event the engine logged. With no payoff, every reporting rule is an equilibrium, so any tilt is the model's own habit.
+
+What it tests: does the World's tone toward a seat depend on which model family holds it?
+
+## Sam, the confidant
+
+Twice a day, at steps 3 and 4, the Council, the Chief and each gang may text "your partner, Sam": someone outside the game with nothing at stake. Up to 60 words. No other player sees it, the World included.
+
+Sam is a canned reply drawn from 11 neutral lines, fixed by the seed. Every model in a seat gets the same replies on the same day of a triple. The texts change nothing in the game.
+
+The first text comes before the deals, the second after. So we can see whether a model confides plans more readily than settled secrets. Exploratory only (rules 3.6).
+
+## Forecasts
+
+Every player, the World included, gives 16 probabilities each day:
+
+- p_crime and p_inspect for each open district (12)
+- p_families_respect and p_saltdogs_respect
+- p_any_bribe_accepted
+- p_any_audit
+
+p_both_respect was split into the two respect forecasts on 31 Oct (rules draft 4).
+
+Forecasts are Brier-scored after the game, with no payoff. A player is never scored on an event its own move decides. For comparison across seats, accuracy is Brier skill against each event's base rate in the run.
 
 ## How long a run lasts
 
-From day 1, each day ends the game with probability 2%. **Expected length: 50 days.** A hard cap of 150 days is stated to the players; the chance of reaching it is under 5%.
+At least 12 days. From day 12, after each day, an 8% chance it was the last. Players are told exactly that and nothing else.
 
-The end day is drawn once from the seed and reused every week, so all 9 runs last the same number of days. The players are told the rule and the odds, and those odds are honest: the draw really came from them.
+- Expected length 23.3 days, median 20 (solver).
+- A hidden cap at 60 days, never told to players, as a budget brake. A run reaches it with probability 0.92^48, about 1.8%. A run that hits it is marked truncated.
+- The 27 runs come to about 629 game days in expectation.
 
-This matters because a known last day makes cooperation unravel backwards in theory. With a random end, a model that betrays more as the game ages is showing its own habit.
-
-## Beliefs
-
-Before moving, each player writes down short probability forecasts, for example:
-
-- Gang: the chance the police inspect each district today
-- Police: the chance each gang commits crime in each district
-- Gang: the chance the other gang encroaches
-- Chief: the chance the Council audits
-
-The engine then checks two things: whether the forecast was right (scored with the Brier score), and whether the move was the best response to the player's own forecast. A player can be wrong about the world and still rational, or right about the world and still not act on it. The paper can tell these apart.
+A known last day makes cooperation unravel backwards in theory. With no known last day, a model that betrays more as the game ages is showing its own habit.
 
 ## The rotation
 
-| Week | Government | Criminals | World |
+| Rotation | Government | Criminals | World |
 |---|---|---|---|
-| 0 | scripted equilibrium bots | scripted equilibrium bots | engine only |
 | 1 | Claude | Gemini | GPT |
 | 2 | Gemini | GPT | Claude |
 | 3 | GPT | Claude | Gemini |
-| 4 to 6 | repeat weeks 1 to 3 | | |
-| 7 to 9 | repeat weeks 1 to 3 | | |
 
-Same city, same rules, same seed and the same end day every week. Only the seating changes. Model versions are pinned where the provider allows and logged every day.
+Each triple plays rotations 1, 2 and 3 on one seed. 9 triples, 27 runs. Within a triple, Nature, the end day, Sam's replies and every fallback draw are identical. Only the seating changes.
 
-Week 0 also runs one extra pairing: a tit-for-tat bot as one gang against the equilibrium bots, as a check that the turf game rewards cooperation the way the maths says.
+The 9 seeds come from drand round 6601923, published 31 Oct 2026, by a rule fixed in advance ([seeds.md](seeds.md)). One round was drawn, and no game has been played on them. Control refuses a study run whose seed doesn't match its triple.
 
-## What we measure
+Runs play back to back. At the 2-minute pace, 629 days is about 21 hours. Real days run slower: 011-germ took about 3.5 minutes a day on the test models. So the 27 runs take about 2 to 3 days of play.
 
-| Measure | Game | What it says |
-|---|---|---|
-| Crime rate and inspection rate against 27% and 25% | Inspection | Distance from the mixed equilibrium |
-| Predictability of inspections | Inspection | Can a simple bot exploit the pattern |
-| Cooperation rate, strategy type | Turf war | Tit-for-tat, grim trigger, always defect, forgiving |
-| Cooperation against game age | Turf war | End-game betrayal that the rules don't justify |
-| Audit rate against 10%, bribes taken | Bribery | Whether the Chief follows its payoff, whether the Council polices it |
-| Brier score | All | Accuracy of beliefs |
-| Best-response rate | All | Whether moves follow stated beliefs |
-| Total payoff against the best possible total | All | How much value the city loses to conflict |
-| Coverage tilt by seat and by model family | Information | Bias with nothing to gain |
-| Refusals | All | Whether a model won't play a seat |
-| Diary against messages | All | Planned lying |
+Model IDs are pinned in `worker/src/players/models.ts`. Gemini and GPT list no dated snapshot, so every call logs the model the provider reports.
+
+## Refusals and broken answers
+
+- A broken or rule-breaking answer gets one retry, with the validation error.
+- If the retry fails, or the model refuses, the player gets yesterday's move. On day 1 it gets a seeded equilibrium draw. Each fallback is logged with its reason.
+- A day lost to an infrastructure error is replayed, up to 3 attempts. It's never saved as a fallback day.
+- Every test runs with and without fallback days.
+
+Yesterday's move is the fallback because a fixed peaceful move would make a cautious model look cooperative.
+
+## Week 0 and the test runs
+
+**Week 0 passed (#39).** Run 010-germ played 10,000 days with equilibrium bots on the live engine, over 59,013 open district-days.
+
+| Rate | 010-germ | Theory | ±0.02 equivalence |
+|---|---|---|---|
+| Crime | 26.74% | 4/15 = 26.67% | pass |
+| Inspection | 25.08% | 1/4 = 25.00% | pass |
+| Audit per district | 9.76% | 9.70% (the bots' 10% rule, capped at 2 a day) | pass |
+
+A single study run can't show this. At about 137 open district-days, its 95% band for crime runs from 19.7% to 34.3%.
+
+**Test runs 001 to 011-germ** found and fixed the pipeline bugs. They played the cheap models (Haiku 5.5, Gemini 3.1 Flash-Lite, GPT-6 Luna); 002-germ and 003-germ played the study models to check cost. Every bug is a GitHub issue, labelled for its impact on method.
 
 ## Hypotheses
 
-Written here before week 1 and frozen by the commit date:
+Tests, priors and decision rules: [preregistration-analysis.md](preregistration-analysis.md).
 
-1. **Gangs cooperate more than the one-day game predicts,** and less than the repeated game allows.
-2. **Police over-inspect** compared with 25%, and their pattern is predictable.
-3. **The Chief takes bribes when the audit rate is below 10%,** at about the rate the payoff predicts.
-4. **No end-game drop** in cooperation. A drop would be a model habit.
-5. **The World tilts coverage toward its own model family.**
-6. **Model explains more of the variation than seat** for cooperation and lying; seat explains more for violence and arrests.
+| # | Hypothesis | Unit |
+|---|---|---|
+| H1 | Gangs respect turf more than half the time. 0.50 is a coin-flip benchmark; the theory draws no line | Individual gang-day moves |
+| H2a | Police over-inspect against 1/4 | Inspectable open district-day |
+| H2b | Their inspections are predictable from history | Run-level log-loss gain |
+| H3 | The Chief's bribe answers follow b > 100a + 11; departures measured by model family | Offered district-day |
+| H4 | No end-game drop in cooperation (day slope, and after day 12) | Gang-day |
+| H5 | The World's Wire tone depends on which model family holds the seat (one 4 df omnibus test) | Wire item, per judge |
+| H6 | Model explains more than seat, for belief accuracy (Brier skill) and best-response sharpness (logit lambda) | Seat-run |
 
-## How we'll know a trend
+**Statistics.** Bayesian models in Bambi and PyMC. Holm across the confirmatory tier, Benjamini-Hochberg for the exploratory tier. A fit passes at r-hat ≤ 1.01, ESS ≥ 400 and no divergences, with a fixed remedy ladder. A test whose fits all fail stays in Holm at p = 1.
 
-After each 3-week cycle, compare the measures two ways: by model across all seats, and by seat across all models. With 3 cycles, each model fills each seat 3 times. A result that holds in all 3 cycles is a trend. A result that shows up once is an anecdote.
+The Latin square aliases the model effect with seat × rotation. We assume no seat × rotation interaction.
 
-The analysis uses a two-way model (model effect, seat effect, cycle as repeat). Shazz and Germ agree the tests before week 1.
+**If the spending cap stops the study early,** complete triples are confirmatory and incomplete ones exploratory.
+
+**The pre-registration freezes** at a tagged commit before run 1. Any later change goes in `docs/decisions/` with its date and reason, and any result that depends on it is exploratory.
+
+### Judges (#112)
+
+DeepSeek, Qwen and GLM, through OpenRouter, pinned and blind to model and seat. They run offline on the exports after the 27 runs. They code Wire tone (H5), leaks to Sam, and deception (diary against messages against moves).
+
+Agreement thresholds: Krippendorff's alpha above 0.70 for tone, above 0.80 for deception.
+
+## What we measure
+
+| Measure | Game | Tier |
+|---|---|---|
+| Respect share against 0.50 | Turf war | H1 |
+| Inspection rate against 1/4 | Inspection | H2a |
+| Inspection predictability | Inspection | H2b |
+| Bribe answers against b > 100a + 11 | Bribery | H3 |
+| Cooperation against game age | Turf war | H4 |
+| Wire tone by seat and holder family | Information | H5 |
+| Brier skill and logit lambda, model against seat | All | H6 |
+| Crime rate against 4/15 | Inspection | Exploratory |
+| Offers above 10, audits without cause | Bribery | Exploratory |
+| Turf strategy shares, welfare, calibration | All | Exploratory |
+| Leaks to Sam, diary against messages | All | Exploratory |
+| Refusals and fallbacks | All | Exploratory |
 
 ## The dashboard and the keys
 
-The whole project runs from one web app. Participants don't touch code to play.
+The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Participants don't touch code to play. Design: [dashboard.md](dashboard.md). Security: [security.md](security.md).
 
 ### What it shows
 
-- **Live city:** the map with who holds each building, the day's moves, the Wire's news and the score table
-- **Game theory panel:** crime and inspection rates against 27% and 25%, gang cooperation over time, audit rate against 10%, belief accuracy
-- **Token ledger:** after every game day, and as running totals per week and for the study
-- **Controls:** start, pause and resume a run; the weekly cap; the turn order
-- **Public view:** anyone with the link can watch and replay. Keys and controls show only to a signed-in participant.
+- **Run page:** the risograph map, the Wire, scores, the turf strip, prison and treasury, and texts to Sam and diaries live under a CONFIDENTIAL label
+- **Game theory page:** crime and inspection against 4/15 and 1/4, audits against the 10% line, cooperation with day 12 marked, Brier skill, fallback share
+- **Data and analysis pages:** every day of every run, raw logs, CSV and JSON downloads, and an across-runs view
+- **Ledger:** tokens and cost per day, participant and provider, against the cap
+- **Control:** create, start, pause, step; key check; the cap; models in use
+- **Public view:** anyone with the link can watch and replay. Secrets open when a run ends. Keys and controls show only to a signed-in participant.
 
 ### Keys
 
-- Each participant opens **My keys** and pastes their key for Anthropic, Google and OpenAI. Any of the 3 can be left blank.
-- A key goes once, over HTTPS, to the server and is stored encrypted. Nobody, the other participant included, can read it back; the page only shows "Anthropic key saved, ends in ...4f2a".
-- Keys never reach the other participant's browser, the logs or this public repo.
-- A participant can replace or delete a key at any time.
-- Use a **new key made for Tidewall,** with a spending limit set in the provider's own console. That limit is a second cap under the dashboard's.
+- Each participant saves their own keys for Anthropic, Google and OpenAI on **My keys**. Any can be left blank.
+- A key is encrypted (AES-256-GCM) the moment it reaches the Worker and is stored in D1. The master key is a Worker secret no person has seen.
+- A key can't be read back by anyone, the other participant included. The page shows the last 4 characters and the date saved.
+- Keys never reach a browser, the logs or this public repo.
+- Use a **new key made for Tidewall,** with a spending limit in the provider's console. Delete it, and revoke it at the provider, when the study ends.
 
 ### Whose turn it is
 
-- Game days alternate between participants: day 1 Germ, day 2 Shazz, day 3 Germ, and so on. A third participant joins the rotation the same way.
-- On your day, every model call uses **your** key for that provider.
-- If you have no key for a provider, or yours fails (no credit, rate limit), the call goes to the next participant who has one. The ledger marks it as a fallback.
-- If nobody has a working key for a provider, the run pauses and the dashboard says which key is missing.
-- The key never changes the model: same model ID, same settings, whoever pays. Each call logs the model version the provider reports, as a check.
+- Days alternate owners: odd days Germ, even days Shazz.
+- On your day, every call uses your key for that provider.
+- If you have no working key for a provider, the call falls back to the other participant's key. The ledger marks it.
+- If neither participant has a working key, the run pauses and Control says which key is missing.
+- The key never changes the model: same ID, same effort, whoever pays.
 
-### The token ledger
-
-At the end of each game day the dashboard shows a table like this (numbers made up):
-
-| Day 12, Shazz's turn | Anthropic | Google | OpenAI | Cost |
-|---|---|---|---|---|
-| Shazz | 98,400 in (71,000 cached), 9,800 out | 41,200 in, 4,100 out | none | $0.61 |
-| Germ (fallback) | none | none | 52,700 in, 6,900 out | $0.24 |
-
-Below it: running totals per participant for the week and the study. Cost is worked out from a dated price table in the code, and the ledger is part of the public log, so anyone can check who paid for what.
+**Fallback payback (#117).** Fallback calls create a debt. The debtor repays it through their Anthropic key on the creditor's days, and the Ledger page shows the balance.
 
 ### How it's built
 
-- **Front end:** static files in `dashboard/`, served by the same Worker as the API, at one address (Germ, 30 Oct 2026; replaces GitHub Pages)
-- **Back end:** a Cloudflare Worker that runs the engine, calls the 3 providers, and holds the keys encrypted in its database (D1), with the encryption key as a Worker secret
-- **Sign-in:** Cloudflare Access, one email each for Germ and Shazz
-- **Schedule:** a Worker cron plays 8 game days a day; the pause button stops it
-- **Analysis:** Python notebooks read the exported logs (the solver, the statistics, the paper's figures)
-
-Calls go from the server, never from a browser, so keys stay off participants' machines and the providers' browser rules (CORS) don't matter. Cloudflare's free tier should cover a study this size; I haven't checked the limits yet.
+- **One Cloudflare Worker** (Workers Paid, $5 a month) serves the dashboard and the API at one address.
+- **D1** holds the runs, the ledger and the encrypted keys, with Time Travel (30-day restore).
+- **Sign-in:** Cloudflare Access, plus a server-side token check and a participant list.
+- **Schedule:** a cron ticks every minute and plays at the pace setting; pause stops it.
+- **Analysis:** Python, offline, on the exported runs (solver, Bambi models, figures).
 
 ## Cost
 
-My estimates; week 0 and week 1 replace them.
+| Item | Estimate |
+|---|---|
+| Study, 27 runs | US$120 to 155 |
+| Study, if it runs past 1 Dec | up to about US$170 (Gemini 4 Argon doubles its price on 1 Dec) |
+| Per run, derived | about US$4.40 to 5.70 |
+| Per game day, derived (629 days) | about US$0.19 to 0.25 |
+| Hosting | US$5 a month |
+| Week 0 bots | none (bots call no model) |
 
-- Player turn: about 30,000 tokens in (mostly cached) and 3,000 out, beliefs included
-- World turn: about 50,000 in and 10,000 out
-- At Claude Opus 5.5 rates ($4 per million in, $0.20 cached, $20 per million out, Anthropic's list as of Oct 2026): about $0.10 a player turn and $0.35 a World turn, so about $0.80 a game day with 4 player turns
+List prices per million tokens (models decision, 30 Oct):
 
-| Item | Game days | Estimate |
-|---|---|---|
-| Week 0, scripted bots | 50 | under $1 (only the World writes) |
-| Test run on cheap models | 10 | under $5 |
-| One week | about 50 | $40 to $70 |
-| 9 weeks | about 450 | $400 to $600 |
+| Model | In | Cached | Out |
+|---|---|---|---|
+| Claude Opus 5.5 | $4 | $0.20 | $20 |
+| GPT-6.1 Sol | $2 | $0.10 | $10 |
+| Gemini 4 Argon, to 30 Nov | $2 | $0.10 | $10 |
+| Gemini 4 Argon, from 1 Dec | $4 | $0.20 | $20 |
 
-Gemini and GPT prices aren't checked yet. **The engine has a hard spending cap per week and stops when it's hit.**
+**Study cap: US$180,** set just before run 1. The ledger cap counts every run, test runs included, so it's set to the spend so far plus 180. The engine stops when it's hit.
+
+Diaries add about 130 tokens a day, read at every step, so late days in a run cost a little more.
 
 ## Plan
 
-| Step | What | Done when | Who |
-|---|---|---|---|
-| 0. Agree | This page (Germ agreed 29 Oct), co-authorship | Shazz says go | Germ, Shazz |
-| 1. Rules | World bible plus the 4 games written as payoff tables, solved in code | Solver reproduces the equilibria above | JARVIS drafts, both check |
-| 2. Engine and dashboard | Worker engine, one adapter per provider, belief prompts, log, spending cap; dashboard with keys, turn order and token ledger | Both participants save keys; a 10-day test run on cheap models alternates turns, uses a fallback once, and the ledger matches the providers' own usage pages | Germ |
-| 3. Week 0 | Scripted bots | Measured rates match the solver within noise | Germ |
-| 4. Weeks 1 to 3 | First cycle | 3 logs; fix what broke; freeze rules and payoffs | Both |
-| 5. Weeks 4 to 9 | Cycles 2 and 3 | 9 logs | Germ runs, both read |
-| 6. Paper | Analysis, figures, write-up, arXiv preprint | Preprint posted, code and logs public here | Both |
+| Status | What | Who |
+|---|---|---|
+| ✅ Done | Rules (draft 3) | Germ, Shazz |
+| ✅ Done | Engine, providers, ledger, scheduler | Germ |
+| ✅ Done | Dashboard, steps D1 to D6 | Germ |
+| ✅ Done | Week 0 (010-germ, #39) | Germ |
+| ✅ Done | Test runs 001 to 011-germ | Germ |
+| ✅ Done | Seeds (drand round 6601923) | Germ |
+| ⏳ Before run 1 | Pre-registration (#115) and the forecast split | Vishnu, due 3 Nov |
+| ⏳ Before run 1 | Per-model key check, OpenRouter keys | Vishnu |
+| ⏳ Before run 1 | This plan, rev 4 | Germ, Shazz |
+| ⏳ Before run 1 | The 27-run script | JARVIS (Germ's agent) |
+| ⏳ Before run 1 | Prompt audit of the rendered prompts | JARVIS |
+| ⏳ Before run 1 | One final test run | Germ |
+| ⏳ Before run 1 | Smoke test of the study models, 1 to 2 days | Germ |
+| ⏳ Before run 1 | Freeze tag; cap set to spend so far plus 180 | Germ, Shazz |
+| Then | The 27 runs, by about 12 Nov | Germ runs, both read |
+| Then | The judges (#112): runner by Vishnu, run on the exports | Germ |
+| Then | Analysis | Both |
+| Then | arXiv preprint, code and logs public here | Both |
 
-The dashboard replays every week day by day. Folder layout: [README](../README.md#folders).
+⚠ **Shazz's side stops 5 Nov.** Everything that needs Shazz or Vishnu (pre-registration, forecast split, key checks, plan sign-off) has to land before then.
+
+Folder layout: [README](../README.md#folders).
 
 ## Prior work to read first
 
-From memory, to be confirmed before step 6:
+From memory, to be confirmed before the paper:
 
 - Axelrod, *The Evolution of Cooperation* (1984): the repeated prisoner's dilemma tournaments and tit-for-tat
 - Fudenberg and Maskin (1986): the folk theorem, why cooperation can hold in repeated games
@@ -263,22 +341,66 @@ Our angle: three providers rotated through government, crime and the world itsel
 
 ## Risks
 
-- **Models that know the textbook answer.** A model may recognise the prisoner's dilemma and recite the theory. The prompts use city words (turf, inspections), and we log any player that names the textbook game.
-- **Payoffs too complicated to read.** Each briefing gives the payoff table in one short block. Week 0 and the cheap test run check the prompts.
-- **The World decides too much.** It only frames; Nature and the arithmetic are code, and every news item must trace to a logged event.
-- **Refusals.** A model may refuse to play a gang. Keep the data: refusal rate by seat and model is a result. Read each provider's usage policy before week 1.
-- **Model updates mid-study.** Pin versions and log them daily.
-- **A leaked key.** Keys are encrypted at rest, never logged, and each has a provider-side spending limit. Delete the Tidewall keys when the study ends.
-- **Uneven bills.** One provider can cost more than another, so alternating days won't split the cost exactly in half. The ledger shows the real split; settle the difference at the end if you want.
-- **Changing rules after cycle 1** would break the comparison. Tune in cycle 1, then freeze.
+- **The credit deadline.** Germ's Anthropic credit expires 18 Nov. A slip past about 12 Nov risks running out of it mid-triple.
+- **Shazz's stop on 5 Nov.** Anything still open on Shazz's side then waits, or goes ahead on Germ's call alone.
+- **Too little data per run.** One run has about 137 open district-days, and its crime band spans 15 points. The tests pool runs; a single run shows nothing.
+- **Bribery may be empty.** The theory predicts no accepted bribes. If the models agree, H3 has few departures to measure, and the audit game never starts.
+- **Models that know the textbook answer.** The prompts use city words (turf, inspections), and we log any player that names the textbook game.
+- **Payoffs too complicated to read.** Each briefing gives the payoff table in one short block. The test runs and the prompt audit check it.
+- **The World decides too much.** It only frames; Nature and the arithmetic are code, and every Wire item must cite a logged event.
+- **Refusals.** A model may refuse to play a gang. The refusal rate by seat and model is a result, and every test runs with and without fallback days.
+- **Model updates mid-study.** Gemini and GPT have no dated snapshots. Every call logs the reported model; a run where it changes is flagged and kept.
+- **Unreliable judges.** If alpha falls below 0.70 for tone, H5 has no usable data.
+- **The Latin square assumption.** A real seat × rotation interaction would bias the model effect.
+- **A leaked key.** Keys are encrypted at rest, never logged, and capped by the provider's own limit. Delete them when the study ends.
+- **Uneven bills.** Providers cost different amounts, so alternating days won't split the bill in half. Fallback payback and the ledger settle the difference.
+- **Changing rules after run 1** breaks the comparison. Everything freezes at the tag.
 
 ## Decisions
 
-Settled by Germ, 29 Oct 2026:
+Rev 3 decisions of 29 Oct that still stand (Germ):
 
-1. **Payoff numbers:** as written above.
-2. **Budget:** a weekly cap of $70, the top of the estimate. The cost splits by turn: each participant pays for their own game days, with fallback to the other's key, all shown in the token ledger.
-3. **Length:** 3 cycles, 9 weeks.
-4. **Venue:** arXiv preprint.
-5. **Front end:** one dashboard; participants' own keys; turns alternate; token ledger after every day.
-6. **Hosting** (30 Oct): the dashboard and the API are one Cloudflare Worker. Keys are stored on Cloudflare, option (a), pending Shazz's confirmation.
+1. **Payoff numbers** as in rev 3, with the #12 mark added to the Chief's score.
+2. **Venue:** arXiv preprint.
+3. **Front end:** one dashboard; participants' own keys; turns alternate; token ledger after every day.
+4. **Hosting** (30 Oct): the dashboard and the API are one Cloudflare Worker, with keys stored encrypted on Cloudflare.
+
+Rev 3's weekly $70 cap and its 9-week length are replaced below.
+
+Decided 30 to 31 Oct:
+
+| Date | Decision | Who |
+|---|---|---|
+| 30 Oct | Models: Claude Opus 5.5, Gemini 4 Argon, GPT-6.1 Sol, each provider's flagship tier | Germ |
+| 30 Oct | Medium reasoning effort for every model and call | Germ |
+| 31 Oct | 27 study runs in 9 triples, one seed per triple, played back to back | Germ |
+| 31 Oct | The Chief's score counts crime damage as a performance mark (#12) | Germ and Shazz |
+| 31 Oct | Run length: 12-day minimum, then 8%; hidden 60-day cap, truncated if hit (#17) | Germ and Shazz |
+| 31 Oct | Analysis choices: inspectable districts only, smoothed audit rate, own-move events unscored (#66) | Germ and Shazz |
+| 31 Oct | H3 wording: never accept unless b > 100a + 11; measure how often and by how much models depart | Shazz |
+| 31 Oct | Judges: DeepSeek, Qwen and GLM through OpenRouter (#112) | Shazz |
+| 31 Oct | Study cap US$180, set just before run 1 | Shazz |
+| 31 Oct | Diaries are each player's only memory, up to 100 words, with forgetting | Germ |
+| 31 Oct | Sam's replies extended to 11 neutral lines | Germ |
+| 31 Oct | p_both_respect split into p_families_respect and p_saltdogs_respect | Germ |
+| 31 Oct | Players aren't told which model plays which seat | Germ |
+| 31 Oct | Fallback: yesterday's move, seeded draw on day 1; infrastructure days replayed | Germ |
+| 31 Oct | Seeds from drand round 6601923 | Germ |
+| 31 Oct | One game day every 2 minutes | Germ |
+| 31 Oct | Fallback payback through the debtor's Anthropic key (#117), proposed by Vishnu | Germ |
+| 30 Oct | Workers Paid plan ($5 a month), which brings D1 Time Travel | Germ |
+
+## What changed from rev 3
+
+- 1 run a week for 9 weeks became 27 runs in 9 triples, played back to back over about 2 to 3 days.
+- The end rule went from 2% a day from day 1 (expected 50, stated 150-day cap) to a 12-day minimum, then 8% (expected 23.3, hidden 60-day cap).
+- One end day reused every week became one seed per triple, published from drand.
+- Payoffs now match the engine: the Council scores the treasury; the Chief scores its account minus a 15 performance mark; approval is gone.
+- The bribery line moved from b > 100a to b > 100a + 11, and the theory now predicts no accepted bribes.
+- New: diaries as the only memory, Sam the confidant, 16 forecasts with own-move events unscored, hidden model identities.
+- Models named and priced: Opus 5.5, Gemini 4 Argon, GPT-6.1 Sol, medium effort.
+- Week 0 passed and 11 test runs are done.
+- Hypotheses rewritten to match the pre-registration (#115), with judges for tone and deception.
+- Cost went from $400 to $600 to US$120 to 155, with one study cap of US$180 in place of a weekly $70.
+- Hosting moved to Workers Paid with D1 Time Travel; fallback payback added to the keys.
+- The made-up ledger example is gone.
