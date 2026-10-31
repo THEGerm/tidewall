@@ -46,7 +46,7 @@ Each player plays for its own total score over the whole game.
 
 Crime, per open district per day:
 - Crime that isn't inspected: the gang gains 10, and the treasury loses 15; the Chief's score also loses 15.
-- Crime that is inspected: the gang pays a fine of 30, and one gang member goes to prison for 10 days (at most 5 arrests a day; the prison holds 40).
+- Crime that is inspected: the gang pays a fine of 30, and one gang member goes to prison for 10 days (at most 5 arrests a day; the prison holds 40). When no place is free, the gang still pays the fine.
 - Each inspection costs the Chief 4 from its account, whether or not it finds crime.
 
 Bribes and audits:

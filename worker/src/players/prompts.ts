@@ -101,7 +101,7 @@ Each player plays for its own total score over the whole game.
 
 Crime, per open district per day:
 - Crime that isn't inspected: the gang gains ${CRIME_GAIN}, and the treasury loses ${CRIME_DAMAGE}${o.chiefCountsDamage ? `; the Chief's score also loses ${CRIME_DAMAGE}` : ""}.
-- Crime that is inspected: the gang pays a fine of ${FINE}, and one gang member goes to prison for ${SENTENCE_DAYS} days (at most ${ARREST_CAP} arrests a day; the prison holds ${PRISON_PLACES}).
+- Crime that is inspected: the gang pays a fine of ${FINE}, and one gang member goes to prison for ${SENTENCE_DAYS} days (at most ${ARREST_CAP} arrests a day; the prison holds ${PRISON_PLACES}). When no place is free, the gang still pays the fine.
 - Each inspection costs the Chief ${INSPECTION_COST} from its account, whether or not it finds crime.
 
 Bribes and audits:
