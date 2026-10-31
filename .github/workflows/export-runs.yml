@@ -3,6 +3,8 @@ name: Export finished runs
 # Once an hour, saves every finished run that isn't in data/runs/ yet, from the
 # public export (GET /api/runs/:id/export, finished runs only). Study runs go to
 # data/runs/study/, test runs to data/runs/test/. Payer names only, no emails.
+# Bot runs are skipped: their seed replays them exactly, and a 10,000-day one
+# is too big for the repo.
 
 on:
   schedule:
@@ -27,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsS "$SITE/api/runs" \
-            | jq -r '.runs[] | select(.live == false) | "\(.model_set) \(.id)"' \
+            | jq -r '.runs[] | select(.live == false and .model_set != "bot") | "\(.model_set) \(.id)"' \
             | while read -r set id; do
                 f="data/runs/$set/$id.json"
                 [ -f "$f" ] && continue

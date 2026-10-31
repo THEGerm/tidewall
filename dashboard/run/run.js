@@ -86,7 +86,7 @@ async function load() {
   const { run, days } = summary;
   document.title = `${run.id} · Tidewall`;
   $("crumb").textContent = run.id;
-  $("title").textContent = `Run ${run.id}${run.model_set === "test" ? " (test)" : ""}`;
+  $("title").textContent = `Run ${run.id}${run.model_set === "test" ? " (test)" : run.model_set === "bot" ? " (bots)" : ""}`;
   $("seating").textContent = ["Government", "Criminals", "World"].map((s) => `${s}: ${FAMILY[run.seating[s]] || run.seating[s]}`).join(" · ");
   $("status").textContent = `${STATUS[run.status] || run.status}, ${days.length} ${days.length === 1 ? "day" : "days"} played`;
   if (run.live && run.status === "running") $("dot").classList.add("ok");

@@ -23,6 +23,7 @@ import { keyChain, participants } from "../players/keys";
 import { modelPlayer, type CallRecord } from "../players/model";
 import { EFFORT, isPinned, modelsFor, type Family } from "../players/models";
 import { interimPrompts, type Prompts } from "../players/prompts";
+import { equilibriumPlayers } from "../players/bots";
 
 export interface RunnerEnv {
   DB: D1Database;
@@ -156,7 +157,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
 //      day once pace_minutes have passed since the last day was saved.
 export async function tick(env: RunnerEnv, o: RunnerOptions = {}): Promise<StepOutcome> {
   const now = o.now ?? (() => new Date());
-  const queued = await env.DB.prepare("SELECT id FROM runs WHERE step_queued > 0 AND status = 'running' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
+  const queued = await env.DB.prepare("SELECT id FROM runs WHERE step_queued > 0 AND status = 'running' AND model_set != 'bot' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
   if (queued) {
     const out = await playNextDay(env, queued.id, o, "step");
     if (out.played || out.reason !== "another tick is playing this run")
@@ -166,16 +167,54 @@ export async function tick(env: RunnerEnv, o: RunnerOptions = {}): Promise<StepO
 
   if ((await meta(env.DB, "schedule")) !== "on") return { played: false, reason: "schedule is off" };
   const pace = Number((await meta(env.DB, "pace_minutes")) ?? "10");
-  const last = await env.DB.prepare("SELECT MAX(created_at) AS at FROM days").first<{ at: string | null }>();
+  const last = await env.DB.prepare("SELECT MAX(d.created_at) AS at FROM days d JOIN runs r ON r.id = d.run_id WHERE r.model_set != 'bot'").first<{ at: string | null }>();
   if (last?.at && now().getTime() - Date.parse(last.at) < pace * 60_000) return { played: false, reason: "next day not due yet" };
 
-  let current = await env.DB.prepare("SELECT id FROM runs WHERE status = 'running' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
+  let current = await env.DB.prepare("SELECT id FROM runs WHERE status = 'running' AND model_set != 'bot' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
   if (!current) {
-    if (await env.DB.prepare("SELECT id FROM runs WHERE status = 'paused' LIMIT 1").first()) return { played: false, reason: "a run is paused" };
-    current = await env.DB.prepare("SELECT id FROM runs WHERE status = 'ready' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
+    if (await env.DB.prepare("SELECT id FROM runs WHERE status = 'paused' AND model_set != 'bot' LIMIT 1").first()) return { played: false, reason: "a run is paused" };
+    current = await env.DB.prepare("SELECT id FROM runs WHERE status = 'ready' AND model_set != 'bot' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
     if (!current) return { played: false, reason: "no run left to play" };
     await setStatus(env.DB, current.id, "running");
     await log(env.DB, `Schedule started ${current.id}.`, { run: current.id });
   }
   return playNextDay(env, current.id, o, "schedule");
+}
+
+// Bot runs (Germ, 31 Oct): the equilibrium bots, no model calls, no pace.
+// Every scheduler tick plays running bot runs back to back until its time is
+// up; the next tick carries on. They never wait on, or hold up, a model run.
+// Each day's bots draw from the run's seed and the day, so a bot run replays
+// exactly. Logged at the start, every 1,000 days and at the end.
+export async function playBots(env: RunnerEnv, o: { budgetMs?: number; now?: () => number } = {}): Promise<{ days: number; runs: string[] }> {
+  const now = o.now ?? (() => Date.now());
+  const stop = now() + (o.budgetMs ?? 20_000);
+  let days = 0;
+  const runs: string[] = [];
+  const bots = (await env.DB.prepare("SELECT id FROM runs WHERE model_set = 'bot' AND status = 'running' ORDER BY created_at").all<{ id: string }>()).results;
+  for (const { id } of bots) {
+    const lock = await env.DB.prepare("UPDATE runs SET lock_until = ? WHERE id = ? AND (lock_until IS NULL OR lock_until < ?)")
+      .bind(new Date(stop + 60_000).toISOString(), id, new Date().toISOString()).run();
+    if (!lock.meta?.changes) continue; // another tick has it
+    runs.push(id);
+    try {
+      while (now() < stop) {
+        const run = (await getRun(env.DB, id))!;
+        if (run.status !== "running") break;
+        const day = run.state.day;
+        if (day === 1) await log(env.DB, `Bots started ${id}${run.state.fixedDays ? ` (${run.state.fixedDays.toLocaleString("en")} days)` : ""}.`, { run: id });
+        const result = await playDay({ state: run.state, players: equilibriumPlayers(`${run.seed}:${day}`, { audit: true, turf: run.state.botTurf ?? "respect" }), publicYesterday: [], wireYesterday: [] });
+        await saveDay(env.DB, id, result);
+        days++;
+        if (result.state.over) { await log(env.DB, `Bots finished ${id} after ${day.toLocaleString("en")} days.`, { run: id }); break; }
+        if (day % 1000 === 0) await log(env.DB, `Bots on ${id}: ${day.toLocaleString("en")} days played.`, { run: id });
+      }
+    } catch (err) {
+      await log(env.DB, `Bots on ${id} stopped: ${err instanceof Error ? err.message : String(err)}. The next tick tries again.`, { run: id, level: "error" }).catch(() => {});
+    } finally {
+      await env.DB.prepare("UPDATE runs SET lock_until = NULL WHERE id = ?").bind(id).run();
+    }
+    if (now() >= stop) break;
+  }
+  return { days, runs };
 }

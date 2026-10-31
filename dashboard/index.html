@@ -101,7 +101,7 @@
         const tr = document.createElement("tr");
         const a = document.createElement("a");
         a.href = `/run/?id=${encodeURIComponent(r.id)}`;
-        a.textContent = r.id + (r.model_set === "test" ? " (test)" : "");
+        a.textContent = r.id + (r.model_set === "test" ? " (test)" : r.model_set === "bot" ? " (bots)" : "");
         const first = document.createElement("td");
         first.append(a);
         const status = document.createElement("td");
@@ -113,7 +113,7 @@
         return tr;
       };
       const live = runs.filter(r => r.live).sort((a, b) => (b.status === "running") - (a.status === "running"));
-      const done = runs.filter(r => !r.live);
+      const done = runs.filter(r => !r.live).sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true })); // by run name (#77)
       document.getElementById("runs").replaceChildren(...live.map(row));
       document.getElementById("runs-empty").hidden = live.length > 0;
       document.getElementById("runs-empty").textContent = "No live run. Finished runs are in the archive below.";
