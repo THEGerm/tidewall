@@ -203,7 +203,7 @@ export async function playBots(env: RunnerEnv, o: { budgetMs?: number; now?: () 
         if (run.status !== "running") break;
         const day = run.state.day;
         if (day === 1) await log(env.DB, `Bots started ${id}${run.state.fixedDays ? ` (${run.state.fixedDays.toLocaleString("en")} days)` : ""}.`, { run: id });
-        const result = await playDay({ state: run.state, players: equilibriumPlayers(`${run.seed}:${day}`), publicYesterday: [], wireYesterday: [] });
+        const result = await playDay({ state: run.state, players: equilibriumPlayers(`${run.seed}:${day}`, { audit: true, turf: run.state.botTurf ?? "respect" }), publicYesterday: [], wireYesterday: [] });
         await saveDay(env.DB, id, result);
         days++;
         if (result.state.over) { await log(env.DB, `Bots finished ${id} after ${day.toLocaleString("en")} days.`, { run: id }); break; }

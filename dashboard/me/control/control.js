@@ -189,8 +189,11 @@ $("new-form").onsubmit = async (e) => {
     seating: SEATINGS[f.get("rotation")],
     // Bots: the equilibrium bots, free and at their own speed. "10,000 days"
     // switches the end draw off and plays exactly that many (Germ, 31 Oct).
-    model_set: f.get("model_set") === "bot10k" ? "bot" : f.get("model_set"),
+    // "gangs encroaching" plays the turf war's one-shot equilibrium instead
+    // of respect. Every bot run's Council audits at the 10% line.
+    model_set: ["bot10k", "bot-encroach"].includes(f.get("model_set")) ? "bot" : f.get("model_set"),
     ...(f.get("model_set") === "bot10k" ? { fixed_days: 10000 } : {}),
+    ...(f.get("model_set") === "bot-encroach" ? { bot_turf: "encroach" } : {}),
   };
   try {
     await api("runs", { method: "POST", body: JSON.stringify(body) });

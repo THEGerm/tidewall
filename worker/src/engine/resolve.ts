@@ -117,7 +117,7 @@ export function resolveDay(state: GameState, nature: Nature, open: District[], m
   return { state: { ...state, balances: b, scores, prison, previous: moves }, events, delta, welfare };
 }
 
-export const newGame = (seed: string, fixedDays?: number): GameState => ({
+export const newGame = (seed: string, fixedDays?: number, botTurf?: "encroach"): GameState => ({
   seed,
   day: 1,
   balances: { treasury: START.treasury, chief: START.chief, Families: START.Families, Saltdogs: START.Saltdogs },
@@ -127,6 +127,7 @@ export const newGame = (seed: string, fixedDays?: number): GameState => ({
   over: false,
   truncated: false,
   ...(fixedDays ? { fixedDays } : {}),
+  ...(botTurf ? { botTurf } : {}),
 });
 
 export const gangOf = (d: District): Gang => TURF[d];
