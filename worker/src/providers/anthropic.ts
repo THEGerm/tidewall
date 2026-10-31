@@ -16,6 +16,7 @@
 
 import { kindFromStatus, type ErrorKind } from "./errors";
 import { call, num, str, type Adapter } from "./http";
+import { relaxSchema } from "./schema";
 import type { CallOptions, ChatRequest, ChatResult, Stop } from "./types";
 
 export const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -26,22 +27,7 @@ const ephemeral = { type: "ephemeral" } as const;
 const DROP = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minLength", "maxLength", "maxItems", "uniqueItems"];
 
 // A copy of the schema with the rules Anthropic rejects turned into words.
-export function anthropicSchema(schema: unknown): unknown {
-  if (Array.isArray(schema)) return schema.map(anthropicSchema);
-  if (typeof schema !== "object" || schema === null) return schema;
-  const s = schema as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  const notes: string[] = [];
-  for (const [k, v] of Object.entries(s)) {
-    if (DROP.includes(k) || (k === "minItems" && typeof v === "number" && v > 1)) {
-      if (k !== "uniqueItems" || v) notes.push(k === "uniqueItems" ? "no repeats" : `${k} ${v}`);
-    } else if (k === "properties" && typeof v === "object" && v) {
-      out[k] = Object.fromEntries(Object.entries(v).map(([n, p]) => [n, anthropicSchema(p)]));
-    } else out[k] = typeof v === "object" ? anthropicSchema(v) : v;
-  }
-  if (notes.length) out.description = [s.description, notes.join(", ")].filter(Boolean).join("; ");
-  return out;
-}
+export const anthropicSchema = (schema: unknown) => relaxSchema(schema, DROP, 1);
 
 function build(key: string, req: ChatRequest) {
   const last = req.messages.length - 1;
