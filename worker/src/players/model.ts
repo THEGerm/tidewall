@@ -20,6 +20,7 @@ export interface CallRecord {
   modelReported: string | null;
   payer: string | null; // participant email; null when no key was tried
   fallbackKey: boolean; // paid by someone other than the day's owner
+  payback?: boolean; // paid by a debtor repaying the day's owner (#117); not a fallback
   ok: boolean;
   stop: string | null;
   usage: Usage | null;
@@ -83,11 +84,11 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
         result = await retry(() => call(o.provider, k.key, req));
       } catch (err) {
         lastError = err;
-        await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: null, payer: k.email, fallbackKey: !k.owner, ok: false, stop: null, usage: null, error: err instanceof Error ? err.message : String(err), latencyMs: null });
+        await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: null, payer: k.email, fallbackKey: !k.owner && !k.payback, payback: !!k.payback, ok: false, stop: null, usage: null, error: err instanceof Error ? err.message : String(err), latencyMs: null });
         if (err instanceof ProviderError && err.tryNextKey) continue;
         throw err;
       }
-      await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: result.modelReported, payer: k.email, fallbackKey: !k.owner, ok: true, stop: result.stop, usage: result.usage, error: null, latencyMs: result.latencyMs, requestId: result.requestId, stopDetail: result.stopDetail, text: result.text, promptSha });
+      await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: result.modelReported, payer: k.email, fallbackKey: !k.owner && !k.payback, payback: !!k.payback, ok: true, stop: result.stop, usage: result.usage, error: null, latencyMs: result.latencyMs, requestId: result.requestId, stopDetail: result.stopDetail, text: result.text, promptSha });
       if (result.stop === "refused") throw new Refusal(result.stopDetail);
       try {
         return JSON.parse(result.text);

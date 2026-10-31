@@ -167,7 +167,7 @@ export async function exportRun(db: D1Database, runId: string) {
   const parse = (v: unknown) => (typeof v === "string" ? JSON.parse(v) : v);
   const ledger = (await db.prepare(
     `SELECT day, seq, player, step, provider, model, model_reported, payer_name, fallback_key, ok, stop, stop_detail,
-            input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id
+            input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id, payback
      FROM ledger WHERE run_id = ? ORDER BY day, seq`).bind(runId).all<Record<string, any>>()).results;
   // Each answer's calls: a player makes one answer per step per day, so the
   // saved ledger rows with the same day, player and step are its calls (#67).
