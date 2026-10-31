@@ -149,6 +149,9 @@ svg .line.wire { stroke: var(--wire); } svg .pt.wire { fill: var(--wire); }
 .confidant p { margin: 2px 0; }
 .confidant .who { font-size: 0.82rem; color: var(--muted); }
 .confidant .sam { color: var(--muted); font-style: italic; }
+.confidant .pager { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.confidant .pager button { padding: 4px 10px; font-size: 0.85rem; }
+.confidant .pager button:disabled { opacity: 0.4; cursor: default; }
 .block h3 { margin-top: 16px; }
 .block ul { padding-left: 20px; }
 
