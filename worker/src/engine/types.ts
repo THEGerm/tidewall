@@ -127,6 +127,8 @@ export interface GameState {
   previous: DayMoves | null; // yesterday's moves, for fallbacks
   over: boolean;
   truncated: boolean;
+  fixedDays?: number; // bot runs of a set length: no end draw, no hidden cap
+  botTurf?: "encroach"; // a bot run whose gangs encroach (default: respect)
 }
 
 export interface View {

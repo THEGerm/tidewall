@@ -40,6 +40,7 @@ const yn = (b) => (b ? "yes" : "no");
 const money = (x) => (typeof x === "number" ? `$${x.toFixed(2)}` : "");
 const fmtDetail = (d) => (d ? Object.entries(d).map(([k, v]) => `${k}: ${typeof v === "object" && v ? JSON.stringify(v) : v}`).join(", ") : "");
 const isTest = (r) => r.model_set === "test";
+const isBot = (r) => r.model_set === "bot";
 
 // ---- The run selector ----
 
@@ -49,7 +50,7 @@ function optionLabel(r) {
 }
 
 function fillPicker(selected) {
-  const groups = [["Study runs", runs.filter((r) => !isTest(r))], ["Test runs", runs.filter(isTest)]];
+  const groups = [["Study runs", runs.filter((r) => !isTest(r) && !isBot(r))], ["Test runs", runs.filter(isTest)], ["Bot runs", runs.filter(isBot)]];
   const opts = groups.filter(([, rs]) => rs.length).map(([label, rs]) =>
     h("optgroup", { label }, rs.map((r) => h("option", { value: r.id, selected: r.id === selected }, optionLabel(r)))));
   $("pick").replaceChildren(...opts);
@@ -59,7 +60,7 @@ function fillPicker(selected) {
 // run, else the latest of any.
 function defaultRun() {
   const newest = (rs) => [...rs].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0];
-  return (newest(runs.filter((r) => !r.live && !isTest(r))) || newest(runs.filter((r) => !r.live)) || newest(runs))?.id;
+  return (newest(runs.filter((r) => !r.live && !isTest(r) && !isBot(r))) || newest(runs.filter((r) => !r.live)) || newest(runs))?.id;
 }
 
 // ---- The logs: one table per tab, built once per run ----
@@ -205,7 +206,7 @@ function renderLog() {
   const suffix = [filter.day && `day${filter.day}`, !log.noPlayer && filter.player].filter(Boolean).join("-");
   $("filters").replaceChildren(
     select("Day", filter.day, [["", "All days"], ...days.map((d) => [String(d), `Day ${d}`])], (v) => { filter.day = v; page = 0; renderLog(); }),
-    log.noPlayer ? null : select("Player", filter.player, [["", "All players"], ...names.map((n) => [n, n])], (v) => { filter.player = v; page = 0; renderLog(); }),
+    ...(log.noPlayer ? [] : [select("Player", filter.player, [["", "All players"], ...names.map((n) => [n, n])], (v) => { filter.player = v; page = 0; renderLog(); })]),
     h("a", { class: "button ghost small", href: csvUrl, download: `${current.run.id}-${tab}${suffix ? `-${suffix}` : ""}.csv` }, `Download CSV (${rows.length} ${rows.length === 1 ? "row" : "rows"})`),
   );
 
@@ -237,11 +238,11 @@ function renderRun() {
   $("title").textContent = run.id;
   document.title = `${run.id} analysis · Tidewall`;
   $("facts").replaceChildren(
-    fact("Seating", h("span", { class: "seats" }, ["Government", "Criminals", "World"].map((s) => h("span", {}, `${s}: `, h("strong", {}, FAMILY[run.seating?.[s]] || run.seating?.[s] || "?")))), isTest(run) ? "Test run" : `Study run, triple ${run.triple}, rotation ${run.rotation}`),
+    fact("Seating", h("span", { class: "seats" }, ["Government", "Criminals", "World"].map((s) => h("span", {}, `${s}: `, h("strong", {}, FAMILY[run.seating?.[s]] || run.seating?.[s] || "?")))), isBot(run) ? "Bot run: equilibrium bots, no models" : isTest(run) ? "Test run" : `Study run, triple ${run.triple}, rotation ${run.rotation}`),
     fact("Status", STATUS[run.status] || run.status, run.live ? "Public data only until it ends" : run.seed ? `Seed ${run.seed}` : null),
     fact("Days", String(days), run.rules_version ? `Rules ${run.rules_version}` : null),
     fact("Cost", money(cost), days ? `${money(cost / days)} a day` : null),
-    fact("Fallbacks", run.live ? "at the end" : `${fb} of ${answers.length}`, run.live ? "Answers are secret while live" : `answers; ${retries} more came on the retry`),
+    fact("Fallbacks", run.live ? "When it ends" : `${fb} of ${answers.length}`, run.live ? "Answers are secret while live" : `answers; ${retries} more came on the retry`),
   );
   const enc = encodeURIComponent(run.id);
   const link = (href, text, download) => h("a", { class: "button ghost small", href, download }, text);
@@ -249,7 +250,7 @@ function renderRun() {
     link(`/run/?id=${enc}`, "Watch the run"),
     link(`/run/theory/?id=${enc}`, "Game theory page"),
     link(`/run/data/?id=${enc}`, "Data and downloads"),
-    run.live ? null : link(`/api/runs/${enc}/export`, "Full export (JSON)", `${run.id}.json`),
+    ...(run.live ? [] : [link(`/api/runs/${enc}/export`, "Full export (JSON)", `${run.id}.json`)]),
   );
   $("run-link").href = `/run/?id=${enc}`;
   $("theory-link").href = `/run/theory/?id=${enc}`;

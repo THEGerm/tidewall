@@ -117,12 +117,12 @@ Your answers:
 ## Step "act" (example day)
 
 ```text
+Your diary, the entries you've kept:
+- Day 1: Quiet day.
+
 # Day 3
 
 Nature today: storm (the Port is closed). Open districts: Hightown, Old Quarter, Lowtown, Market and Seawall.
-
-Your diary, the entries you've kept:
-- Day 1: Quiet day.
 
 Yesterday's public events:
 - E7: crime in Market, not inspected; damage 15
@@ -136,10 +136,10 @@ Step 5. Give your forecasts for today.
 ## The Wire (example evening)
 
 ```text
-# Day 3, evening
-
 Your diary, the entries you've kept:
 - Day 1: Quiet day.
+
+# Day 3, evening
 
 Today's public events:
 - E7: crime in Market, not inspected; damage 15

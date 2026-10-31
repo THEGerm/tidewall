@@ -53,6 +53,7 @@ After every game day: tokens in, cached and out, plus cost, per participant and 
 ### 5. Control `/me/control/` (signed in, built)
 
 - Create a run by hand (a test run, or one study run). The 27 study runs come from a script with the published seeds (#38).
+- **Bot runs** (Germ, 31 Oct): "Bots" plays one normal run with the equilibrium bots (`src/players/bots.ts`), and "Bots, 10,000 days" plays exactly 10,000 days with the end draw off, for the week-0 engine check (#39), and "Bots, gangs encroaching" plays the turf war's one-shot equilibrium instead of respect. In every bot run the Council audits each open district at the 10% line, at most 2 a day. All are free, start at once and play at their own speed on every minute tick, beside any model run and whatever the schedule. They keep days and events only, and stay out of `data/runs/` (their seed replays them).
 - Start, pause and resume the schedule (a day every 10 minutes, `meta.pace_minutes`). **Step** queues one day, which the next minute's scheduler tick plays, so closing the page never cuts a day short (Germ, 31 Oct, after the first test run).
 - **Log:** the last 15 things that happened (days played with calls, cost, time and fallbacks; pauses and their reasons; failed days; who changed what), refreshed every 15 seconds.
 - Key check: for each provider, who has a working key today. A run that can't find a key pauses here with the reason.

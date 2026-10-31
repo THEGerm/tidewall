@@ -79,9 +79,9 @@ describe("system prompts", () => {
 });
 
 describe("step prompts", () => {
-  it("put the stable briefing first and the step's instruction last", () => {
+  it("put the diary first, then the day, and the step's instruction last", () => {
     const s = P.step("messages", view("Council", { inbox: [{ to: "Council", text: "Audit Market.", from: "Families" } as any] }));
-    const order = ["# Day 3", "Nature today: storm (the Port is closed)", "Balance: Treasury 990", "Your score so far: 4", "- Day 1: Quiet day.", "- E7: crime in Market", "- Market hit: Crime in Market.", "- from Families: Audit Market.", "Step 2, messages"];
+    const order = ["Your diary, the entries you've kept:\n- Day 1: Quiet day.", "# Day 3", "Nature today: storm (the Port is closed)", "Balance: Treasury 990", "Your score so far: 4", "- E7: crime in Market", "- Market hit: Crime in Market.", "- from Families: Audit Market.", "Step 2, messages"];
     let at = -1;
     for (const part of order) {
       const i = s.indexOf(part);
@@ -141,7 +141,8 @@ describe("the Wire prompt", () => {
     expect(s).toContain("- E1: fire in Lowtown; Saltdogs lost 20");
     expect(s).toContain("- E3: turf war; Families respect, Saltdogs encroach");
     expect(s).toContain("no added causes, links between events, motives, quotes, names or suspects");
-    expect(s.indexOf("# Day 3, evening")).toBe(0);
+    expect(s.indexOf("Your diary, the entries you've kept:")).toBe(0);
+    expect(s).toContain("# Day 3, evening");
   });
 
   it("works without a view", () => {

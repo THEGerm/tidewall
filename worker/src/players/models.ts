@@ -40,6 +40,7 @@ export const CHEAP_TEST_MODELS: Record<Family, { provider: Provider; model: stri
 export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = CHEAP_TEST_MODELS;
 
 export type ModelSet = "study" | "test";
-export const modelsFor = (set: ModelSet) => (set === "test" ? TEST_MODELS : MODELS);
+// Bot runs call no model; they never reach the code that asks for one.
+export const modelsFor = (set: ModelSet | "bot") => (set === "test" ? TEST_MODELS : MODELS);
 
-export const isPinned = (f: Family, set: ModelSet = "study") => !modelsFor(set)[f].model.startsWith("PIN-");
+export const isPinned = (f: Family, set: ModelSet | "bot" = "study") => !modelsFor(set)[f].model.startsWith("PIN-");

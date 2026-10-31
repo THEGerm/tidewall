@@ -200,7 +200,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
   }
 
   // Step 8: does the game go on?
-  const end = afterDay(seed, day);
+  const end = afterDay(seed, day, state.fixedDays);
   const next: GameState = { ...r.state, day: end.over ? day : day + 1, over: end.over, truncated: end.truncated };
 
   return { state: next, day, nature, open, moves, events: r.events, publicEvents, wire, messages: sent, forecasts, diaries, forgotten, delta: r.delta, welfare: r.welfare, records,

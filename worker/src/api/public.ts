@@ -17,7 +17,7 @@ export async function handlePublic(request: Request, env: Env, url: URL): Promis
 
   if (path === "/api/runs") return json({ ok: true, runs: await listRuns(env.DB) });
 
-  const m = path.match(/^\/api\/runs\/([a-z0-9-]{1,40})(?:\/(ledger|export|days\/(\d{1,3})))?$/);
+  const m = path.match(/^\/api\/runs\/([a-z0-9-]{1,40})(?:\/(ledger|export|days\/(\d{1,5})))?$/);
   if (!m) return json({ ok: false, error: "not found" }, 404);
   const [, id, sub, day] = m;
 

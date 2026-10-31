@@ -16,11 +16,11 @@ const id = new URLSearchParams(location.search).get("id") || "";
   $("data").href = `/run/data/?id=${encodeURIComponent(id)}`;
   $("analysis").href = `/analysis/?id=${encodeURIComponent(id)}`;
   try {
-    const { run, x } = await load(id);
+    const { run, summary, x } = await load(id);
     const p = panel(x);
     $("title").textContent = `Game theory: ${run.id}`;
     $("note").textContent = run.live
-      ? `${p.days} days so far. While a run is live this page uses public data only: crime and turf. Inspections, audits, bribes, forecasts and fallbacks open when it ends.`
+      ? `${summary.days.length > p.days ? `The last ${p.days} of ${summary.days.length.toLocaleString("en")} days played so far.` : `${p.days} days so far.`} While a run is live this page uses public data only: crime and turf. Inspections, audits, bribes, forecasts and fallbacks open when it ends.`
       : `${p.days} days, finished. Everything is open.`;
     $("main").innerHTML = SECTIONS;
     $("main").hidden = false;

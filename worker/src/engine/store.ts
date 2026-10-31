@@ -3,7 +3,9 @@
 // engine everything it needs to play the next day; exportRun gives the
 // analysis side the whole run as one JSON object.
 
+import * as C from "./config";
 import type { PlayerName } from "./config";
+import { EFFORT, modelsFor } from "../players/models";
 import type { DayResult } from "./day";
 import { newGame } from "./resolve";
 import type { DiaryEntry, Event, GameState, WireItem } from "./types";
@@ -18,9 +20,13 @@ export interface Seating {
   World: string;
 }
 
+// study and test runs call models; bot runs play the equilibrium bots, free,
+// at their own speed (runner.ts playBots).
+export type RunSet = "study" | "test" | "bot";
+
 export interface RunRow {
   id: string;
-  model_set: "study" | "test";
+  model_set: RunSet;
   seed: string;
   triple: number;
   rotation: 1 | 2 | 3;
@@ -41,9 +47,9 @@ export interface ConfidantRow {
 const now = () => new Date().toISOString();
 const json = (v: unknown) => JSON.stringify(v);
 
-export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: "study" | "test" }): Promise<RunRow> {
+export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number; bot_turf?: "encroach" }): Promise<RunRow> {
   const modelSet = run.model_set ?? "study";
-  const state = newGame(run.seed);
+  const state = newGame(run.seed, run.fixed_days, run.bot_turf);
   const t = now();
   await db
     .prepare("INSERT INTO runs (id, seed, triple, rotation, seating, rules_version, status, state, created_at, updated_at, model_set) VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?, ?)")
@@ -105,6 +111,10 @@ export async function saveDay(db: D1Database, runId: string, r: DayResult, confi
   for (const e of r.events)
     q("INSERT INTO events (run_id, day, id, kind, public, district, actor, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       runId, d, e.id, e.kind, e.public ? 1 : 0, e.district ?? null, e.actor ?? null, e.detail ? json(e.detail) : null);
+  // A bot run keeps only the days and events: bots give no answers worth
+  // keeping, flat forecasts and empty diaries, so a 10,000-day run stays small.
+  const lean = run.model_set === "bot";
+  if (!lean) {
   for (const a of r.records)
     q("INSERT INTO answers (run_id, day, player, step, source, reason, errors) VALUES (?, ?, ?, ?, ?, ?, ?)",
       runId, d, a.player, a.step, a.source, a.reason ?? null, a.errors ? json(a.errors) : null);
@@ -120,6 +130,7 @@ export async function saveDay(db: D1Database, runId: string, r: DayResult, confi
     q("INSERT INTO wire (run_id, day, seq, headline, text, events) VALUES (?, ?, ?, ?, ?, ?)", runId, d, i, w.headline, w.text, json(w.events)));
   for (const c of confidant)
     q("INSERT INTO confidant (run_id, day, player, window, text, reply) VALUES (?, ?, ?, ?, ?, ?)", runId, d, c.player, c.window, c.text, c.reply);
+  }
 
   s.push(...extra);
   const status: Status = r.state.over ? (r.state.truncated ? "truncated" : "over") : "running";
@@ -137,21 +148,68 @@ export async function exportRun(db: D1Database, runId: string) {
     ["days", "events", "answers", "messages", "forecasts", "diaries", "wire", "confidant"].map(all),
   );
   const parse = (v: unknown) => (typeof v === "string" ? JSON.parse(v) : v);
+  const ledger = (await db.prepare(
+    `SELECT day, seq, player, step, provider, model, model_reported, payer_name, fallback_key, ok, stop, stop_detail,
+            input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id
+     FROM ledger WHERE run_id = ? ORDER BY day, seq`).bind(runId).all<Record<string, any>>()).results;
+  // Each answer's calls: a player makes one answer per step per day, so the
+  // saved ledger rows with the same day, player and step are its calls (#67).
+  const callsOf = new Map<string, number[]>();
+  for (const l of ledger) if (l.day_saved) {
+    const k = `${l.day}|${l.player}|${l.step}`;
+    callsOf.set(k, [...(callsOf.get(k) ?? []), l.seq]);
+  }
+  // Why the run ended (#67): the end draw, the hidden cap, or a person's End.
+  const raw = await db.prepare("SELECT pause_reason, created_at, updated_at FROM runs WHERE id = ?").bind(runId).first<Record<string, any>>();
+  const last = days.at(-1);
+  const ended =
+    run.status === "running" || run.status === "paused" || run.status === "ready" ? null
+      : run.state.truncated ? `hidden cap: day ${last?.day} was the last allowed`
+      : last?.ended ? `end draw after day ${last.day}`
+      : raw?.pause_reason ?? "stopped";
+  const crimes = new Map<number, number>();
+  for (const e of events) if (e.kind === "crime") crimes.set(e.day, (crimes.get(e.day) ?? 0) + 1);
+  const pace = await db.prepare("SELECT value FROM meta WHERE key = 'pace_minutes'").first<{ value: string }>();
+  const models = modelsFor(run.model_set);
   return {
-    run: { ...run, state: undefined, day_attempts: undefined },
-    days: days.map((x) => ({ day: x.day, nature: parse(x.nature), open: parse(x.open), moves: parse(x.moves), delta: parse(x.delta), welfare: x.welfare, ended: !!x.ended })),
+    run: {
+      ...run, state: undefined, day_attempts: undefined,
+      end_reason: ended,
+      truncated: !!run.state.truncated,
+      created_at: raw?.created_at ?? null,
+      updated_at: raw?.updated_at ?? null,
+      pace_minutes: pace ? Number(pace.value) : null,
+      // The model each seat played, as pinned in the code when exported.
+      models: run.model_set === "bot"
+        ? { all: `equilibrium bots (src/players/bots.ts), no model calls; Council audits at the 10% line; gangs ${run.state.botTurf ?? "respect"}` }
+        : Object.fromEntries(Object.entries(run.seating).map(([seat, family]) => [seat, { family, ...models[family as keyof typeof models], effort: EFFORT }])),
+    },
+    // The game's parameters, so the analysis need not hard-code them (#67).
+    game: {
+      districts: C.DISTRICTS, turf: C.TURF, start: C.START, chief_salary: C.CHIEF_SALARY,
+      crime_gain: C.CRIME_GAIN, crime_damage: C.CRIME_DAMAGE, fine: C.FINE, inspection_cost: C.INSPECTION_COST,
+      chief_counts_damage: C.CHIEF_COUNTS_DAMAGE, arrest_cap: C.ARREST_CAP, prison_places: C.PRISON_PLACES, sentence_days: C.SENTENCE_DAYS,
+      turf_payoffs: { R: C.TURF_R, T: C.TURF_T, S: C.TURF_S, P: C.TURF_P },
+      bribe_min: C.BRIBE_MIN, bribe_max: C.BRIBE_MAX, max_audits: C.MAX_AUDITS, audit_cost: C.AUDIT_COST, seizure: C.SEIZURE,
+      nature: C.NATURE, fire_loss: C.FIRE_LOSS, strike_loss: C.STRIKE_LOSS, ship_gain: C.SHIP_GAIN, storm_closes: C.STORM_CLOSES,
+      min_days: C.MIN_DAYS, end_chance: C.END_CHANCE, hidden_cap: C.HIDDEN_CAP,
+      equilibrium: { crime: C.EQ_CRIME, inspect: C.EQ_INSPECT, respect: C.EQ_RESPECT, audit_per_district: C.EQ_AUDIT_PER_DISTRICT },
+      confidant_max_words: C.CONFIDANT_MAX_WORDS, diary_max_words: C.DIARY_MAX_WORDS, wire_min: C.WIRE_MIN, wire_max: C.WIRE_MAX,
+    },
+    days: days.map((x) => ({
+      day: x.day, nature: parse(x.nature), open: parse(x.open), moves: parse(x.moves), delta: parse(x.delta), welfare: x.welfare, ended: !!x.ended,
+      // The Chief's performance penalty inside delta.Chief, apart from money (#67)
+      chief_penalty: C.CHIEF_COUNTS_DAMAGE ? C.CRIME_DAMAGE * (crimes.get(x.day) ?? 0) : 0,
+    })),
     events: events.map((e) => ({ day: e.day, ...rowToEvent(e) })),
-    answers: answers.map((a) => ({ day: a.day, player: a.player, step: a.step, source: a.source, reason: a.reason ?? undefined, errors: a.errors ? parse(a.errors) : undefined })),
+    answers: answers.map((a) => ({ day: a.day, player: a.player, step: a.step, source: a.source, reason: a.reason ?? undefined, errors: a.errors ? parse(a.errors) : undefined, calls: callsOf.get(`${a.day}|${a.player}|${a.step}`) ?? [] })),
     messages: messages.map((m) => ({ day: m.day, from: m.from_player, to: m.to_player, text: m.text })),
     forecasts: forecasts.map((f) => ({ day: f.day, player: f.player, forecasts: parse(f.forecasts) })),
     diaries: diaries.map((x) => ({ day: x.day, player: x.player, text: x.text, forgotten_on: x.forgotten_on ?? null })),
     wire: wire.map((w) => ({ day: w.day, headline: w.headline, text: w.text, events: parse(w.events) })),
     confidant: confidant.map((c) => ({ day: c.day, player: c.player, window: c.window, text: c.text, reply: c.reply })),
     // Who paid for every call: payer names only, never emails.
-    ledger: (await db.prepare(
-      `SELECT day, seq, player, step, provider, model, model_reported, payer_name, fallback_key, ok, stop,
-              input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id
-       FROM ledger WHERE run_id = ? ORDER BY day, seq`).bind(runId).all<Record<string, unknown>>()).results,
+    ledger,
     // The raw answer behind each call, with the hash of its prompt. Only a
     // finished run is exported (public.ts), so nothing here leaks a live game.
     responses: (await db.prepare("SELECT day, seq, prompt_sha, text FROM responses WHERE run_id = ? ORDER BY day, seq").bind(runId).all<Record<string, unknown>>()).results,

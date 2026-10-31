@@ -46,8 +46,18 @@ async function load() {
     ? `${days.length} days, finished. Everything is open, secrets included.`
     : `${days.length} days so far, ${run.status}. While a run is live this page shows only what is public; secret moves open when it ends.`;
 
-  // One request per day for the counts; fine for runs of up to 60 days.
-  const views = await Promise.all(days.map((d) => get(`/api/runs/${id}/days/${d.day}`).catch(() => null)));
+  // A finished run: one request, the export, cut into days. A live run: one
+  // request per day, so a long live run (a 10,000-day bot run) skips the
+  // counts until it ends.
+  let views;
+  if (finished) {
+    const ex = await get(`/api/runs/${id}/export`);
+    const by = (rows) => { const m = new Map(); for (const r of rows || []) m.set(r.day, [...(m.get(r.day) || []), r]); return m; };
+    const ev = by(ex.events), an = by(ex.answers);
+    views = days.map((d) => ({ events: ev.get(d.day) || [], moves: ex.days[d.day - 1]?.moves || {}, answers: an.get(d.day) || [] }));
+  } else if (days.length <= 400) {
+    views = await Promise.all(days.map((d) => get(`/api/runs/${id}/days/${d.day}`).catch(() => null)));
+  } else views = days.map(() => null);
   const costByDay = {};
   for (const r of ledger.ledger) costByDay[r.day] = (costByDay[r.day] || 0) + (r.cost_usd || 0);
 

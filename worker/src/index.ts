@@ -3,7 +3,7 @@
 
 import { handleMe } from "./api/me";
 import { handlePublic } from "./api/public";
-import { tick } from "./engine/runner";
+import { playBots, tick } from "./engine/runner";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -53,7 +53,8 @@ export default {
 
   // Cron (wrangler.jsonc): one scheduler tick plays at most one game day.
   async scheduled(_event: ScheduledController, env: Env): Promise<void> {
-    const outcome = await tick(env);
-    console.log("tick", JSON.stringify(outcome));
+    // Model runs and bot runs side by side: neither waits for the other.
+    const [outcome, bots] = await Promise.all([tick(env), playBots(env)]);
+    console.log("tick", JSON.stringify(outcome), "bots", JSON.stringify(bots));
   },
 } satisfies ExportedHandler<Env>;

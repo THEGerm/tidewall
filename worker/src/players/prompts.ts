@@ -3,20 +3,24 @@
 // Layout, for the providers' caches:
 // - system(player): everything that never changes in a run, for that seat:
 //   the rules, the payoffs, the seat's role and every answer it will give.
-// - step(step, view): the day's briefing, stable parts first (day, Nature,
-//   balance, diary, yesterday), then what changed today (messages, bribe
-//   answers, texts to Sam), then the step's instruction last.
+// - step(step, view): the player's diary first, since it only grows and every
+//   call of the day shares it (Gemini caches implicitly only from 4,096 tokens,
+//   #68, #74); then the day (Nature, balance, yesterday), then what changed
+//   today (messages, bribe answers, texts to Sam), then the step's instruction.
 //
 // Wording rules: city words, not textbook names; no example numbers in the
 // forecast or bribe instructions, so nothing anchors an answer; nothing that
 // pushes a player toward or away from any move.
 //
-// Open decisions are switches in PromptOptions, with defaults that match the
-// engine (engine/config.ts), so the prompts and the rules can't drift apart:
-//   chiefCountsDamage  #12  the Chief's score counts crime damage
-//   announceCap        #12, #17  players are told the hidden cap (default: no)
-//   confidant          rules 3.6, PROPOSED  the texts to Sam
-// The run length (#10, #17) is read from MIN_DAYS and END_CHANCE in config.
+// Decided by Shazz and Germ on 31 Oct (decisions/shazz.md in the bus): the
+// Chief's score counts crime damage (#12), the cap stays hidden from players
+// (#12, #17), and runs last at least 12 days, then end with 8% a day (#10, #17).
+// The defaults below say exactly that. They stay switches so a test can check
+// each wording, and so chiefCountsDamage always follows the engine's config:
+//   chiefCountsDamage  #12  default CHIEF_COUNTS_DAMAGE (true)
+//   announceCap        #12, #17  default false: the cap is never mentioned
+//   confidant          rules 3.6  default true, as the engine plays it
+// The run length is read from MIN_DAYS and END_CHANCE in config.
 
 import {
   ARREST_CAP, AUDIT_COST, BRIBE_MAX, BRIBE_MIN, CHIEF_COUNTS_DAMAGE, CHIEF_SALARY, CONFIDANT_MAX_WORDS, CRIME_DAMAGE, CRIME_GAIN,
@@ -239,11 +243,11 @@ const diary = (v: View) => (v.notebook?.length ? v.notebook.map((e) => `- Day ${
 
 function briefing(v: View): string[] {
   const out = [
+    `Your diary, the entries you've kept:\n${diary(v)}`,
     `# Day ${v.day}`,
     `Nature today: ${NATURE_WORDS(v)}. Open districts: ${list(v.open)}.`,
     balanceLine(v),
     v.score !== undefined ? `Your score so far: ${v.score}.` : "",
-    `Your diary, the entries you've kept:\n${diary(v)}`,
     `Yesterday's public events:\n${events(v.publicYesterday)}`,
     `Yesterday's Wire:\n${wireItems(v)}`,
   ];
@@ -303,8 +307,8 @@ export function makePrompts(options: Partial<PromptOptions> = {}): Prompts {
     step: (step, v) => [...briefing(v), instruction(step, v), retry(v)].filter((x) => x !== "").join("\n\n"),
     wire: (es, v) =>
       [
-        v ? `# Day ${v.day}, evening` : "",
         v ? `Your diary, the entries you've kept:\n${diary(v)}` : "",
+        v ? `# Day ${v.day}, evening` : "",
         `Today's public events:\n${events(es)}`,
         `The Wire. Write ${WIRE_MIN} to ${WIRE_MAX} items about these events, each citing the IDs it reports, from this list only. Report only what the events say: no added causes, links between events, motives, quotes, names or suspects. ${DIARY_STEP}`,
       ].filter((x) => x !== "").join("\n\n"),

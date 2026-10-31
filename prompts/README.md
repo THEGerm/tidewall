@@ -5,15 +5,19 @@ Every prompt a model sees, versioned with the code. A prompt change after cycle 
 - **Source:** [`worker/src/players/prompts.ts`](../worker/src/players/prompts.ts), written from [docs/rules.md](../docs/rules.md). Each seat gets one system prompt that never changes during a run: the rules, the payoffs, its role and every answer it gives. Each step then adds the day's briefing and that step's instruction.
 - **Rendered:** [`rendered/`](rendered/) has one file per seat, holding its system prompt and every step's prompt on an example day. A test writes these files and fails if they're out of date, so any prompt change shows up in review. To regenerate, run `npx vitest run -u` in `worker/`.
 
-## Switches for open decisions
+## Decided rules and their switches
+
+Shazz and Germ decided these on 31 Oct; see `decisions/shazz.md` in the bus. The defaults say exactly what was decided. They stay switches so a test can check each wording.
 
 | Switch | Default | Decision |
 |---|---|---|
 | `chiefCountsDamage` | `CHIEF_COUNTS_DAMAGE` in `engine/config.ts` (true) | #12: the Chief's score counts uninspected crime |
-| `announceCap` | false (cap hidden) | #12 and #17: whether players are told the hidden cap |
-| `confidant` | true | rules 3.6: the texts to Sam |
+| `announceCap` | false | #12, #17: players are never told the 60-day cap |
+| `confidant` | true | rules 3.6: the texts to Sam, as the engine plays them |
 
-The run length comes from `MIN_DAYS` and `END_CHANCE` in `engine/config.ts` (#10, #17), so the engine and the prompts always say the same thing.
+The run length comes from `MIN_DAYS` and `END_CHANCE` in `engine/config.ts`: at least 12 days, then 8% a day (#10, #17). The engine and the prompts therefore always say the same thing.
+
+The step prompt puts the player's diary first. The diary only grows, so every call of the day shares it as a cacheable prefix (#68, #74).
 
 ## Wording rules
 
