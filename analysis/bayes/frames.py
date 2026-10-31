@@ -10,14 +10,11 @@ with and without them (rules section 7; decided 31 Oct).
 """
 
 from collections import defaultdict
-from fractions import Fraction
-
 from analysis.metrics import equilibrium as eq
 
 # #12, decided 31 Oct: the Chief counts crime damage, so an accepted bribe must
-# clear 100 a + 11 (solver, bribery block; analysis.metrics.equilibrium once
-# PR 103 lands). 11 = the sure 15 against the inspection equilibrium's 4.
-ACCEPT_MARGIN = float(eq.CRIME_DAMAGE - eq.CRIME_DAMAGE * Fraction(eq.CRIME_RATE))
+# clear 100 a + 11 (one source: analysis.metrics.equilibrium, from the solver).
+ACCEPT_MARGIN = float(eq.accept_margin())
 MIN_DAYS = 12  # rules section 6, decided 31 Oct: continuation is certain before day 12
 
 
