@@ -137,6 +137,7 @@ describe("public API", () => {
     expect(list).toEqual([expect.objectContaining({ id: "t1-r1", days: 2, live: true, model_set: "study", cost_usd: 0 })]);
     expect((await get("/api/runs/nope")).status).toBe(404);
     expect((await get("/api/runs/t1-r1/days/99")).status).toBe(404);
+    expect((await get("/api/runs/t1-r1/days/1120")).body.error).toBe("no such day"); // a 4-digit day reaches the run, not the 404 for a bad path (10,000-day bot runs)
     expect((await get("/api/runs/t1-r1/other")).status).toBe(404);
     const env = { DB: testD1() } as any;
     const res = await handlePublic(new Request("https://x/api/runs", { method: "POST" }), env, new URL("https://x/api/runs"));
