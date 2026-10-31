@@ -22,6 +22,7 @@ export interface DayInput {
   state: GameState;
   players: Record<PlayerName, Player>;
   publicYesterday: Event[];
+  privateYesterday?: Partial<Record<PlayerName, Event[]>>;
   wireYesterday: WireItem[];
   notebooks?: Partial<Record<PlayerName, DiaryEntry[]>>; // each player's kept diary entries, from earlier days
 }
@@ -53,8 +54,10 @@ async function ask<T>(
   step: Step,
   call: (retryErrors?: string[]) => Promise<unknown>,
   check: (answer: unknown) => string[],
+  salvage?: (answer: unknown) => unknown,
 ): Promise<T | null> {
   let errors: string[] = [];
+  let last: unknown;
   let firstErrors: string[] = [];
   for (const attempt of [1, 2] as const) {
     let answer: unknown;
@@ -64,6 +67,7 @@ async function ask<T>(
       records.push({ player, step, source: "fallback", reason: err instanceof Refusal ? "refused" : "error", errors: [String((err as Error)?.message ?? err)] });
       return null;
     }
+    last = answer;
     errors = check(answer);
     if (attempt === 1) firstErrors = errors;
     if (errors.length === 0) {
@@ -73,11 +77,21 @@ async function ask<T>(
       return answer as T;
     }
   }
+  // Moves that are fine but come with a diary that is still too long (or a
+  // bad "forget") are kept, without the diary entry (#109).
+  const kept = salvage?.(last);
+  if (kept !== undefined && check(kept).length === 0) {
+    records.push({ player, step, source: "retry", reason: "diary_dropped", errors });
+    return kept as T;
+  }
   records.push({ player, step, source: "fallback", reason: "invalid", errors });
   return null;
 }
 
-export async function playDay({ state, players, publicYesterday, wireYesterday, notebooks = {} }: DayInput): Promise<DayResult> {
+// The same answer with its diary entry emptied and no deletions.
+const dropDiary = (a: unknown) => (a && typeof a === "object" ? { ...(a as object), diary: "", forget: [] } : undefined);
+
+export async function playDay({ state, players, publicYesterday, wireYesterday, notebooks = {}, privateYesterday = {} }: DayInput): Promise<DayResult> {
   const { seed, day } = state;
   const nature = drawNature(seed, day);
   const open = openDistricts(nature);
@@ -89,6 +103,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
       : player === "World" ? {}
       : { [player]: state.balances[player as Gang] },
     publicYesterday, wireYesterday, inbox: [],
+    ...(privateYesterday[player]?.length ? { privateYesterday: privateYesterday[player] } : {}),
     // Memory: the player's own kept diary, and its own score so far.
     notebook: notebooks[player] ?? [],
     ...(player === "World" ? {} : { score: state.scores[player as keyof GameState["scores"]] }),
@@ -158,7 +173,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
       const mine = ownOpen(g, open);
       const a = await ask<GangAct>(records, g, "act",
         (errs) => players[g].act({ ...base(g), inbox: inbox(g), ...own(g), ownOffersAccepted: accepted.filter((d) => TURF[d] === g), retryErrors: errs } as View),
-        (x) => checkGangAct(x, g, open, kept(g)));
+        (x) => checkGangAct(x, g, open, kept(g)), dropDiary);
       keep(g, a);
       Object.assign(crime, a ? Object.fromEntries(mine.map((d) => [d, a.moves.crime[d]])) : fallbackCrime(seed, day, g, open, prev));
       turf[g] = a ? a.moves.turf : fallbackTurf(seed, day, g, prev);
@@ -166,14 +181,14 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
     (async () => {
       const a = await ask<ChiefAct>(records, "Chief", "act",
         (errs) => players.Chief.act({ ...base("Chief"), inbox: inbox("Chief"), ...own("Chief"), acceptedToday: accepted, retryErrors: errs } as View),
-        (x) => checkChiefAct(x, open, accepted, kept("Chief")));
+        (x) => checkChiefAct(x, open, accepted, kept("Chief")), dropDiary);
       keep("Chief", a);
       inspect = a ? a.moves.inspect : fallbackInspect(seed, day, open, accepted, prev);
     })(),
     (async () => {
       const a = await ask<CouncilAct>(records, "Council", "act",
         (errs) => players.Council.act({ ...base("Council"), inbox: inbox("Council"), ...own("Council"), retryErrors: errs } as View),
-        (x) => checkCouncilAct(x, open, kept("Council")));
+        (x) => checkCouncilAct(x, open, kept("Council")), dropDiary);
       keep("Council", a);
       audit = a ? a.moves.audit : fallbackAudit(seed, day, open, prev);
     })(),
@@ -193,7 +208,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
   // Step 7: the Wire, from public events only
   let wire: WireItem[] = [];
   if (players.World.wire) {
-    const a = await ask<WireAnswer>(records, "World", "wire", (errs) => players.World.wire!(publicEvents, errs, base("World")), (x) => checkWire(x, publicEvents, kept("World")));
+    const a = await ask<WireAnswer>(records, "World", "wire", (errs) => players.World.wire!(publicEvents, errs, base("World")), (x) => checkWire(x, publicEvents, kept("World")), dropDiary);
     wire = a?.wire ?? [];
     if (typeof a?.diary === "string") diaries.World = a.diary;
     if (a?.forget?.length) forgotten.World = a.forget;

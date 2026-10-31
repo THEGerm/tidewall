@@ -99,7 +99,9 @@ export function classify(mine, theirs) {
 // forecasts or answers, so those come back null).
 export function panel(x) {
   const days = x.days;
-  let open = 0, crimes = 0, inspections = 0, audits = 0, offered = 0, taken = 0;
+  // Inspections count over the districts the Chief could inspect: open, and
+  // without a bribe it accepted that day (as analysis/stats does, #107).
+  let open = 0, inspectable = 0, crimes = 0, inspections = 0, audits = 0, offered = 0, taken = 0;
   const auditBy = Object.fromEntries(DISTRICTS.map((d) => [d, [0, 0]]));
   const turf = [];
   for (const d of days) {
@@ -108,6 +110,7 @@ export function panel(x) {
       open++;
       if (m.crime?.[dist]) crimes++;
       if (x.secret) {
+        if (!(m.accepted || []).includes(dist)) inspectable++;
         if ((m.inspect || []).includes(dist)) inspections++;
         const a = (m.audit || []).includes(dist);
         audits += a ? 1 : 0;
@@ -125,7 +128,7 @@ export function panel(x) {
   const out = {
     days: days.length,
     crime: against(crimes, open, CRIME_RATE),
-    inspection: x.secret ? against(inspections, open, INSPECTION_RATE) : null,
+    inspection: x.secret ? against(inspections, inspectable, INSPECTION_RATE) : null,
     audit: x.secret ? against(audits, open, AUDIT_LINE) : null,
     auditBy: x.secret ? Object.fromEntries(Object.entries(auditBy).map(([d, [k, n]]) => [d, against(k, n, AUDIT_LINE)])) : null,
     bribes: x.secret ? { offered, taken } : null,

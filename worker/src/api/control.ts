@@ -64,6 +64,12 @@ export async function handleControl(request: Request, env: Env, path: string, wh
       return json({ ok: false, error: why }, 400);
     }
     if (await getRun(env.DB, b!.id!)) return json({ ok: false, error: "run exists" }, 409);
+    // The 3 study runs of a triple share one seed (#17, #110).
+    if ((b!.model_set ?? "study") === "study" && b!.triple! > 0) {
+      const other = await env.DB.prepare("SELECT id, seed FROM runs WHERE model_set = 'study' AND triple = ? AND seed != ? LIMIT 1")
+        .bind(b!.triple, b!.seed).first<{ id: string; seed: string }>();
+      if (other) return json({ ok: false, error: `Seed: triple ${b!.triple} already uses seed ${other.seed} (run ${other.id}). The 3 runs of a triple share one seed.` }, 400);
+    }
     const run = await createRun(env.DB, b as any);
     if (run.model_set === "bot") {
       // Bots start at once and play at their own speed, schedule or not.
