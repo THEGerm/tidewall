@@ -50,7 +50,8 @@ class Choice(unittest.TestCase):
     def test_deltas(self):
         self.assertEqual(choice.gang_delta(0.25), 0)
         self.assertEqual(choice.police_delta(4 / 15), 0)
-        self.assertEqual(choice.chief_delta(10, 0.1), 0)
+        self.assertEqual(choice.chief_delta(10, 0.1, counts_damage=False), 0)
+        self.assertEqual(choice.chief_delta(21, 0.1), 0)  # with the #12 mark: b - 100 a - 11
         self.assertGreater(choice.gang_delta(0.1), 0)
 
     def test_fit_lambda(self):

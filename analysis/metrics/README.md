@@ -50,7 +50,7 @@ The equilibrium values (4/15, 1/4, 1/10) are in `equilibrium.py`. They're copied
 ## Choices for Germ and Shazz
 
 - Who labels the Wire's tone for the tilt measure: blind human coders or a judge model? A judge from one of the three study providers would bring its own family bias.
-- `police_should_inspect` uses the police payoff that gives the 25% equilibrium, the one that counts crime damage. If the Chief's payoff changes (solver open question 1), this changes with it.
+- `police_should_inspect` uses the police payoff that gives the 25% equilibrium, the one that counts crime damage. If the Chief's payoff changes (solver open question 3, the #12 switch), this changes with it. `chief_should_accept` uses b > 100a, the Chief's money only; with the #12 mark on, the solver finds b > 100a + 11 (solver open question 1).
 
 ## Multiple comparisons
 

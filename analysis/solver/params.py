@@ -1,89 +1,96 @@
 """Every number the solver uses, in one place.
 
-Numbers come from docs/plan.md, rev 3 (29 Oct 2026). Each block cites its
-section. Where the plan leaves something open, the value is marked
-ASSUMPTION and the matching item in OPEN_QUESTIONS says what to settle.
+Numbers come from docs/rules.md, draft 3 (30 Oct 2026). Each block cites its
+section. DECIDED marks a value Shazz and Germ settled on 31 Oct 2026
+(decisions/shazz.md in the bus); PROPOSED marks one still waiting on them. The engine's copy is worker/src/engine/config.ts. Where the
+rules leave something open, OPEN_QUESTIONS says what to settle.
 """
 
 from fractions import Fraction as F
 
-# "Each day the game continues with probability 0.98" (The game, in one paragraph;
-# How long a run lasts).
-CONTINUE = F(49, 50)
-END_PER_DAY = 1 - CONTINUE  # 2%
-CAP_DAYS = 150
+# 1. The city: 6 districts, each the turf of one gang, which makes the crime
+# decision there. A storm closes the Port for the day (3.5).
+TURF = {
+    "Port": "Families",
+    "Hightown": "Families",
+    "Old Quarter": "Families",
+    "Lowtown": "Saltdogs",
+    "Market": "Saltdogs",
+    "Seawall": "Saltdogs",
+}
+DISTRICTS = len(TURF)
+STORM_CLOSES = "Port"
 
-# 1. Inspection game (The games inside the city, 1).
-DISTRICTS = 6
+# 3.1 Inspection, per district-day.
 CRIME_GAIN = 10        # uninspected crime, to the gang
-CRIME_DAMAGE = 15      # uninspected crime, to the city
-FINE = 30              # inspected crime, to the gang (burned, not paid to the treasury)
-INSPECTION_COST = 4    # per inspection, to the police
+CRIME_DAMAGE = 15      # uninspected crime, to the treasury
+FINE = 30              # inspected crime, to the gang (burned)
+INSPECTION_COST = 4    # per inspection, from the Chief's account
+# DECIDED #12 (31 Oct): the Chief's score also loses the crime damage as a
+# performance mark, as CHIEF_COUNTS_DAMAGE in worker/src/engine/config.ts.
+# Without it the Chief never inspects and the gangs commit crime everywhere,
+# so 4/15 and 1/4 need it. False gives the Chief's stated payoff only (money).
+CHIEF_COUNTS_DAMAGE = True
 ARREST_CAP = 5         # arrests a day
 PRISON_PLACES = 40
-PLAN_CRIME_RATE = F(4, 15)
-PLAN_INSPECTION_RATE = F(10, 40)
+SENTENCE_DAYS = 10     # PROPOSED
+RULES_CRIME_RATE = F(4, 15)
+RULES_INSPECTION_RATE = F(1, 4)
 
-# 2. Turf war (The games inside the city, 2). Row player's payoff.
+# 3.2 Turf war. Row player's payoff.
 TURF_R = 6   # both respect
 TURF_T = 10  # encroach on a gang that respects
 TURF_S = 0   # respect a gang that encroaches
 TURF_P = 2   # both encroach
-PLAN_GRIM_THRESHOLD = F(1, 2)
+RULES_GRIM_THRESHOLD = F(1, 2)
+RULES_CONTINUE_ABOVE = F(9, 10)  # "section 6 keeps it above 0.9"
 
-# 3. Bribery (The games inside the city, 3).
-BRIBE_PENALTY = 100    # Chief caught: account seized, Chief jailed
-AUDIT_COST = 8         # to the Council, per audit
-PLAN_AUDIT_LINE = F(1, 10)
-# ASSUMPTION (open question 3): one audit checks one district-day, and a bribe
-# that isn't caught costs the Council the crime damage of that district-day.
-COUNCIL_LOSS_PER_UNCAUGHT_BRIBE = CRIME_DAMAGE
-# ASSUMPTION (open question 3): a caught Chief keeps the bribe and pays the
-# penalty, as in the plan's rule "takes it if b > a x 100".
+# 3.3 Bribery. Offers per open district, before moves; the Chief answers and
+# the gang knows the answer before it chooses crime.
+BRIBE_MIN = 1
+BRIBE_MAX = 20
+MAX_AUDITS = 2         # a day, one district each
+AUDIT_COST = 8         # per audit, from the treasury
+SEIZURE = 100          # from a caught Chief, into the treasury; the Chief keeps the bribe
+RULES_AUDIT_LINE = F(1, 10)          # "corruption pays when a < 0.10"
+RULES_MAX_AUDIT_RATE = F(1, 3)       # "a can reach 1/3"
+RULES_COUNCIL_INDIFFERENT = F(8, 100)  # "bribes in 8% of offered district-days"
 
-# 4. Information game (The games inside the city, 4): Nature's odds per day.
+# 3.5 Nature, drawn at the start of each day. Chances are in the rules;
+# effects are PROPOSED.
 NATURE = {
-    "storm": F(10, 100),  # closes the Port
-    "fire": F(5, 100),
-    "strike": F(3, 100),
-    "ship": F(15, 100),   # ship with cargo
+    "storm": F(10, 100),  # Port closed
+    "fire": F(5, 100),    # one district at random: its gang loses FIRE_LOSS
+    "strike": F(3, 100),  # treasury loses STRIKE_LOSS
+    "ship": F(15, 100),   # Families gain SHIP_GAIN
 }
+FIRE_LOSS = 20
+STRIKE_LOSS = 30
+SHIP_GAIN = 15
 
-# Week 0 (Plan, step 3): "measured rates match the solver within noise".
-# The noise bands use a run of this many days (the expected length).
-WEEK0_DAYS = 50
+# 6. Run length. DECIDED #10 and #17 (31 Oct): at least 12 days, then 8% a
+# day; the cap stays hidden, so it creates no backward induction (#12).
+MIN_DAYS = 12            # guaranteed; no end draw after days 1 to 11
+END_CHANCE = F(8, 100)   # after each day from day MIN_DAYS on
+HIDDEN_CAP = 60          # never told to players; a run that hits it is truncated
+RULES_REACH_CAP_APPROX = F(18, 1000)  # "0.92^48, about 1.8%"
+
+# The superseded rule of plan rev 3, kept as a labelled alternative: an end
+# draw after every day from day 1, 2% each, and a 150-day cap players are told.
+ALT_MIN_DAYS = 1
+ALT_END_CHANCE = F(2, 100)
+ALT_CAP = 150
+
+# Week 0: "measured rates match the solver within noise". The bands use the
+# expected open district-days of one run at the draft run length.
 BAND = F(95, 100)
-# ASSUMPTION (open question 3): one audit decision a day.
-AUDITS_PER_DAY = 1
+# Equivalence test (issue #13, analysis/metrics/week0.py): margin, alpha, power.
+WEEK0_MARGIN = 0.02
+WEEK0_ALPHA = 0.05
+WEEK0_POWER = 0.8
 
 OPEN_QUESTIONS = [
-    "Police payoff in the inspection game. The 25% inspection rate needs the police side to count the "
-    "city's damage of 15 for each uninspected crime. The Police Chief's payoff row (salary + private "
-    "account change - penalty if caught taking bribes) has no crime term. With that payoff, if an "
-    "inspection costs the Chief 4, the Chief never inspects and the gangs commit crime in every district "
-    "(pure equilibrium: Crime, Don't inspect). Does the Chief's payoff include crime damage (or a share "
-    "of the Council's), or does the Council set the inspection rate?",
-    "The stated 150-day cap. Players are told about it, so the turf war has a known last possible day. "
-    "Backward induction from day 150 then leaves 'always encroach' as the only subgame-perfect "
-    "equilibrium, however unlikely day 150 is (4.9%). The 0.5 threshold argument holds only without a "
-    "known cap. Options: don't announce the cap, raise it, or keep it and say so in the paper and in "
-    "hypothesis 4.",
-    "Bribery audit game. The plan gives the audit cost (8) and the penalty (100), but not what one audit "
-    "covers (one district-day, or the Chief's whole day), what the Council gains from catching a bribe, "
-    "whether a caught Chief keeps the bribe, or whether the seized account goes to the treasury. The "
-    "solver assumes one audit checks one district-day, one audit decision a day, an uncaught bribe costs "
-    "the Council the 15 crime damage, and a caught Chief keeps the bribe. Under that, the Council is "
-    "indifferent about auditing when the Chief takes bribes 8/15 of the time.",
-    "Bribe terms. The window 100a < b <= 10 leaves the amount to bargaining. Is a bribe per district per "
-    "day, and is it paid before or after the Chief plans inspections?",
-    "Districts and gangs. The inspection game has 'a gang' choose in each of 6 districts. Which gang acts "
-    "in which district (does turf decide it), and can both gangs commit crime in one district on one "
-    "day? The daily totals here assume one gang decision per district.",
-    "Prison. At equilibrium about 0.4 arrests a day, so the 40 places fill only if a sentence is longer "
-    "than about 100 days. What is the sentence length?",
-    "Week-0 turf bots. Which equilibrium do the scripted gangs play in the turf war: always encroach "
-    "(the one-day equilibrium) or grim trigger (cooperation)? Both are equilibria at 0.98 without a "
-    "known cap, and the week-0 check needs one.",
-    "Expected length. The plan says 50 days, which is the length without the cap. With the 150-day cap "
-    "it is 47.6 days. Wording only.",
+    "Week-0 turf bots. Which strategy do the scripted gangs play in the turf war: always encroach "
+    "(the one-day equilibrium) or grim trigger (cooperation)? Both are equilibria at a continuation "
+    "chance of 0.92, and the week-0 check needs one. The engine's test bots always respect.",
 ]
