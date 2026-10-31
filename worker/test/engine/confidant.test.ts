@@ -120,6 +120,16 @@ describe("confidant (rules 3.6)", () => {
     expect(checkConfide({ text: "We hold today." })).toEqual([]);
   });
 
+  it("keeps the first answer's errors when the retry succeeds", async () => {
+    const p = confiders("conf-retry", []);
+    let first = true;
+    p.Chief = { ...p.Chief, confide: async () => (first ? ((first = false), { text: '{"crime":{}}' }) : { text: "Fine." }) };
+    const [r] = await days("conf-retry", 1, p);
+    expect(r.records.find((x) => x.player === "Chief" && x.step === "confide_before")).toEqual({
+      player: "Chief", step: "confide_before", source: "retry", errors: ["text to Sam must be plain words, not JSON; your moves come in the next step"],
+    });
+  });
+
   it("is saved with the day and exported", async () => {
     const db = testD1();
     await createRun(db, { id: "c", seed: "conf-store", triple: 1, rotation: 1, seating: { Government: "claude", Criminals: "gemini", World: "gpt" } });

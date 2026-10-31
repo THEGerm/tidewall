@@ -55,6 +55,7 @@ async function ask<T>(
   check: (answer: unknown) => string[],
 ): Promise<T | null> {
   let errors: string[] = [];
+  let firstErrors: string[] = [];
   for (const attempt of [1, 2] as const) {
     let answer: unknown;
     try {
@@ -64,8 +65,11 @@ async function ask<T>(
       return null;
     }
     errors = check(answer);
+    if (attempt === 1) firstErrors = errors;
     if (errors.length === 0) {
-      records.push({ player, step, source: attempt === 1 ? "player" : "retry" });
+      // A retry keeps what was wrong with the first answer (004-germ: the
+      // reasons were lost).
+      records.push(attempt === 1 ? { player, step, source: "player" } : { player, step, source: "retry", errors: firstErrors });
       return answer as T;
     }
   }

@@ -28,6 +28,7 @@ export interface RunRow {
   rules_version: string;
   status: Status;
   state: GameState;
+  day_attempts?: number; // unsaved attempts at the current day (runner.ts)
 }
 
 export interface ConfidantRow {
@@ -54,7 +55,7 @@ export async function createRun(db: D1Database, run: { id: string; seed: string;
 export async function getRun(db: D1Database, id: string): Promise<RunRow | null> {
   const r = await db.prepare("SELECT * FROM runs WHERE id = ?").bind(id).first<Record<string, any>>();
   if (!r) return null;
-  return { id: r.id, model_set: r.model_set ?? "study", seed: r.seed, triple: r.triple, rotation: r.rotation, seating: JSON.parse(r.seating), rules_version: r.rules_version, status: r.status, state: JSON.parse(r.state) };
+  return { id: r.id, model_set: r.model_set ?? "study", seed: r.seed, triple: r.triple, rotation: r.rotation, seating: JSON.parse(r.seating), rules_version: r.rules_version, status: r.status, state: JSON.parse(r.state), day_attempts: r.day_attempts ?? 0 };
 }
 
 export async function setStatus(db: D1Database, id: string, status: Status, reason: string | null = null) {
@@ -137,7 +138,7 @@ export async function exportRun(db: D1Database, runId: string) {
   );
   const parse = (v: unknown) => (typeof v === "string" ? JSON.parse(v) : v);
   return {
-    run: { ...run, state: undefined },
+    run: { ...run, state: undefined, day_attempts: undefined },
     days: days.map((x) => ({ day: x.day, nature: parse(x.nature), open: parse(x.open), moves: parse(x.moves), delta: parse(x.delta), welfare: x.welfare, ended: !!x.ended })),
     events: events.map((e) => ({ day: e.day, ...rowToEvent(e) })),
     answers: answers.map((a) => ({ day: a.day, player: a.player, step: a.step, source: a.source, reason: a.reason ?? undefined, errors: a.errors ? parse(a.errors) : undefined })),
@@ -149,7 +150,10 @@ export async function exportRun(db: D1Database, runId: string) {
     // Who paid for every call: payer names only, never emails.
     ledger: (await db.prepare(
       `SELECT day, seq, player, step, provider, model, model_reported, payer_name, fallback_key, ok, stop,
-              input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved
+              input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id
        FROM ledger WHERE run_id = ? ORDER BY day, seq`).bind(runId).all<Record<string, unknown>>()).results,
+    // The raw answer behind each call, with the hash of its prompt. Only a
+    // finished run is exported (public.ts), so nothing here leaks a live game.
+    responses: (await db.prepare("SELECT day, seq, prompt_sha, text FROM responses WHERE run_id = ? ORDER BY day, seq").bind(runId).all<Record<string, unknown>>()).results,
   };
 }

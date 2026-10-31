@@ -5,6 +5,9 @@
 //   - nobody has a key for a provider the run needs
 //   - the study's spending cap is reached
 // A lock on the run stops two scheduler ticks playing the same day.
+// A day where a seat failed with an error (not a refusal or a bad answer) is
+// not saved: its fallback moves would be the system's, not the model's. It is
+// played again at the next tick, and after MAX_ATTEMPTS the run pauses.
 // Every call is written to the ledger as it returns, and every outcome to the
 // Control page's log.
 
@@ -12,7 +15,7 @@ import { PLAYERS, type PlayerName } from "./config";
 import { playDay, type DayResult } from "./day";
 import { getRun, saveDay, setStatus, yesterday, type RunRow } from "./store";
 import type { Player } from "./types";
-import { ledgerRow, markDaySaved, nextSeq, studySpend } from "../ledger/ledger";
+import { ledgerRow, markDaySaved, nextSeq, responseRow, studySpend } from "../ledger/ledger";
 import { log } from "./log";
 import { costOf, priceOf } from "../ledger/pricing";
 import type { callModel } from "../providers";
@@ -37,6 +40,11 @@ export interface RunnerOptions {
 const SEAT_OF: Record<PlayerName, "Government" | "Criminals" | "World"> = {
   Council: "Government", Chief: "Government", Families: "Criminals", Saltdogs: "Criminals", World: "World",
 };
+
+// Cron ticks run wherever Cloudflare has room, and some places are refused by
+// a provider (004-germ day 21: Google and Anthropic both said the location
+// was not supported). The next tick usually runs elsewhere.
+export const MAX_ATTEMPTS = 3;
 
 export type StepOutcome =
   | { played: true; day: number; over: boolean; calls: number; costUsd: number; seconds: number; fallbacks: number }
@@ -94,6 +102,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
       const seq = base + calls++;
       cost += (r.usage && costOf(r.model, r.usage)) || 0;
       await ledgerRow(env.DB, runId, day, seq, r, names).run();
+      if (r.text != null) await responseRow(env.DB, runId, day, seq, r).run();
     };
     const prompts = o.prompts ?? interimPrompts;
     const players = Object.fromEntries(PLAYERS.map((name) => {
@@ -109,6 +118,20 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
 
     const y = await yesterday(env.DB, runId, day);
     const result: DayResult = await playDay({ state: run.state, players, ...y });
+    const failed = result.records.find((r) => r.source === "fallback" && r.reason === "error");
+    if (failed) {
+      const why = `${failed.player} could not play (${failed.step}): ${failed.errors?.[0] ?? "error"}`;
+      const attempts = (run.day_attempts ?? 0) + 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        await env.DB.prepare("UPDATE runs SET day_attempts = 0 WHERE id = ?").bind(runId).run();
+        await setStatus(env.DB, runId, "paused", why);
+        await log(env.DB, `${runId} paused: day ${day} failed ${attempts} times and was not saved. ${why}. Fix it, then press Resume.`, { run: runId, level: "error" });
+      } else {
+        await env.DB.prepare("UPDATE runs SET day_attempts = ? WHERE id = ?").bind(attempts, runId).run();
+        await log(env.DB, `Day ${day} of ${runId} not saved (attempt ${attempts} of ${MAX_ATTEMPTS}): ${why}. It plays again at the next tick; its ${calls} calls stay in the ledger.`, { run: runId, level: "warn" });
+      }
+      return { played: false, reason: `day ${day} not saved: ${why}` };
+    }
     await saveDay(env.DB, runId, result, result.confidant, [markDaySaved(env.DB, runId, day, base)]);
     const seconds = Math.round((Date.now() - started) / 1000);
     const fallbacks = result.records.filter((r) => r.source === "fallback").length;
@@ -116,14 +139,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
       `Day ${day} of ${runId} played: ${calls} calls, $${cost.toFixed(3)}, ${seconds} s, ${fallbacks ? `${fallbacks} fallback${fallbacks > 1 ? "s" : ""}` : "no fallbacks"}.` +
         (result.state.over ? ` The run is over${result.state.truncated ? " (hidden cap)" : ""}.` : ""),
       { run: runId, level: fallbacks ? "warn" : "info" });
-    // A seat that failed with an error (not a refusal or a bad answer) would
-    // fall back again tomorrow: pause the run so a person looks.
-    const failed = result.records.find((r) => r.source === "fallback" && r.reason === "error");
-    if (failed && !result.state.over) {
-      const why = `${failed.player} could not play (${failed.step}): ${failed.errors?.[0] ?? "error"}`;
-      await setStatus(env.DB, runId, "paused", why);
-      await log(env.DB, `${runId} paused after day ${day}. ${why}. Fix it, then press Resume.`, { run: runId, level: "error" });
-    }
+    if (run.day_attempts) await env.DB.prepare("UPDATE runs SET day_attempts = 0 WHERE id = ?").bind(runId).run();
     return { played: true, day, over: result.state.over, calls, costUsd: cost, seconds, fallbacks };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
