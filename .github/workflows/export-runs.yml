@@ -1,0 +1,47 @@
+name: Export finished runs
+
+# Once an hour, saves every finished run that isn't in data/runs/ yet, from the
+# public export (GET /api/runs/:id/export, finished runs only). Study runs go to
+# data/runs/study/, test runs to data/runs/test/. Payer names only, no emails.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: export-runs
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download finished runs not yet saved
+        env:
+          SITE: https://tidewall.tcdar400.workers.dev
+        run: |
+          set -euo pipefail
+          curl -fsS "$SITE/api/runs" \
+            | jq -r '.runs[] | select(.live == false) | "\(.model_set) \(.id)"' \
+            | while read -r set id; do
+                f="data/runs/$set/$id.json"
+                [ -f "$f" ] && continue
+                mkdir -p "data/runs/$set"
+                curl -fsS "$SITE/api/runs/$id/export" | jq . > "$f.tmp"
+                if grep -qE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' "$f.tmp"; then echo "::error::$id export contains an email address, not saved"; rm "$f.tmp"; continue; fi
+                mv "$f.tmp" "$f"
+                echo "saved $f"
+              done
+      - name: Commit
+        run: |
+          git add data/runs
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          git config user.name "tidewall-export"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Export finished runs: $(git diff --cached --name-only | xargs -n1 basename | sed 's/\.json$//' | paste -sd, -)"
+          git push

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createRun, getRun } from "../../src/engine/store";
+import { createRun, exportRun, getRun } from "../../src/engine/store";
 import { playNextDay, tick, type RunnerEnv } from "../../src/engine/runner";
 import { fullLedger, runLedger, studySpend } from "../../src/ledger/ledger";
 import { recentLog } from "../../src/engine/log";
@@ -113,6 +113,10 @@ describe("scheduler", () => {
     expect(Number(l.byRun[0].cost_usd)).toBeCloseTo(l.study.usd, 9);
     expect(new Set(l.byPayer.map((r) => r.payer_name))).toEqual(new Set(["Germ", "Shazz"]));
     expect(JSON.stringify(l)).not.toContain("@");
+    const ex = await exportRun(env.DB, "t1-r1");
+    expect(ex.ledger.length).toBe(calls(l.rows));
+    expect(ex.ledger[0]).toMatchObject({ payer_name: expect.any(String) });
+    expect(JSON.stringify(ex)).not.toContain("@"); // test emails are g@x and s@x
   });
 
   it("pauses with a reason when nobody has a key for a provider", async () => {

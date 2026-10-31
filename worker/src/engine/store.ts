@@ -139,5 +139,10 @@ export async function exportRun(db: D1Database, runId: string) {
     diaries: diaries.map((x) => ({ day: x.day, player: x.player, text: x.text })),
     wire: wire.map((w) => ({ day: w.day, headline: w.headline, text: w.text, events: parse(w.events) })),
     confidant: confidant.map((c) => ({ day: c.day, player: c.player, window: c.window, text: c.text, reply: c.reply })),
+    // Who paid for every call: payer names only, never emails.
+    ledger: (await db.prepare(
+      `SELECT day, seq, player, step, provider, model, model_reported, payer_name, fallback_key, ok, stop,
+              input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved
+       FROM ledger WHERE run_id = ? ORDER BY day, seq`).bind(runId).all<Record<string, unknown>>()).results,
   };
 }
