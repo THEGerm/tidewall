@@ -25,7 +25,9 @@ export const EFFORT = "medium" as const;
 // stay out of the analysis.
 export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = {
   claude: { provider: "anthropic", model: "claude-haiku-5-5" },
-  gemini: { provider: "google", model: "gemini-3-flash-preview" },
+  // Gemini 3.1 Flash-Lite (Germ, 31 Oct): half the price of 3 Flash Preview, which
+  // spent 90% of its output on thinking tokens in the first test run.
+  gemini: { provider: "google", model: "gemini-3.1-flash-lite" },
   gpt: { provider: "openai", model: "gpt-6-luna" }, // Germ, 30 Oct: current, same generation as Sol
 };
 

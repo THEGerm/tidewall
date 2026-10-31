@@ -154,7 +154,7 @@ describe("scheduler", () => {
     await on(env);
     expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 });
     const models = (await env.DB.prepare("SELECT DISTINCT model FROM ledger ORDER BY model").all<{ model: string }>()).results.map((r) => r.model);
-    expect(models).toEqual(["claude-haiku-5-5", "gemini-3-flash-preview", "gpt-6-luna"]);
+    expect(models).toEqual(["claude-haiku-5-5", "gemini-3.1-flash-lite", "gpt-6-luna"]);
     const unpriced = await env.DB.prepare("SELECT COUNT(*) AS n FROM ledger WHERE cost_usd IS NULL").first<{ n: number }>();
     expect(unpriced!.n).toBe(0);
   });
