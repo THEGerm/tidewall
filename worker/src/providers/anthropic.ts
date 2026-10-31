@@ -9,6 +9,10 @@
 //   a result with stop "refused", not an error: refusals are data (plan, Risks).
 //   No server-side fallback is requested, since that would swap the model
 //   mid-study.
+// - Structured output rejects some JSON Schema rules (numeric minimum and
+//   maximum, minItems above 1, found in the first test run, 31 Oct). They are
+//   moved into the description, so the model still reads them; the engine
+//   checks every answer against the real rules anyway (rules section 5).
 
 import { kindFromStatus, type ErrorKind } from "./errors";
 import { call, num, str, type Adapter } from "./http";
@@ -19,6 +23,26 @@ export const ANTHROPIC_VERSION = "2026-10-21";
 
 const ephemeral = { type: "ephemeral" } as const;
 
+const DROP = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minLength", "maxLength", "maxItems", "uniqueItems"];
+
+// A copy of the schema with the rules Anthropic rejects turned into words.
+export function anthropicSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(anthropicSchema);
+  if (typeof schema !== "object" || schema === null) return schema;
+  const s = schema as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  const notes: string[] = [];
+  for (const [k, v] of Object.entries(s)) {
+    if (DROP.includes(k) || (k === "minItems" && typeof v === "number" && v > 1)) {
+      if (k !== "uniqueItems" || v) notes.push(k === "uniqueItems" ? "no repeats" : `${k} ${v}`);
+    } else if (k === "properties" && typeof v === "object" && v) {
+      out[k] = Object.fromEntries(Object.entries(v).map(([n, p]) => [n, anthropicSchema(p)]));
+    } else out[k] = typeof v === "object" ? anthropicSchema(v) : v;
+  }
+  if (notes.length) out.description = [s.description, notes.join(", ")].filter(Boolean).join("; ");
+  return out;
+}
+
 function build(key: string, req: ChatRequest) {
   const last = req.messages.length - 1;
   const messages = req.messages.map((m, i) =>
@@ -28,7 +52,7 @@ function build(key: string, req: ChatRequest) {
   );
   const outputConfig: Record<string, unknown> = {};
   if (req.effort) outputConfig.effort = req.effort;
-  if (req.json) outputConfig.format = { type: "json_schema", schema: req.json.schema };
+  if (req.json) outputConfig.format = { type: "json_schema", schema: anthropicSchema(req.json.schema) };
 
   return {
     url: ANTHROPIC_URL,

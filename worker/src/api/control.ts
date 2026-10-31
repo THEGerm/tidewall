@@ -30,7 +30,12 @@ export async function handleControl(request: Request, env: Env, path: string): P
       && Number.isInteger(b.triple) && [1, 2, 3].includes(b.rotation as number) && b.seating
       && ["Government", "Criminals", "World"].every((s) => ["claude", "gemini", "gpt"].includes((b.seating as any)[s]))
       && (b.model_set === undefined || b.model_set === "study" || b.model_set === "test");
-    if (!ok) return json({ ok: false, error: "need id, seed (8+ chars), triple, rotation 1 to 3, seating of claude/gemini/gpt, and model_set study or test" }, 400);
+    if (!ok) {
+      const why = !/^[a-z0-9-]{1,40}$/.test(b?.id ?? "") ? "Run ID: use lowercase letters, numbers and hyphens only (up to 40)"
+        : !(typeof b?.seed === "string" && b.seed.length >= 8) ? "Seed: at least 8 characters"
+        : "need triple, rotation 1 to 3, seating of claude/gemini/gpt, and model_set study or test";
+      return json({ ok: false, error: why }, 400);
+    }
     if (await getRun(env.DB, b!.id!)) return json({ ok: false, error: "run exists" }, 409);
     const run = await createRun(env.DB, b as any);
     return json({ ok: true, run: { id: run.id, status: run.status } });

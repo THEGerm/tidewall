@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ANTHROPIC_URL, ANTHROPIC_VERSION, callAnthropic } from "../../src/providers/anthropic";
+import { ANTHROPIC_URL, ANTHROPIC_VERSION, anthropicSchema, callAnthropic } from "../../src/providers/anthropic";
+import { actSchema, offersSchema, wireSchema } from "../../src/players/schemas";
+import { DISTRICTS } from "../../src/engine/config";
 import { ProviderError } from "../../src/providers/errors";
 import { FAKE_KEY, fakeFetch, request, sentBody } from "./helpers";
 
@@ -104,5 +106,30 @@ describe("anthropic errors", () => {
     expect(err.retryAfterSec).toBe(12);
     expect(err.retryable).toBe(true);
     expect(err.tryNextKey).toBe(true);
+  });
+});
+
+describe("anthropicSchema", () => {
+  // Rules Anthropic's structured output rejected in the first test run (31 Oct).
+  const banned = (x: unknown): string[] => {
+    if (Array.isArray(x)) return x.flatMap(banned);
+    if (typeof x !== "object" || x === null) return [];
+    const o = x as Record<string, unknown>;
+    const here = Object.keys(o).filter((k) => ["minimum", "maximum", "maxItems", "uniqueItems"].includes(k) || (k === "minItems" && (o[k] as number) > 1));
+    return [...here, ...Object.entries(o).flatMap(([k, v]) => (k === "properties" ? Object.values(v as object).flatMap(banned) : banned(v)))];
+  };
+  const view = (player: any) => ({ player, day: 1, nature: { storm: false, fire: null, strike: false, ship: false }, open: [...DISTRICTS], balances: {}, publicYesterday: [], wireYesterday: [], inbox: [], acceptedToday: [] }) as any;
+
+  it("leaves no rejected rule in any schema the players send", () => {
+    for (const s of [actSchema(view("World")), actSchema(view("Chief")), actSchema(view("Council")), actSchema(view("Families")), offersSchema(view("Saltdogs")), wireSchema(["D1-E1", "D1-E2"])]) {
+      expect(banned(s).length).toBeGreaterThan(0); // the originals do carry them
+      expect(banned(anthropicSchema(s))).toEqual([]);
+    }
+  });
+
+  it("keeps the rule in the description, and keeps property names", () => {
+    const out = anthropicSchema({ type: "object", properties: { maximum: { type: "number", minimum: 0, maximum: 1, description: "a probability" } }, required: ["maximum"] }) as any;
+    expect(out.properties.maximum).toEqual({ type: "number", description: "a probability; minimum 0, maximum 1" });
+    expect(anthropicSchema({ type: "array", minItems: 1, items: { type: "string" } })).toEqual({ type: "array", minItems: 1, items: { type: "string" } });
   });
 });
