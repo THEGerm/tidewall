@@ -22,7 +22,7 @@ import type { callModel } from "../providers";
 import { keyChain, participants } from "../players/keys";
 import { modelPlayer, type CallRecord } from "../players/model";
 import { EFFORT, isPinned, modelsFor, type Family } from "../players/models";
-import { interimPrompts, type Prompts } from "../players/prompts";
+import { studyPrompts, type Prompts } from "../players/prompts";
 
 export interface RunnerEnv {
   DB: D1Database;
@@ -104,7 +104,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
       await ledgerRow(env.DB, runId, day, seq, r, names).run();
       if (r.text != null) await responseRow(env.DB, runId, day, seq, r).run();
     };
-    const prompts = o.prompts ?? interimPrompts;
+    const prompts = o.prompts ?? studyPrompts;
     const players = Object.fromEntries(PLAYERS.map((name) => {
       const m = modelsFor(run.model_set)[run.seating[SEAT_OF[name]] as Family];
       return [name, modelPlayer({
