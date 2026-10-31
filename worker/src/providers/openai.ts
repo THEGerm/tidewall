@@ -11,6 +11,10 @@
 import { kindFromStatus } from "./errors";
 import { call, num, str, type Adapter } from "./http";
 import type { CallOptions, ChatRequest, ChatResult, Stop } from "./types";
+import { relaxSchema } from "./schema";
+
+// Strict structured output rejects uniqueItems (found with GPT-6.1 Sol, 31 Oct).
+export const openaiSchema = (schema: unknown) => relaxSchema(schema, ["uniqueItems"]);
 
 export const OPENAI_URL = "https://api.openai.com/v1/responses";
 
@@ -23,7 +27,7 @@ function build(key: string, req: ChatRequest) {
     store: false,
   };
   if (req.effort) body.reasoning = { effort: req.effort };
-  if (req.json) body.text = { format: { type: "json_schema", name: req.json.name, schema: req.json.schema, strict: true } };
+  if (req.json) body.text = { format: { type: "json_schema", name: req.json.name, schema: openaiSchema(req.json.schema), strict: true } };
   if (req.cacheKey) body.prompt_cache_key = req.cacheKey;
   return { url: OPENAI_URL, headers: { Authorization: `Bearer ${key}` }, body };
 }

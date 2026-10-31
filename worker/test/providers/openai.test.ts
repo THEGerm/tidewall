@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { ProviderError } from "../../src/providers/errors";
 import { OPENAI_URL, callOpenAI } from "../../src/providers/openai";
 import { FAKE_KEY, fakeFetch, request, sentBody } from "./helpers";
+import { openaiSchema } from "../../src/providers/openai";
+import { actSchema } from "../../src/players/schemas";
+import { DISTRICTS } from "../../src/engine/config";
 
 const ok = {
   id: "resp_01",
@@ -101,4 +104,19 @@ describe("openai errors", () => {
       expect(err.kind).toBe(kind);
     });
   }
+});
+
+describe("openaiSchema", () => {
+  // GPT-6.1 Sol rejected uniqueItems in the Chief's and Council's moves (002-germ, 31 Oct).
+  const view = (player: any) => ({ player, day: 1, nature: { storm: false, fire: null, strike: false, ship: false }, open: [...DISTRICTS], balances: {}, publicYesterday: [], wireYesterday: [], inbox: [], acceptedToday: [] }) as any;
+  it("takes uniqueItems out of the Chief's and Council's moves and says it in words", () => {
+    for (const p of ["Chief", "Council"] as const) {
+      const before = JSON.stringify(actSchema(view(p)));
+      const after = JSON.stringify(openaiSchema(actSchema(view(p))));
+      expect(before).toContain("uniqueItems");
+      expect(after).not.toContain("uniqueItems");
+      expect(after).toContain("no repeats");
+      expect(after).toContain("maxItems"); // OpenAI keeps the rest
+    }
+  });
 });
