@@ -311,18 +311,35 @@ function renderConfidant(v) {
   );
 }
 
-// Every diary entry written that day, live (Germ, 31 Oct). An entry the
-// player later deleted from its memory is marked; the record keeps it.
+// Each player's whole diary up to the day shown, live (Germ, 31 Oct). Each
+// card pages through the player's entries one day at a time, from the day
+// shown back to day 1. An entry the player had deleted from its memory by
+// then is marked; the record keeps it.
+const WRITERS = ["Council", "Chief", "Families", "Saltdogs", "World"];
+const diaryAt = {}; // player -> day being read, kept while the day shown stays the same
+let diaryDay = 0;
 function renderDiaries(v) {
-  const entries = (v.diary?.entries || []).filter((x) => x.text);
-  $("diaries").replaceChildren(
-    ...(entries.length
-      ? entries.map((x) => h("article", {},
-          h("p", { class: "who" }, x.player, x.forgotten_on ? h("span", { class: "muted" }, ` (deleted on day ${x.forgotten_on})`) : null),
-          h("p", { class: "them" }, x.text),
-        ))
-      : [h("p", { class: "muted" }, "No diary entries today.")]),
-  );
+  if (diaryDay !== v.day) { for (const k of Object.keys(diaryAt)) delete diaryAt[k]; diaryDay = v.day; }
+  const all = (v.diary?.entries || []).filter((x) => x.text);
+  const books = WRITERS.map((p) => all.filter((x) => x.player === p).sort((a, b) => a.day - b.day)).filter((b) => b.length);
+  const card = (b) => {
+    const p = b[0].player;
+    let i = b.findIndex((x) => x.day === diaryAt[p]);
+    if (i < 0) i = b.length - 1; // start on the latest entry
+    const x = b[i];
+    const go = (j) => () => { diaryAt[p] = b[j].day; renderDiaries(v); };
+    return h("article", {},
+      h("p", { class: "who" }, `${p}: day ${x.day}`, x.day === v.day ? " (today)" : "", `, entry ${i + 1} of ${b.length}`),
+      h("p", { class: x.forgotten_on ? "them muted" : "them" }, x.text, x.forgotten_on ? h("em", {}, ` (deleted from memory on day ${x.forgotten_on})`) : null),
+      h("div", { class: "pager" },
+        h("button", { class: "ghost small", onclick: go(0), disabled: i === 0, "aria-label": `${p}: first entry` }, "Day 1"),
+        h("button", { class: "ghost small", onclick: go(i - 1), disabled: i === 0, "aria-label": `${p}: previous day` }, "Previous"),
+        h("button", { class: "ghost small", onclick: go(i + 1), disabled: i === b.length - 1, "aria-label": `${p}: next day` }, "Next"),
+        h("button", { class: "ghost small", onclick: go(b.length - 1), disabled: i === b.length - 1, "aria-label": `${p}: latest entry` }, "Latest"),
+      ),
+    );
+  };
+  $("diaries").replaceChildren(...(books.length ? books.map(card) : [h("p", { class: "muted" }, "No diary entries yet.")]));
 }
 
 // Finished runs only (step D6): tabs for what was hidden while the run was live.

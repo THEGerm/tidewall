@@ -87,12 +87,16 @@ describe("public API", () => {
     expect(r.confidant.texts.filter((t: any) => t.player === "Chief").map((t: any) => t.window)).toEqual(["before", "after"]);
   });
 
-  it("shows each day's diary entries live, under the CONFIDENTIAL label", async () => {
-    const { get } = await setup(2);
+  it("shows each player's whole diary up to the day, live, under the CONFIDENTIAL label", async () => {
+    const { db, get } = await setup(3);
+    await db.prepare("UPDATE diaries SET forgotten_on = 3 WHERE run_id = 't1-r1' AND player = 'Families' AND day = 1").run();
     const r = (await get("/api/runs/t1-r1/days/2")).body;
     expect(r.diary.label).toBe("CONFIDENTIAL");
-    expect(r.diary.entries.map((e: any) => e.player)).toEqual(expect.arrayContaining(["Families", "Saltdogs"]));
-    expect(r.diary.entries.find((e: any) => e.player === "Families")).toEqual({ player: "Families", text: "DIARY of Families", forgotten_on: null });
+    const fam = r.diary.entries.filter((e: any) => e.player === "Families");
+    // days 1 and 2, nothing from day 3; day 1 was still held on day 2
+    expect(fam).toEqual([1, 2].map((day) => ({ day, player: "Families", text: "DIARY of Families", forgotten_on: null })));
+    const day3 = (await get("/api/runs/t1-r1/days/3")).body.diary.entries.filter((e: any) => e.player === "Families");
+    expect(day3.map((e: any) => [e.day, e.forgotten_on])).toEqual([[1, 3], [2, null], [3, null]]);
   });
 
   it("opens everything once the run ends", async () => {
