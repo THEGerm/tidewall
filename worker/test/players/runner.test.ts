@@ -5,7 +5,7 @@ import { fullLedger, runLedger, studySpend } from "../../src/ledger/ledger";
 import { recentLog } from "../../src/engine/log";
 import { PRICES, costOf } from "../../src/ledger/pricing";
 import { saveKey } from "../../src/keys/store";
-import { MODELS } from "../../src/players/models";
+import { CHEAP_TEST_MODELS, MODELS, TEST_MODELS } from "../../src/players/models";
 import type { ChatRequest, ChatResult } from "../../src/providers";
 import { testD1 } from "../engine/d1";
 import { ProviderError } from "../../src/providers/errors";
@@ -153,15 +153,19 @@ describe("scheduler", () => {
     expect(await playNextDay(env, "r", opts)).toEqual({ played: false, reason: "another tick is playing this run" });
   });
 
-  it("a test run uses the cheap model set, priced", async () => {
+  it("a test run uses the test model set, priced", async () => {
     const env = await setup();
     await createRun(env.DB, { id: "test-1", seed: "seed-test-set", triple: 0, rotation: 1, seating: { Government: "claude", Criminals: "gemini", World: "gpt" }, model_set: "test" });
     await on(env);
     expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 });
     const models = (await env.DB.prepare("SELECT DISTINCT model FROM ledger ORDER BY model").all<{ model: string }>()).results.map((r) => r.model);
-    expect(models).toEqual(["claude-haiku-5-5", "gemini-3.1-flash-lite", "gpt-6-luna"]);
+    expect(models).toEqual(Object.values(TEST_MODELS).map((m) => m.model).sort());
     const unpriced = await env.DB.prepare("SELECT COUNT(*) AS n FROM ledger WHERE cost_usd IS NULL").first<{ n: number }>();
     expect(unpriced!.n).toBe(0);
+  });
+
+  it("keeps the cheap test models priced, ready to switch back", () => {
+    for (const m of Object.values(CHEAP_TEST_MODELS)) expect(PRICES[m.model]).toBeDefined();
   });
 
   it("plays a run to its end, then moves to the next run", async () => {
