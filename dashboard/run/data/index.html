@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data · Tidewall</title>
+  <meta name="description" content="One Tidewall run, every day in one table, with downloads.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="wide">
+  <header>
+    <p class="eyebrow"><a href="/">Tidewall</a> / <a id="back" href="/">Run</a> / Data</p>
+    <h1 id="title">Data</h1>
+    <p class="lede" id="note">Loading...</p>
+    <div class="cta" id="downloads"></div>
+  </header>
+
+  <main id="main" hidden>
+    <section aria-labelledby="h-days">
+      <h2 id="h-days">Day by day</h2>
+      <p class="muted" id="days-note"></p>
+      <div class="table-wrap"><table class="num" id="days"></table></div>
+    </section>
+
+    <section aria-labelledby="h-cost">
+      <h2 id="h-cost">Cost by model</h2>
+      <div class="table-wrap"><table class="num" id="models"></table></div>
+    </section>
+  </main>
+
+  <footer>
+    <a id="back2" href="/">Back to the run</a>
+    <a href="/">All runs</a>
+  </footer>
+
+  <script src="/nav.js"></script>
+  <script src="/run/data/data.js"></script>
+</body>
+</html>

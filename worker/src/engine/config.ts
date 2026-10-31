@@ -82,6 +82,10 @@ export const CONFIDANT_REPLIES = [
   "Whatever happens, I'll be here tonight.",
 ] as const;
 
+// Diaries are each player's memory (Germ, 31 Oct): up to 100 words a day,
+// read back every morning; a player may forget (delete) its own old entries.
+export const DIARY_MAX_WORDS = 100;
+
 // 5. Wire
 export const WIRE_MIN = 2;
 export const WIRE_MAX = 5;

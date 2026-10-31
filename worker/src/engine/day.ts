@@ -10,7 +10,7 @@ import { drawNature, openDistricts } from "./nature";
 import { resolveDay } from "./resolve";
 import {
   Refusal,
-  type ActAnswer, type AnswersAnswer, type ChiefAct, type ConfidantExchange, type ConfideAnswer, type ConfideWindow, type CouncilAct, type DayMoves, type Event, type Forecasts,
+  type ActAnswer, type AnswersAnswer, type ChiefAct, type ConfidantExchange, type ConfideAnswer, type ConfideWindow, type DiaryEntry, type CouncilAct, type DayMoves, type Event, type Forecasts,
   type GameState, type GangAct, type Message, type MessagesAnswer, type OffersAnswer, type Player,
   type Scores, type StepRecord, type View, type WireAnswer, type WireItem,
 } from "./types";
@@ -23,6 +23,7 @@ export interface DayInput {
   players: Record<PlayerName, Player>;
   publicYesterday: Event[];
   wireYesterday: WireItem[];
+  notebooks?: Partial<Record<PlayerName, DiaryEntry[]>>; // each player's kept diary entries, from earlier days
 }
 
 export interface DayResult {
@@ -37,6 +38,7 @@ export interface DayResult {
   messages: (Message & { from: PlayerName })[];
   forecasts: Partial<Record<PlayerName, Forecasts>>;
   diaries: Partial<Record<PlayerName, string>>;
+  forgotten: Partial<Record<PlayerName, number[]>>; // diary days each player deleted today
   delta: Scores;
   welfare: number;
   records: StepRecord[];
@@ -71,7 +73,7 @@ async function ask<T>(
   return null;
 }
 
-export async function playDay({ state, players, publicYesterday, wireYesterday }: DayInput): Promise<DayResult> {
+export async function playDay({ state, players, publicYesterday, wireYesterday, notebooks = {} }: DayInput): Promise<DayResult> {
   const { seed, day } = state;
   const nature = drawNature(seed, day);
   const open = openDistricts(nature);
@@ -83,7 +85,11 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
       : player === "World" ? {}
       : { [player]: state.balances[player as Gang] },
     publicYesterday, wireYesterday, inbox: [],
+    // Memory: the player's own kept diary, and its own score so far.
+    notebook: notebooks[player] ?? [],
+    ...(player === "World" ? {} : { score: state.scores[player as keyof GameState["scores"]] }),
   });
+  const kept = (p: PlayerName) => (notebooks[p] ?? []).map((e) => e.day);
 
   // Step 2: messages
   const sent: (Message & { from: PlayerName })[] = [];
@@ -133,9 +139,11 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
   const prev = state.previous;
   const forecasts: DayResult["forecasts"] = {};
   const diaries: DayResult["diaries"] = {};
+  const forgotten: DayResult["forgotten"] = {};
   const keep = (p: PlayerName, a: ActAnswer | null) => {
     if (a && "forecasts" in a && a.forecasts) forecasts[p] = a.forecasts;
     if (a && "diary" in a && typeof a.diary === "string") diaries[p] = a.diary;
+    if (a && "forget" in a && Array.isArray(a.forget) && a.forget.length) forgotten[p] = a.forget as number[];
   };
   const crime: Partial<Record<District, boolean>> = {};
   const turf = {} as DayMoves["turf"];
@@ -146,7 +154,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
       const mine = ownOpen(g, open);
       const a = await ask<GangAct>(records, g, "act",
         (errs) => players[g].act({ ...base(g), inbox: inbox(g), ...own(g), ownOffersAccepted: accepted.filter((d) => TURF[d] === g), retryErrors: errs } as View),
-        (x) => checkGangAct(x, g, open));
+        (x) => checkGangAct(x, g, open, kept(g)));
       keep(g, a);
       Object.assign(crime, a ? Object.fromEntries(mine.map((d) => [d, a.moves.crime[d]])) : fallbackCrime(seed, day, g, open, prev));
       turf[g] = a ? a.moves.turf : fallbackTurf(seed, day, g, prev);
@@ -154,14 +162,14 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
     (async () => {
       const a = await ask<ChiefAct>(records, "Chief", "act",
         (errs) => players.Chief.act({ ...base("Chief"), inbox: inbox("Chief"), ...own("Chief"), acceptedToday: accepted, retryErrors: errs } as View),
-        (x) => checkChiefAct(x, open, accepted));
+        (x) => checkChiefAct(x, open, accepted, kept("Chief")));
       keep("Chief", a);
       inspect = a ? a.moves.inspect : fallbackInspect(seed, day, open, accepted, prev);
     })(),
     (async () => {
       const a = await ask<CouncilAct>(records, "Council", "act",
         (errs) => players.Council.act({ ...base("Council"), inbox: inbox("Council"), ...own("Council"), retryErrors: errs } as View),
-        (x) => checkCouncilAct(x, open));
+        (x) => checkCouncilAct(x, open, kept("Council")));
       keep("Council", a);
       audit = a ? a.moves.audit : fallbackAudit(seed, day, open, prev);
     })(),
@@ -181,14 +189,16 @@ export async function playDay({ state, players, publicYesterday, wireYesterday }
   // Step 7: the Wire, from public events only
   let wire: WireItem[] = [];
   if (players.World.wire) {
-    const a = await ask<WireAnswer>(records, "World", "wire", (errs) => players.World.wire!(publicEvents, errs), (x) => checkWire(x, publicEvents));
+    const a = await ask<WireAnswer>(records, "World", "wire", (errs) => players.World.wire!(publicEvents, errs, base("World")), (x) => checkWire(x, publicEvents, kept("World")));
     wire = a?.wire ?? [];
+    if (typeof a?.diary === "string") diaries.World = a.diary;
+    if (a?.forget?.length) forgotten.World = a.forget;
   }
 
   // Step 8: does the game go on?
   const end = afterDay(seed, day);
   const next: GameState = { ...r.state, day: end.over ? day : day + 1, over: end.over, truncated: end.truncated };
 
-  return { state: next, day, nature, open, moves, events: r.events, publicEvents, wire, messages: sent, forecasts, diaries, delta: r.delta, welfare: r.welfare, records,
+  return { state: next, day, nature, open, moves, events: r.events, publicEvents, wire, messages: sent, forecasts, diaries, forgotten, delta: r.delta, welfare: r.welfare, records,
     confidant: CONFIDANTS.flatMap((p) => (sam[p] ?? []).map((c) => ({ player: p, ...c }))) };
 }

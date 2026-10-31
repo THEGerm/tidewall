@@ -201,3 +201,17 @@ table.num td, table.num th { white-space: nowrap; }
 ul.plain { padding-left: 20px; }
 ul.plain li { margin: 4px 0; }
 table.forecasts td.yes { font-weight: 700; color: var(--fam); }
+
+/* Site bar (nav.js), the same on every page */
+nav.site { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: -32px 0 28px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+nav.site .brand { font-weight: 800; letter-spacing: -0.01em; color: var(--text); text-decoration: none; font-size: 1.05rem; }
+nav.site .site-links { display: flex; flex-wrap: wrap; gap: 4px; }
+nav.site .site-links a { padding: 6px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 0.92rem; }
+nav.site .site-links a[aria-current="page"] { background: var(--surface); color: var(--accent); border: 1px solid var(--line); }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 4px; }
+.button { display: inline-block; padding: 10px 16px; border-radius: 8px; background: var(--accent); color: var(--bg); font-weight: 600; text-decoration: none; }
+.button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.help { font-size: 0.85rem; color: var(--muted); margin: 4px 0 0; }
+.button.small { padding: 6px 10px; font-size: 0.85rem; }
+.grid-form .help { font-size: 0.78rem; }
+[hidden] { display: none !important; }

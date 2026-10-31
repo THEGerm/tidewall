@@ -105,8 +105,8 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
     let day = 0;
     const act = player.act;
     player.act = (v) => { day = v.day; return act(v); };
-    player.wire = (events: Event[], retryErrors?: string[]) =>
-      ask("wire", day, o.prompts.wire(events) + (retryErrors ? `\nYour last answer was rejected: ${retryErrors.join("; ")}.` : ""), "wire", wireSchema(events.map((e) => e.id))) as any;
+    player.wire = (events: Event[], retryErrors?: string[], view?: View) =>
+      ask("wire", day, o.prompts.wire(events, view) + (retryErrors ? `\nYour last answer was rejected: ${retryErrors.join("; ")}.` : ""), "wire", wireSchema(events.map((e) => e.id))) as any;
   }
   return player;
 }

@@ -45,16 +45,19 @@ export interface GangAct {
   forecasts?: Forecasts;
   moves: { crime: Partial<Record<District, boolean>>; turf: Turf };
   diary?: string;
+  forget?: number[];
 }
 export interface ChiefAct {
   forecasts?: Forecasts;
   moves: { inspect: District[] };
   diary?: string;
+  forget?: number[];
 }
 export interface CouncilAct {
   forecasts?: Forecasts;
   moves: { audit: District[] };
   diary?: string;
+  forget?: number[];
 }
 export interface WorldAct {
   forecasts?: Forecasts;
@@ -68,6 +71,12 @@ export interface WireItem {
 }
 export interface WireAnswer {
   wire: WireItem[];
+  diary?: string;
+  forget?: number[];
+}
+export interface DiaryEntry {
+  day: number;
+  text: string;
 }
 
 export interface Balances {
@@ -134,6 +143,8 @@ export interface View {
   offersToAnswer?: Partial<Record<District, number>>; // Chief, step 4
   acceptedToday?: District[]; // Chief, step 5
   confidantToday?: ConfidantExchange[]; // this player's own texts to Sam today, never anyone else's
+  notebook?: DiaryEntry[]; // this player's own diary entries it has kept, oldest first
+  score?: number; // this player's own score so far (not for the World)
   retryErrors?: string[]; // set on the one retry: what was wrong last time
 }
 
@@ -144,7 +155,7 @@ export interface Player {
   confide?(view: View, window: ConfideWindow): Promise<ConfideAnswer>; // steps 3.2 and 4.2; the reply is the engine's
   bribeAnswers?(view: View): Promise<AnswersAnswer>;
   act(view: View): Promise<ActAnswer>;
-  wire?(events: Event[], retryErrors?: string[]): Promise<WireAnswer>;
+  wire?(events: Event[], retryErrors?: string[], view?: View): Promise<WireAnswer>;
 }
 
 export class Refusal extends Error {

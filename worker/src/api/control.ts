@@ -31,7 +31,7 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   if (path === "schedule" && request.method === "POST") {
     const body = (await request.json().catch(() => null)) as { on?: unknown; cap_usd?: unknown; pace_minutes?: unknown } | null;
     if (body?.pace_minutes !== undefined) {
-      if (body.pace_minutes !== 5 && body.pace_minutes !== 10) return json({ ok: false, error: "pace is 5 or 10 minutes" }, 400);
+      if (![2, 5, 10].includes(body.pace_minutes as number)) return json({ ok: false, error: "pace is 2, 5 or 10 minutes" }, 400);
       await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'pace_minutes'").bind(String(body.pace_minutes)).run();
       await log(env.DB, `${who} set the pace to a day every ${body.pace_minutes} minutes.`);
     }
@@ -66,7 +66,7 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     return json({ ok: true, run: { id: run.id, status: run.status } });
   }
 
-  const m = path.match(/^runs\/([a-z0-9-]+)\/(step|pause|resume|check|ledger)$/);
+  const m = path.match(/^runs\/([a-z0-9-]+)\/(step|pause|resume|check|ledger|end)$/);
   if (m) {
     const [, id, action] = m;
     const run = await getRun(env.DB, id);
@@ -74,6 +74,15 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     if (action === "ledger" && request.method === "GET") return json({ ok: true, ledger: await runLedger(env.DB, id) });
     if (action === "check" && request.method === "GET") return json({ ok: true, blocker: await blocker(env, run, run.state.day) });
     if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
+    // End: the run is over for good. It moves to the archive, its secrets open,
+    // and the export workflow saves it to data/runs/ within the hour.
+    if (action === "end") {
+      if (run.status === "over" || run.status === "truncated") return json({ ok: false, error: `${id} is already over.` }, 409);
+      await setStatus(env.DB, id, "over", `ended by ${who} after ${run.state.day - 1} days`);
+      await env.DB.prepare("UPDATE runs SET step_queued = 0 WHERE id = ?").bind(id).run();
+      await log(env.DB, `${who} ended ${id} after ${run.state.day - 1} days. It is in the archive now.`, { run: id });
+      return json({ ok: true, message: `${id} ended after ${run.state.day - 1} days. It is in the archive on the home page.` });
+    }
     if (action === "pause") {
       await setStatus(env.DB, id, "paused", `paused by ${who}`);
       await log(env.DB, `${who} paused ${id}. A day already playing finishes.`, { run: id });
