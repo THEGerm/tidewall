@@ -42,14 +42,19 @@ export async function runSummary(db: D1Database, id: string) {
   const scores: Scores = { Council: 0, Chief: 0, Families: 0, Saltdogs: 0 };
   let treasury = START.treasury;
   let prison = 0;
+  const prisonBy = { Families: 0, Saltdogs: 0 }; // for the map's colours
   const series = days.map((d) => {
     const delta = parse(d.delta) as Scores;
     for (const k of Object.keys(scores) as (keyof Scores)[]) scores[k] += delta[k];
     treasury += delta.Council; // the Council's score is the treasury's change
     const today = ev.filter((e) => e.day === d.day);
     prison += today.filter((e) => e.kind === "arrest").length - today.filter((e) => e.kind === "release").length;
+    for (const e of today) {
+      const g = parse(e.detail)?.gang as keyof typeof prisonBy | undefined;
+      if (g && g in prisonBy && (e.kind === "arrest" || e.kind === "release")) prisonBy[g] += e.kind === "arrest" ? 1 : -1;
+    }
     const turf = parse(today.find((e) => e.kind === "turf")?.detail ?? null);
-    return { day: d.day, nature: parse(d.nature), delta, scores: { ...scores }, treasury, prison, turf };
+    return { day: d.day, nature: parse(d.nature), delta, scores: { ...scores }, treasury, prison, prisonBy: { ...prisonBy }, turf };
   });
 
   return { run: publicRun(run, days.length), days: series };

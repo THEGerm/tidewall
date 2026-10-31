@@ -379,7 +379,7 @@
     civ: [0.04, 0.03, 0.1, 0.02], civRoof: [0.55, 0.04, 0.04, 0.14],
     green: [0.1, 0, 0.55, 0.62], greenD: [0.3, 0, 0.5, 0.65], wood: [0.25, 0.45, 0.6, 0],
     win: [0.66, 0.2, 0.1, 0.12], lit: [0, 0.14, 0.85, 0], lamp: [0, 0.03, 0.13, 0],
-    fam: [0, 1, 0.2, 0], salt: [0.08, 0, 0, 1],
+    fam: [0, 1, 0.2, 0], salt: [0.08, 0, 0, 1], gov: [0.42, 0.02, 0.04, 0.06],
   };
   function palette(d) {
     if (FAM.has(d)) return { wall: [0.04, 0.4, 0.3, 0], wall2: [0.02, 0.22, 0.38, 0], roof: [0.14, 0.82, 0.42, 0], roof2: [0.32, 0.6, 0.18, 0], ground: [0.02, 0.3, 0.2, 0] };
@@ -519,6 +519,15 @@
       const pl = palette(d);
       P.grey = closed(d) ? GREY : null;
       P.poly(qp(POLY[d], LAND), pl.ground, { wob: 0.2 });
+      // the run page's make-believe colours (run.js influence): the other gang's
+      // ground creeps in from the side facing its turf, the Government's lapis
+      // from the corner by the prison and the Council
+      const inf = st.influence && st.influence[d];
+      if (inf && inf.encroached > 0) {
+        const s = FAM.has(d) ? 1 : -1; // the gangs meet along x = y
+        P.poly(qp(slice(POLY[d], (x, y) => s * (x - y), inf.encroached), LAND), tint(FAM.has(d) ? K.salt : K.fam, 0.42), { wob: 0.2 });
+      }
+      if (inf && inf.government > 0) P.poly(qp(slice(POLY[d], (x, y) => x + y, inf.government), LAND), K.gov, { wob: 0.2 });
       // a border band in the holding gang's ink
       const bd = inset(POLY[d], 4);
       P.stroke(qp(bd.concat([bd[0], bd[1]]), LAND), 7, FAM.has(d) ? K.fam : K.salt, { taper: false, ext: 0, wob: 0.3 });
@@ -608,6 +617,24 @@
       return [nx, ny];
     };
     return poly.map((b, i) => { const a = poly[(i + n - 1) % n], c = poly[(i + 1) % n], n1 = nr(a, b), n2 = nr(b, c); return [b[0] + d * (n1[0] + n2[0]), b[1] + d * (n1[1] + n2[1])]; });
+  }
+  // The part of a polygon where f(x, y) is lowest, covering share (0 to 1) of
+  // its area: clip at a level of f found by bisection (f is linear).
+  function clipBelow(poly, f, t) {
+    const out = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a[0], a[1]) - t, fb = f(b[0], b[1]) - t;
+      if (fa <= 0) out.push(a);
+      if ((fa < 0 && fb > 0) || (fa > 0 && fb < 0)) { const k = fa / (fa - fb); out.push([a[0] + k * (b[0] - a[0]), a[1] + k * (b[1] - a[1])]); }
+    }
+    return out;
+  }
+  const area = (p) => Math.abs(p.reduce((s, a, i) => { const b = p[(i + 1) % p.length]; return s + a[0] * b[1] - b[0] * a[1]; }, 0)) / 2;
+  function slice(poly, f, share) {
+    const vals = poly.map(([x, y]) => f(x, y)), whole = area(poly);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (area(clipBelow(poly, f, mid)) < share * whole) lo = mid; else hi = mid; }
+    return clipBelow(poly, f, hi);
   }
   function districtAt(x, y) { for (const d of DISTRICTS) if (inPoly(POLY[d], x, y)) return d; return null; }
 
