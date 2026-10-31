@@ -114,6 +114,14 @@ describe("step prompts", () => {
     expect(s).toContain("(Lowtown, Market and Seawall)");
   });
 
+  it("show a player its own secret results from yesterday, after the public ones", () => {
+    const s = P.step("messages", view("Chief", { privateYesterday: [{ id: "S2", kind: "inspection_empty", public: false, district: "Lowtown", actor: "Chief" }] }));
+    expect(s).toContain("What only you learned yesterday:\n- S2: your inspection in Lowtown found no crime");
+    expect(s.indexOf("What only you learned yesterday")).toBeGreaterThan(s.indexOf("Yesterday's public events"));
+    expect(P.step("messages", view("Council", { privateYesterday: [{ id: "S1", kind: "audit_clean", public: false, district: "Market", actor: "Council" }] }))).toContain("- S1: your audit in Market found no bribe");
+    expect(P.step("messages", view("Families"))).not.toContain("What only you learned");
+  });
+
   it("keep the after-window text to Sam apart from the moves", () => {
     expect(P.step("confide_after", view("Families"))).toContain("This is only a text to Sam; your moves come in the next step.");
   });
@@ -151,7 +159,7 @@ describe("the Wire prompt", () => {
 });
 
 describe("event lines", () => {
-  it("cover every public kind in plain words", () => {
+  it("cover every event kind a player can see, in plain words", () => {
     const kinds: Event[] = [
       { id: "E1", kind: "storm", public: true, district: "Port" },
       { id: "E2", kind: "strike", public: true, detail: { loss: 30 } },
@@ -160,6 +168,9 @@ describe("event lines", () => {
       { id: "E5", kind: "fine_no_place", public: true, district: "Port", detail: { gang: "Families", fine: 30 } },
       { id: "E6", kind: "audit_caught", public: true, district: "Market", detail: { seized: 100 } },
       { id: "E7", kind: "release", public: true, detail: { gang: "Families" } },
+      { id: "S1", kind: "bribe_offer", public: false, district: "Port", actor: "Families", detail: { amount: 6 } },
+      { id: "S2", kind: "bribe_accepted", public: false, district: "Port", actor: "Chief", detail: { amount: 6, gang: "Families" } },
+      { id: "S3", kind: "bribe_refused", public: false, district: "Market", actor: "Chief", detail: { amount: 3, gang: "Saltdogs" } },
     ];
     expect(kinds.map(eventLine)).toEqual([
       "E1: storm in Port",
@@ -169,6 +180,9 @@ describe("event lines", () => {
       "E5: arrest in Port; Families fined 30, no prison place free",
       "E6: audit in Market found a bribe the Chief accepted; 100 seized into the treasury",
       "E7: a Families member released from prison",
+      "S1: bribe offer in Port, 6 from Families",
+      "S2: bribe in Port, 6 from Families, accepted",
+      "S3: bribe in Market, 3 from Saltdogs, refused",
     ]);
   });
 });

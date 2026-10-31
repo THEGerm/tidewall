@@ -23,8 +23,11 @@ export function resolveDay(state: GameState, nature: Nature, open: District[], m
   const b: Balances = { ...state.balances };
   const performance = { chief: 0 };
   const events: Event[] = [];
-  let n = 0;
-  const log = (e: Omit<Event, "id">) => events.push({ id: `D${day}-E${++n}`, ...e });
+  // Public and secret events are numbered apart (D3-E1, D3-S1), so gaps in
+  // the public numbers can't reveal how many secret events happened (#105).
+  let pub = 0;
+  let sec = 0;
+  const log = (e: Omit<Event, "id">) => events.push({ id: e.public ? `D${day}-E${++pub}` : `D${day}-S${++sec}`, ...e });
   let prison = state.prison.filter((p) => p.releaseDay > day);
   for (const p of state.prison) if (p.releaseDay <= day) log({ kind: "release", public: true, detail: { gang: p.gang } });
 

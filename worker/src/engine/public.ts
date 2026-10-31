@@ -20,7 +20,7 @@ export async function listRuns(db: D1Database) {
       `SELECT r.id, r.model_set, r.triple, r.rotation, r.seating, r.status, r.updated_at,
               (SELECT COUNT(*) FROM days d WHERE d.run_id = r.id) AS days,
               (SELECT SUM(cost_usd) FROM ledger l WHERE l.run_id = r.id) AS cost_usd
-       FROM runs r ORDER BY r.model_set, r.triple, r.rotation, r.id`,
+       FROM runs r ORDER BY r.id`, // by run name (#113)
     )
     .all<Record<string, any>>();
   return results.map((r) => ({ ...r, seating: parse(r.seating), live: isLive(r.status), cost_usd: r.cost_usd ?? 0 }));

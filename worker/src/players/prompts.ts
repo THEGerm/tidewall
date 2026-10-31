@@ -233,6 +233,11 @@ export function eventLine(e: Event): string {
     case "audit_caught": return `${e.id}: audit${at} found a bribe the Chief accepted; ${d.seized ?? SEIZURE} seized into the treasury`;
     case "turf": return `${e.id}: turf war; Families ${d.Families}, Saltdogs ${d.Saltdogs}`;
     case "release": return `${e.id}: a ${d.gang ?? "gang"} member released from prison`;
+    case "inspection_empty": return `${e.id}: your inspection${at} found no crime`;
+    case "audit_clean": return `${e.id}: your audit${at} found no bribe`;
+    case "bribe_offer": return `${e.id}: bribe offer${at}, ${d.amount} from ${e.actor ?? "a gang"}`;
+    case "bribe_accepted": return `${e.id}: bribe${at}, ${d.amount} from ${d.gang ?? "a gang"}, accepted`;
+    case "bribe_refused": return `${e.id}: bribe${at}, ${d.amount} from ${d.gang ?? "a gang"}, refused`;
     default: return `${e.id}: ${e.kind}${at}${Object.keys(d).length ? ` (${Object.entries(d).map(([k, x]) => `${k} ${x}`).join(", ")})` : ""}`;
   }
 }
@@ -249,6 +254,7 @@ function briefing(v: View): string[] {
     balanceLine(v),
     v.score !== undefined ? `Your score so far: ${v.score}.` : "",
     `Yesterday's public events:\n${events(v.publicYesterday)}`,
+    v.privateYesterday?.length ? `What only you learned yesterday:\n${events(v.privateYesterday)}` : "",
     `Yesterday's Wire:\n${wireItems(v)}`,
   ];
   // Today so far: what this player has learnt since the morning.
