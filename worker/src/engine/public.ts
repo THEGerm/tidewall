@@ -83,7 +83,7 @@ export async function dayView(db: D1Database, id: string, day: number) {
 
   const events = await rows(`SELECT * FROM events WHERE run_id = ? AND day = ? ${live ? "AND public = 1" : ""} ORDER BY rowid`);
   const wire = await rows("SELECT headline, text, events FROM wire WHERE run_id = ? AND day = ? ORDER BY seq");
-  const confidant = await rows("SELECT player, window, text, reply FROM confidant WHERE run_id = ? AND day = ? ORDER BY player, window");
+  const confidant = await rows("SELECT player, window, text, reply FROM confidant WHERE run_id = ? AND day = ? ORDER BY player, window = 'after'");
   const diary = await rows("SELECT player, text, forgotten_on FROM diaries WHERE run_id = ? AND day = ? ORDER BY player");
 
   const base = {
