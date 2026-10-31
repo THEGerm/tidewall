@@ -663,7 +663,7 @@
       P.poly(plate, [1, 0, 0, 0.15], { line: 0.9, wob: 0.15 });
       P.text("PRISON", sx, py - 5, 9, [0, 0, 0, 0], { bold: true });
       P.text(n + " / 40", sx, py + 12, 17, [0, 0.12, 1, 0], { bold: true });
-      if (F.narrow) { const c = q(x + dx, y + dy, z0); grow(P, i0, c[0], c[1], 1.6); }
+      if (F.narrow) { const c = q(x + dx, y + dy, z0); grow(P, i0, c[0], c[1], 1.4); }
     });
     add(150, "", () => box(P, 8, 102, 94, 3, LAND, 7, K.stone, { lw: 0.4 }));
     add(150, "", () => box(P, 102, 8, 3, 97, LAND, 7, K.stone, { lw: 0.4 }));
