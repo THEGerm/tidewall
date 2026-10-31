@@ -311,17 +311,26 @@ function renderConfidant(v) {
   );
 }
 
-// Every diary entry written that day, live (Germ, 31 Oct). An entry the
-// player later deleted from its memory is marked; the record keeps it.
+// Each player's whole diary up to the day shown, live (Germ, 31 Oct): the
+// day's entry first, every earlier one below it, newest first. An entry the
+// player had deleted from its memory by then is marked; the record keeps it.
+const WRITERS = ["Council", "Chief", "Families", "Saltdogs", "World"];
 function renderDiaries(v) {
-  const entries = (v.diary?.entries || []).filter((x) => x.text);
+  const all = (v.diary?.entries || []).filter((x) => x.text);
+  const books = WRITERS.map((p) => all.filter((x) => x.player === p).sort((a, b) => b.day - a.day)).filter((b) => b.length);
+  const entry = (x) => h("p", { class: x.forgotten_on ? "them muted" : "them" },
+    h("strong", {}, `Day ${x.day}: `), x.text, x.forgotten_on ? h("em", {}, ` (deleted from memory on day ${x.forgotten_on})`) : null);
   $("diaries").replaceChildren(
-    ...(entries.length
-      ? entries.map((x) => h("article", {},
-          h("p", { class: "who" }, x.player, x.forgotten_on ? h("span", { class: "muted" }, ` (deleted on day ${x.forgotten_on})`) : null),
-          h("p", { class: "them" }, x.text),
-        ))
-      : [h("p", { class: "muted" }, "No diary entries today.")]),
+    ...(books.length
+      ? books.map((b) => {
+          const today = b[0].day === v.day ? b[0] : null, older = today ? b.slice(1) : b;
+          return h("article", {},
+            h("p", { class: "who" }, `${b[0].player}, ${b.length} ${b.length === 1 ? "entry" : "entries"}`),
+            today ? entry(today) : h("p", { class: "muted" }, "Nothing written today."),
+            older.length ? h("details", {}, h("summary", {}, `Earlier days (${older.length})`), older.map(entry)) : null,
+          );
+        })
+      : [h("p", { class: "muted" }, "No diary entries yet.")]),
   );
 }
 

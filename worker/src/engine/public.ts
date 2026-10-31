@@ -84,7 +84,8 @@ export async function dayView(db: D1Database, id: string, day: number) {
   const events = await rows(`SELECT * FROM events WHERE run_id = ? AND day = ? ${live ? "AND public = 1" : ""} ORDER BY rowid`);
   const wire = await rows("SELECT headline, text, events FROM wire WHERE run_id = ? AND day = ? ORDER BY seq");
   const confidant = await rows("SELECT player, window, text, reply FROM confidant WHERE run_id = ? AND day = ? ORDER BY player, window = 'after'");
-  const diary = await rows("SELECT player, text, forgotten_on FROM diaries WHERE run_id = ? AND day = ? ORDER BY player");
+  // Every entry up to this day: the diary as each player holds it that night.
+  const diary = await rows("SELECT day, player, text, forgotten_on FROM diaries WHERE run_id = ? AND day <= ? ORDER BY player, day");
 
   const base = {
     run: { id, status: run.status, live },
@@ -101,9 +102,13 @@ export async function dayView(db: D1Database, id: string, day: number) {
     })),
     wire: wire.map((w) => ({ headline: w.headline, text: w.text, events: parse(w.events) })),
     confidant: { label: "CONFIDENTIAL", texts: confidant },
-    // Each player's diary entry written this day, live (Germ, 31 Oct). No
-    // player sees another's diary; the page is for people watching.
-    diary: { label: "CONFIDENTIAL", entries: diary.map((x) => ({ player: x.player, text: x.text, forgotten_on: x.forgotten_on ?? null })) },
+    // Each player's whole diary up to this day, live (Germ, 31 Oct). An entry
+    // deleted later than this day still shows here, as the player still held
+    // it. No player sees another's diary; the page is for people watching.
+    diary: {
+      label: "CONFIDENTIAL",
+      entries: diary.map((x) => ({ day: x.day, player: x.player, text: x.text, forgotten_on: x.forgotten_on != null && x.forgotten_on <= day ? x.forgotten_on : null })),
+    },
   };
   if (live) return base;
 
