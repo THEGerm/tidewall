@@ -6,7 +6,7 @@
 import type { PlayerName } from "./config";
 import type { DayResult } from "./day";
 import { newGame } from "./resolve";
-import type { Event, GameState, WireItem } from "./types";
+import type { DiaryEntry, Event, GameState, WireItem } from "./types";
 
 export const RULES_VERSION = "draft-3";
 
@@ -61,14 +61,19 @@ export async function setStatus(db: D1Database, id: string, status: Status, reas
   await db.prepare("UPDATE runs SET status = ?, pause_reason = ?, updated_at = ? WHERE id = ?").bind(status, reason, now(), id).run();
 }
 
-// What the next day needs from the day before: its public events and Wire.
-export async function yesterday(db: D1Database, runId: string, day: number): Promise<{ publicYesterday: Event[]; wireYesterday: WireItem[] }> {
-  if (day <= 1) return { publicYesterday: [], wireYesterday: [] };
+// What the next day needs from the days before: yesterday's public events and
+// Wire, and each player's kept diary entries (its memory).
+export async function yesterday(db: D1Database, runId: string, day: number): Promise<{ publicYesterday: Event[]; wireYesterday: WireItem[]; notebooks: Partial<Record<PlayerName, DiaryEntry[]>> }> {
+  if (day <= 1) return { publicYesterday: [], wireYesterday: [], notebooks: {} };
+  const kept = await db.prepare("SELECT day, player, text FROM diaries WHERE run_id = ? AND day < ? AND forgotten_on IS NULL ORDER BY day").bind(runId, day).all<{ day: number; player: PlayerName; text: string }>();
+  const notebooks: Partial<Record<PlayerName, DiaryEntry[]>> = {};
+  for (const r of kept.results) (notebooks[r.player] ??= []).push({ day: r.day, text: r.text });
   const ev = await db.prepare("SELECT * FROM events WHERE run_id = ? AND day = ? AND public = 1 ORDER BY rowid").bind(runId, day - 1).all<Record<string, any>>();
   const wi = await db.prepare("SELECT headline, text, events FROM wire WHERE run_id = ? AND day = ? ORDER BY seq").bind(runId, day - 1).all<Record<string, any>>();
   return {
     publicYesterday: ev.results.map(rowToEvent),
     wireYesterday: wi.results.map((w) => ({ headline: w.headline, text: w.text, events: JSON.parse(w.events) })),
+    notebooks,
   };
 }
 
@@ -108,6 +113,8 @@ export async function saveDay(db: D1Database, runId: string, r: DayResult, confi
     q("INSERT INTO forecasts (run_id, day, player, forecasts) VALUES (?, ?, ?, ?)", runId, d, p, json(f));
   for (const [p, text] of Object.entries(r.diaries))
     q("INSERT INTO diaries (run_id, day, player, text) VALUES (?, ?, ?, ?)", runId, d, p, text);
+  for (const [p, days] of Object.entries(r.forgotten ?? {}))
+    for (const fd of days ?? []) q("UPDATE diaries SET forgotten_on = ? WHERE run_id = ? AND player = ? AND day = ? AND forgotten_on IS NULL", d, runId, p, fd);
   r.wire.forEach((w, i) =>
     q("INSERT INTO wire (run_id, day, seq, headline, text, events) VALUES (?, ?, ?, ?, ?, ?)", runId, d, i, w.headline, w.text, json(w.events)));
   for (const c of confidant)
@@ -136,7 +143,7 @@ export async function exportRun(db: D1Database, runId: string) {
     answers: answers.map((a) => ({ day: a.day, player: a.player, step: a.step, source: a.source, reason: a.reason ?? undefined, errors: a.errors ? parse(a.errors) : undefined })),
     messages: messages.map((m) => ({ day: m.day, from: m.from_player, to: m.to_player, text: m.text })),
     forecasts: forecasts.map((f) => ({ day: f.day, player: f.player, forecasts: parse(f.forecasts) })),
-    diaries: diaries.map((x) => ({ day: x.day, player: x.player, text: x.text })),
+    diaries: diaries.map((x) => ({ day: x.day, player: x.player, text: x.text, forgotten_on: x.forgotten_on ?? null })),
     wire: wire.map((w) => ({ day: w.day, headline: w.headline, text: w.text, events: parse(w.events) })),
     confidant: confidant.map((c) => ({ day: c.day, player: c.player, window: c.window, text: c.text, reply: c.reply })),
     // Who paid for every call: payer names only, never emails.

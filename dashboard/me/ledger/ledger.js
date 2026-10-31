@@ -69,6 +69,8 @@ async function load() {
 
   const ids = data.byRun.map((r) => r.run_id);
   $("pick").replaceChildren(...ids.map((id) => { const o = document.createElement("option"); o.value = o.textContent = id; return o; }));
+  const wanted = new URLSearchParams(location.search).get("run"); // from the Control page's Ledger button
+  if (wanted && ids.includes(wanted)) $("pick").value = wanted;
   $("pick").onchange = renderDays;
   renderDays();
 }

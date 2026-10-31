@@ -61,6 +61,10 @@ After every game day: tokens in, cached and out, plus cost, per participant and 
 
 As now: save, test, delete. Links to the Control page.
 
+### 7. Data `/run/data/?id=...` (built 31 Oct)
+
+Every played day of a run in one table (Nature, turf, crimes, arrests, scores, treasury, prison, cost; a finished run adds inspections, audits, bribes and fallbacks), cost by provider, and downloads: the days as CSV, the ledger as JSON, and the whole run as JSON once it ends. Every page now shares one site bar (`nav.js`): Runs, Control, Ledger, My keys.
+
 ## Data and API
 
 All reads are JSON from the Worker. Public endpoints return only what the public may see at that moment.

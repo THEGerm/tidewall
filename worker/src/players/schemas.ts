@@ -10,6 +10,8 @@ const obj = (properties: Record<string, Schema>, required = Object.keys(properti
 const prob: Schema = { type: "number", minimum: 0, maximum: 1 };
 const text = (maxWords: number): Schema => ({ type: "string", description: `at most ${maxWords} words` });
 const perDistrict = (ds: District[], s: Schema) => obj(Object.fromEntries(ds.map((d) => [d, s])));
+// Days of the player's own kept diary entries to delete; an empty list keeps them all.
+const forget: Schema = { type: "array", items: { type: "integer" }, description: "days of your own diary entries to delete; [] to keep them all" };
 const districtList = (ds: District[], max: number): Schema => ({ type: "array", items: { type: "string", enum: ds }, maxItems: max, uniqueItems: true });
 
 export const forecastsSchema = (open: District[]) =>
@@ -38,19 +40,19 @@ export function actSchema(v: View): Schema {
     case "Families":
     case "Saltdogs": {
       const mine = v.open.filter((d) => TURF[d] === v.player);
-      return obj({ forecasts: f, moves: obj({ crime: perDistrict(mine, { type: "boolean" }), turf: { type: "string", enum: ["respect", "encroach"] } }), diary: text(120) });
+      return obj({ forecasts: f, moves: obj({ crime: perDistrict(mine, { type: "boolean" }), turf: { type: "string", enum: ["respect", "encroach"] } }), diary: text(100), forget });
     }
     case "Chief": {
       const allowed = v.open.filter((d) => !(v.acceptedToday ?? []).includes(d));
-      return obj({ forecasts: f, moves: obj({ inspect: districtList(allowed, allowed.length) }), diary: text(120) });
+      return obj({ forecasts: f, moves: obj({ inspect: districtList(allowed, allowed.length) }), diary: text(100), forget });
     }
     case "Council":
-      return obj({ forecasts: f, moves: obj({ audit: districtList(v.open, MAX_AUDITS) }), diary: text(120) });
+      return obj({ forecasts: f, moves: obj({ audit: districtList(v.open, MAX_AUDITS) }), diary: text(100), forget });
     case "World":
       return obj({ forecasts: f });
   }
 }
 
 export function wireSchema(eventIds: string[]): Schema {
-  return obj({ wire: { type: "array", minItems: 2, maxItems: 5, items: obj({ headline: { type: "string" }, text: text(60), events: { type: "array", minItems: 1, items: { type: "string", enum: eventIds } } }) } });
+  return obj({ wire: { type: "array", minItems: 2, maxItems: 5, items: obj({ headline: { type: "string" }, text: text(60), events: { type: "array", minItems: 1, items: { type: "string", enum: eventIds } } }) }, diary: text(100), forget });
 }

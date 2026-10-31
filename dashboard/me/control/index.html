@@ -9,7 +9,7 @@
 </head>
 <body class="wide">
   <header>
-    <p class="eyebrow"><a href="/">Tidewall</a> / <a href="/me/">My keys</a> / Control</p>
+    <p class="eyebrow"><a href="/">Tidewall</a> / Control</p>
     <h1>Control</h1>
     <p class="lede" id="who">Loading...</p>
   </header>
@@ -25,6 +25,7 @@
           <div class="inline-row">
             <button type="button" id="sched-btn"></button>
             <div class="seg" role="group" aria-label="Minutes between days">
+              <button type="button" class="ghost" data-pace="2">2 min</button>
               <button type="button" class="ghost" data-pace="5">5 min</button>
               <button type="button" class="ghost" data-pace="10">10 min</button>
             </div>
@@ -45,7 +46,14 @@
 
     <section aria-labelledby="h-runs">
       <h2 id="h-runs">Runs</h2>
-      <p class="muted"><strong>Step</strong> queues one day, which starts within a minute, even with the schedule off; you can close the page. <strong>Check</strong> says what would stop the next day (a missing key, an unpinned model, the cap). A run that can't play pauses with its reason.</p>
+      <ul class="plain muted">
+        <li><strong>Step</strong> plays one day: it starts within a minute, even with the schedule off, and you can close the page.</li>
+        <li><strong>Pause</strong> and <strong>Resume</strong> stop and restart the schedule for that run. Nothing is lost: it carries on from the next day.</li>
+        <li><strong>Check</strong> answers "can the next day play?": it looks for a missing key, an unpinned model or the spending cap, without spending anything.</li>
+        <li><strong>Ledger</strong> opens the ledger page on this run: every model call, its tokens, cost and who paid.</li>
+        <li><strong>End</strong> finishes the run for good. It moves to the archive on the home page, its secrets open, and its data is saved to the repo within the hour.</li>
+        <li>A run that can't play pauses itself and says why in the log.</li>
+      </ul>
       <div class="table-wrap">
         <table class="stack">
           <thead><tr><th>Run</th><th>Models</th><th>Government, Criminals, World</th><th>Status</th><th>Next day</th><th></th></tr></thead>
@@ -66,9 +74,9 @@
       <p class="muted">Test runs use the cheap models and stay out of the analysis. The 27 study runs will come from a script with the published seeds.</p>
       <form id="new-form" class="grid-form">
         <label>Run ID <input name="id" required pattern="[a-z0-9-]{1,40}" placeholder="test-1"></label>
-        <label>Seed <input name="seed" required minlength="8" placeholder="at least 8 characters"></label>
+        <label>Seed <input name="seed" minlength="8" placeholder="leave blank for a random one"><span class="help">Fixes the dice: weather, fires and the day the game ends. Two runs with the same seed get the same events. Leave blank for tests.</span></label>
         <label>Models <select name="model_set"><option value="test">Test (cheap)</option><option value="study">Study</option></select></label>
-        <label>Triple <input name="triple" type="number" min="0" value="0" required></label>
+        <label>Triple <input name="triple" type="number" min="0" value="0"><span class="help">The study is 9 triples of 3 runs; the 3 runs of a triple share a seed and rotate the models through the seats. Use 0 for tests.</span></label>
         <label>Rotation <select name="rotation"><option value="1">1: Claude govern, Gemini crime, GPT world</option><option value="2">2: Gemini govern, GPT crime, Claude world</option><option value="3">3: GPT govern, Claude crime, Gemini world</option></select></label>
         <button type="submit">Create</button>
       </form>
@@ -118,5 +126,6 @@
   </footer>
 
   <script src="/me/control/control.js"></script>
+  <script src="/nav.js"></script>
 </body>
 </html>

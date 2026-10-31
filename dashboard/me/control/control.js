@@ -131,7 +131,21 @@ function runRow(r) {
     if (r.status === "running") actions.append(act("Pause", "pause"));
     actions.append(act("Check", "check", "GET"));
   }
-  actions.append(act("Ledger", "ledger", "GET"));
+  const led = document.createElement("a");
+  led.className = "button ghost small";
+  led.href = `/me/ledger/?run=${encodeURIComponent(r.id)}`;
+  led.textContent = "Ledger";
+  actions.append(led);
+  if (!done) actions.append(button("End", async (ev) => {
+    if (!confirm(`End ${r.id} for good? It moves to the archive and cannot be resumed.`)) return;
+    ev.currentTarget.disabled = true;
+    try {
+      const out = await api(`runs/${r.id}/end`, { method: "POST" });
+      $("run-msg").textContent = out.message;
+      state = await api("status");
+      render();
+    } catch (e) { $("run-msg").textContent = `End ${r.id}: ${e.message}`; ev.currentTarget.disabled = false; }
+  }));
   tr.append(first, cell(r.model_set === "test" ? "Test" : "Study"), cell(["Government", "Criminals", "World"].map((s) => FAMILY[seating[s]]).join(", ")), status, cell(done ? "" : r.day), actionsCell);
   // Labels for the stacked layout on phones (style.css, table.stack).
   ["Run", "Models", "Seats", "Status", "Next day", ""].forEach((label, i) => tr.children[i].setAttribute("data-label", label));
@@ -161,20 +175,23 @@ $("cap-form").onsubmit = async (e) => {
   } catch (err) { $("run-msg").textContent = err.message; }
 };
 
+// A random 16-character seed for test runs (study runs use the published seeds).
+const randomSeed = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+
 $("new-form").onsubmit = async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
   const body = {
     id: String(f.get("id")).trim().toLowerCase(), // IDs are lowercase letters, numbers and hyphens
-    seed: f.get("seed"),
-    triple: Number(f.get("triple")),
+    seed: String(f.get("seed") || "").trim() || randomSeed(),
+    triple: Number(f.get("triple") || 0),
     rotation: Number(f.get("rotation")),
     seating: SEATINGS[f.get("rotation")],
     model_set: f.get("model_set"),
   };
   try {
     await api("runs", { method: "POST", body: JSON.stringify(body) });
-    $("new-msg").textContent = `Created ${body.id}. It's ready: press Step to play day 1, or Resume and turn the schedule on.`;
+    $("new-msg").textContent = `Created ${body.id} (seed ${body.seed}). It's ready: press Step to play day 1, or Resume and turn the schedule on.`;
     e.target.reset();
     state = await api("status");
     render();

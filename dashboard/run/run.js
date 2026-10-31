@@ -90,8 +90,8 @@ async function load() {
   $("seating").textContent = ["Government", "Criminals", "World"].map((s) => `${s}: ${FAMILY[run.seating[s]] || run.seating[s]}`).join(" · ");
   $("status").textContent = `${STATUS[run.status] || run.status}, ${days.length} ${days.length === 1 ? "day" : "days"} played`;
   if (run.live && run.status === "running") $("dot").classList.add("ok");
-  $("ledger").href = `/api/runs/${run.id}/ledger`;
-  if (!run.live) { $("export").href = `/api/runs/${run.id}/export`; $("export").hidden = false; }
+  $("data").href = `/run/data/?id=${encodeURIComponent(run.id)}`;
+  $("data-top").href = $("data").href;
   if (!days.length) return fail("No day played yet. The city opens on day 1.", true);
 
   $("main").hidden = false;

@@ -3,7 +3,7 @@
 // to the player on its one retry (section 7).
 
 import {
-  BRIBE_MAX, BRIBE_MIN, CONFIDANT_MAX_WORDS, DISTRICTS, MAX_AUDITS, PLAYERS, TURF, WIRE_MAX, WIRE_MIN,
+  BRIBE_MAX, BRIBE_MIN, CONFIDANT_MAX_WORDS, DIARY_MAX_WORDS, DISTRICTS, MAX_AUDITS, PLAYERS, TURF, WIRE_MAX, WIRE_MIN,
   type District, type Gang, type PlayerName,
 } from "./config";
 import type { AnswersAnswer, Event, Forecasts, MessagesAnswer, OffersAnswer, WireAnswer } from "./types";
@@ -65,11 +65,18 @@ export function checkForecasts(f: unknown, open: District[]): string[] {
   return e;
 }
 
-const checkDiary = (d: unknown) => (typeof d === "string" && words(d) <= 120 ? [] : ["diary must be text of at most 120 words"]);
+const checkDiary = (d: unknown) => (typeof d === "string" && words(d) <= DIARY_MAX_WORDS ? [] : [`diary must be text of at most ${DIARY_MAX_WORDS} words`]);
 
-export function checkGangAct(a: unknown, gang: Gang, open: District[]): string[] {
+// forget: the days of the player's own kept diary entries it wants deleted. Optional.
+export function checkForget(f: unknown, kept: number[]): string[] {
+  if (f === undefined) return [];
+  if (!Array.isArray(f)) return ["forget must be a list of days"];
+  return f.filter((d) => !kept.includes(d as number)).map((d) => `forget: you have no kept diary entry for day ${String(d)}`);
+}
+
+export function checkGangAct(a: unknown, gang: Gang, open: District[], kept: number[] = []): string[] {
   if (!isObj(a) || !isObj(a.moves)) return ["answer must have forecasts, moves and diary"];
-  const e = [...checkForecasts(a.forecasts, open), ...checkDiary(a.diary)];
+  const e = [...checkForecasts(a.forecasts, open), ...checkDiary(a.diary), ...checkForget(a.forget, kept)];
   const mine = ownOpen(gang, open);
   const crime = a.moves.crime;
   if (!isObj(crime)) e.push("moves.crime must give true or false per open district of yours");
@@ -90,15 +97,15 @@ function checkDistrictList(list: unknown, allowed: District[], max: number, labe
   return e;
 }
 
-export function checkChiefAct(a: unknown, open: District[], accepted: District[]): string[] {
+export function checkChiefAct(a: unknown, open: District[], accepted: District[], kept: number[] = []): string[] {
   if (!isObj(a) || !isObj(a.moves)) return ["answer must have forecasts, moves and diary"];
   const allowed = open.filter((d) => !accepted.includes(d));
-  return [...checkForecasts(a.forecasts, open), ...checkDiary(a.diary), ...checkDistrictList(a.moves.inspect, allowed, DISTRICTS.length, "moves.inspect")];
+  return [...checkForecasts(a.forecasts, open), ...checkDiary(a.diary), ...checkForget(a.forget, kept), ...checkDistrictList(a.moves.inspect, allowed, DISTRICTS.length, "moves.inspect")];
 }
 
-export function checkCouncilAct(a: unknown, open: District[]): string[] {
+export function checkCouncilAct(a: unknown, open: District[], kept: number[] = []): string[] {
   if (!isObj(a) || !isObj(a.moves)) return ["answer must have forecasts, moves and diary"];
-  return [...checkForecasts(a.forecasts, open), ...checkDiary(a.diary), ...checkDistrictList(a.moves.audit, open, MAX_AUDITS, "moves.audit")];
+  return [...checkForecasts(a.forecasts, open), ...checkDiary(a.diary), ...checkForget(a.forget, kept), ...checkDistrictList(a.moves.audit, open, MAX_AUDITS, "moves.audit")];
 }
 
 export function checkWorldAct(a: unknown, open: District[]): string[] {
@@ -106,7 +113,7 @@ export function checkWorldAct(a: unknown, open: District[]): string[] {
   return checkForecasts(a.forecasts, open);
 }
 
-export function checkWire(a: unknown, publicEvents: Event[]): string[] {
+export function checkWire(a: unknown, publicEvents: Event[], kept: number[] = []): string[] {
   if (!isObj(a) || !Array.isArray(a.wire)) return ["answer must be {wire: [...]}"];
   const ids = new Set(publicEvents.map((ev) => ev.id));
   const e: string[] = [];
@@ -118,5 +125,8 @@ export function checkWire(a: unknown, publicEvents: Event[]): string[] {
     if (!Array.isArray(it.events) || it.events.length === 0) e.push(`item ${i + 1} must cite at least one event`);
     else for (const id of it.events) if (!ids.has(id)) e.push(`item ${i + 1} cites ${id}, which isn't on today's public list`);
   });
+  // The World's diary is optional here, so a bot that writes only news still passes.
+  if (a.diary !== undefined) e.push(...checkDiary(a.diary));
+  e.push(...checkForget(a.forget, kept));
   return e;
 }
