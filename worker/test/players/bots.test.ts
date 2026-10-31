@@ -53,6 +53,22 @@ describe("bot runs (Germ, 31 Oct)", () => {
     expect(x.days.map((d) => d.moves)).toEqual(y.days.map((d) => d.moves));
   });
 
+  it("audits at the 10% line, encroaches on request, and keeps a seed's crimes and inspections", async () => {
+    const e = env();
+    await createRun(e.DB, { id: "r", seed: "bot-seed-4", triple: 0, rotation: 1, seating, model_set: "bot", fixed_days: 400 });
+    await createRun(e.DB, { id: "x", seed: "bot-seed-4", triple: 0, rotation: 1, seating, model_set: "bot", fixed_days: 400, bot_turf: "encroach" });
+    for (const id of ["r", "x"]) await setStatus(e.DB, id, "running");
+    while ((await getRun(e.DB, "x"))!.status === "running") await playBots(e, { budgetMs: 60_000 });
+    const [r, x] = [await exportRun(e.DB, "r"), await exportRun(e.DB, "x")];
+    let open = 0, audits = 0;
+    for (const d of r.days) { open += d.open.length; audits += d.moves.audit.length; expect(d.moves.audit.length).toBeLessThanOrEqual(2); }
+    expect(Math.abs(audits / open - 0.1)).toBeLessThan(0.03);
+    expect(r.days.every((d) => d.moves.turf.Families === "respect" && d.moves.turf.Saltdogs === "respect")).toBe(true);
+    expect(x.days.every((d) => d.moves.turf.Families === "encroach" && d.moves.turf.Saltdogs === "encroach")).toBe(true);
+    // same seed: the same crimes and inspections, whatever the turf move
+    expect(x.days.map((d) => [d.moves.crime, d.moves.inspect])).toEqual(r.days.map((d) => [d.moves.crime, d.moves.inspect]));
+  });
+
   it("never enters the model schedule: no pace wait, no 'a run is paused', no model calls", async () => {
     const e = env();
     await createRun(e.DB, { id: "b", seed: "bot-seed-3", triple: 0, rotation: 1, seating, model_set: "bot", fixed_days: 5 });

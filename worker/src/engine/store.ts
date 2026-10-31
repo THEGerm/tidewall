@@ -47,9 +47,9 @@ export interface ConfidantRow {
 const now = () => new Date().toISOString();
 const json = (v: unknown) => JSON.stringify(v);
 
-export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number }): Promise<RunRow> {
+export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number; bot_turf?: "encroach" }): Promise<RunRow> {
   const modelSet = run.model_set ?? "study";
-  const state = newGame(run.seed, run.fixed_days);
+  const state = newGame(run.seed, run.fixed_days, run.bot_turf);
   const t = now();
   await db
     .prepare("INSERT INTO runs (id, seed, triple, rotation, seating, rules_version, status, state, created_at, updated_at, model_set) VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?, ?)")
@@ -181,7 +181,7 @@ export async function exportRun(db: D1Database, runId: string) {
       pace_minutes: pace ? Number(pace.value) : null,
       // The model each seat played, as pinned in the code when exported.
       models: run.model_set === "bot"
-        ? { all: "equilibrium bots (src/players/bots.ts), no model calls" }
+        ? { all: `equilibrium bots (src/players/bots.ts), no model calls; Council audits at the 10% line; gangs ${run.state.botTurf ?? "respect"}` }
         : Object.fromEntries(Object.entries(run.seating).map(([seat, family]) => [seat, { family, ...models[family as keyof typeof models], effort: EFFORT }])),
     },
     // The game's parameters, so the analysis need not hard-code them (#67).
