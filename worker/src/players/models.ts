@@ -22,8 +22,8 @@ export const EFFORT = "medium" as const;
 
 // Cheap models for test runs (Germ, 30 Oct). They exercise the whole pipeline
 // for a fraction of the cost; their runs are marked model_set = 'test' and
-// stay out of the analysis.
-export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = {
+// stay out of the analysis. Used by test run 001-germ.
+export const CHEAP_TEST_MODELS: Record<Family, { provider: Provider; model: string }> = {
   claude: { provider: "anthropic", model: "claude-haiku-5-5" },
   // Gemini 3.1 Flash-Lite (Germ, 31 Oct): half the output price of 3 Flash
   // Preview, which spent 90% of its output on thinking in the first test run.
@@ -31,6 +31,12 @@ export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> 
   gemini: { provider: "google", model: "gemini-3.1-flash-lite" },
   gpt: { provider: "openai", model: "gpt-6-luna" }, // Germ, 30 Oct: current, same generation as Sol
 };
+
+// Test runs play the study models for now (Germ, 31 Oct): test run 002-germ
+// checks the study models' cost and behaviour end to end. Its runs stay
+// model_set = 'test', so they stay out of the analysis. To go back to the
+// cheap models, set this to CHEAP_TEST_MODELS.
+export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = MODELS;
 
 export type ModelSet = "study" | "test";
 export const modelsFor = (set: ModelSet) => (set === "test" ? TEST_MODELS : MODELS);

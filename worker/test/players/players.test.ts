@@ -121,3 +121,31 @@ describe("model player", () => {
     expect(Object.keys(r.forecasts).sort()).toEqual([...PLAYERS].sort());
   });
 });
+
+describe("interim prompts", () => {
+  const view = (player: any, extra: any = {}) => ({ player, day: 3, nature: { storm: true, fire: null, strike: false, ship: false }, open: ["Hightown", "Old Quarter", "Lowtown", "Market", "Seawall"], balances: { Families: 180 }, publicYesterday: [], wireYesterday: [], inbox: [], ...extra }) as any;
+
+  it("gives every seat the rules and the turf payoff table, and its own role", () => {
+    for (const p of ["Council", "Chief", "Families", "Saltdogs", "World"] as const) {
+      const s = placeholderPrompts.system(p);
+      expect(s).toContain("you 10, they 0"); // encroach on a gang that respects
+      expect(s).toContain("you 6, they 6");
+      expect(s).toContain(`Your seat: the ${p === "Chief" ? "Police Chief" : p}`);
+    }
+    expect(placeholderPrompts.system("Families")).toContain("Your turf is Port, Hightown, Old Quarter");
+  });
+
+  it("keeps the system prompt free of day facts, so it caches", () => {
+    expect(placeholderPrompts.system("Chief")).not.toMatch(/Day \d/);
+  });
+
+  it("lists only the gang's own open districts for offers, and says the Port is closed", () => {
+    const s = placeholderPrompts.step("offers", view("Families"));
+    expect(s).toContain("(Hightown, Old Quarter)");
+    expect(s).toContain("storm (Port closed)");
+  });
+
+  it("tells the World not to invent causes", () => {
+    expect(placeholderPrompts.wire([])).toContain("no invented causes");
+  });
+});
