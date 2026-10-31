@@ -22,7 +22,13 @@
           <h3>Schedule</h3>
           <p class="big" id="sched"></p>
           <p class="muted" id="sched-note">When on, the first live run plays a day every 10 minutes. You can close this page.</p>
-          <button type="button" id="sched-btn"></button>
+          <div class="inline-row">
+            <button type="button" id="sched-btn"></button>
+            <div class="seg" role="group" aria-label="Minutes between days">
+              <button type="button" class="ghost" data-pace="5">5 min</button>
+              <button type="button" class="ghost" data-pace="10">10 min</button>
+            </div>
+          </div>
         </article>
         <article>
           <h3>Spending</h3>

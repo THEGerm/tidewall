@@ -60,6 +60,18 @@ function render() {
   $("sched-note").textContent = on
     ? `A day every ${state.pace_minutes} minutes${state.next_due ? `; the next is due about ${clock(state.next_due)}` : ""}. You can close this page.`
     : `When on, the first live run plays a day every ${state.pace_minutes} minutes. You can close this page.`;
+  for (const b of document.querySelectorAll("[data-pace]")) {
+    const pace = Number(b.dataset.pace);
+    b.setAttribute("aria-pressed", String(pace === state.pace_minutes));
+    b.onclick = async () => {
+      if (pace === state.pace_minutes) return;
+      try {
+        Object.assign(state, await api("schedule", { method: "POST", body: JSON.stringify({ pace_minutes: pace }) }));
+        state = await api("status");
+        render();
+      } catch (e) { $("run-msg").textContent = e.message; }
+    };
+  }
   $("spend").textContent = `$${state.spend.usd.toFixed(2)} of $${state.cap_usd}`;
   renderLog();
   $("unpriced").textContent = state.spend.unpriced ? `${state.spend.unpriced} calls have no price yet.` : "Every call so far is priced.";

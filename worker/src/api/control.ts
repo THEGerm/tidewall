@@ -29,7 +29,12 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   }
 
   if (path === "schedule" && request.method === "POST") {
-    const body = (await request.json().catch(() => null)) as { on?: unknown; cap_usd?: unknown } | null;
+    const body = (await request.json().catch(() => null)) as { on?: unknown; cap_usd?: unknown; pace_minutes?: unknown } | null;
+    if (body?.pace_minutes !== undefined) {
+      if (body.pace_minutes !== 5 && body.pace_minutes !== 10) return json({ ok: false, error: "pace is 5 or 10 minutes" }, 400);
+      await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'pace_minutes'").bind(String(body.pace_minutes)).run();
+      await log(env.DB, `${who} set the pace to a day every ${body.pace_minutes} minutes.`);
+    }
     if (typeof body?.on === "boolean") {
       await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'schedule'").bind(body.on ? "on" : "off").run();
       await log(env.DB, body.on
@@ -40,7 +45,7 @@ export async function handleControl(request: Request, env: Env, path: string, wh
       await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'cap_usd'").bind(String(body.cap_usd)).run();
       await log(env.DB, `${who} set the spending cap to $${body.cap_usd}.`);
     }
-    return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")) });
+    return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")), pace_minutes: Number(await meta("pace_minutes")) });
   }
 
   if (path === "runs" && request.method === "POST") {
