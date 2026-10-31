@@ -151,7 +151,7 @@ Added 31 Oct (Germ). A player remembers nothing from one day to the next except 
 - **Every player, the World included,** writes one entry a day of up to 100 words: the Council, the Chief and the gangs at step 5, the World with the Wire at step 7.
 - **Each morning** a player reads every entry it has kept, with yesterday's public events and Wire, and its own score so far (the World has no score).
 - **Forgetting:** with each entry a player may list the days of old entries it wants deleted (`forget`). They are no longer shown to it; the record keeps them, marked with the day they were forgotten, for the analysis.
-- **Private:** no other player and not the World ever sees another player's diary. Diaries open to the public when the run ends, like the other secrets.
+- **Private:** no other player and not the World ever sees another player's diary. People watching the dashboard see each day's entries live, under the CONFIDENTIAL label, like the texts to Sam (Germ, 31 Oct).
 - **Cost:** a diary grows by about 130 tokens a day, read at every step, so later days cost a little more.
 
 ## 4. Who sees what

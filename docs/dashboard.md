@@ -4,7 +4,7 @@ Draft 2, 30 Oct 2026. What the Tidewall site shows, to whom, from which data, an
 
 ## The bottom line
 
-Phone first, no frameworks, every page a static file that reads JSON from the Worker. The public sees the city as the city sees itself: public events, the Wire and scores, day by day. Secrets (bribes, empty inspections, messages, diaries) stay hidden while a run is live and open up when it ends. Confidant texts show live under a red CONFIDENTIAL label. Who paid and how many tokens are public run data. Participants get two private pages: My keys (built) and Control (start, pause, ledger).
+Phone first, no frameworks, every page a static file that reads JSON from the Worker. The public sees the city as the city sees itself: public events, the Wire and scores, day by day. Secrets (bribes, empty inspections, messages) stay hidden while a run is live and open up when it ends. Confidant texts and diaries show live under a red CONFIDENTIAL label. Who paid and how many tokens are public run data. Participants get two private pages: My keys (built) and Control (start, pause, ledger).
 
 ## Who it's for
 
@@ -30,7 +30,7 @@ The main page. One day at a time, with a day slider and back and forward buttons
 - **Turf:** both gangs' moves as a two-row strip of coloured squares (respect, encroach) across all days, so cooperation and betrayal read at a glance.
 - **Prison and treasury:** two numbers with small trend lines.
 - **Confidant panel, live:** each human player's texts to Sam and Sam's replies, for both windows, under a red **CONFIDENTIAL** label. Players never see this page, so showing it live changes nothing in the game.
-- **After the run ends:** tabs for messages, diaries and forecasts.
+- **After the run ends:** tabs for messages and forecasts. Diaries show live, under the texts to Sam.
 
 ### 3. Game theory `/run/theory/?id=...` (per run built; across runs to come)
 
@@ -76,13 +76,13 @@ All reads are JSON from the Worker. Public endpoints return only what the public
 | `GET /api/runs` | public | Runs list: id, seating, status, day, total cost |
 | `GET /api/runs/:id/ledger` | public | Tokens and cost per day, provider and payer name |
 | `GET /api/runs/:id` | public | Run summary and one row per played day: scores, today's change, treasury, prison count, turf moves, Nature. The seed shows once the run ends |
-| `GET /api/runs/:id/days/:day` | public | That day's public events, Wire, scores, open districts and confidant texts (labelled confidential). A finished run adds secrets, messages, diaries and forecasts |
+| `GET /api/runs/:id/days/:day` | public | That day's public events, Wire, scores, open districts confidant texts and that day's diary entries (both labelled confidential). A finished run adds secrets, messages and forecasts |
 | `GET /api/runs/:id/export` | public, finished runs only | The full `exportRun` JSON, as in `data/runs/` |
 | `GET /api/me/ledger` | signed in | Ledger rows by run, day, provider, model and payer name, with totals per payer and per run, and the cap. No emails |
 | `POST /api/me/runs/:id/{start,pause,resume,step}` | signed in | Control actions |
 | `GET /api/me/keycheck` | signed in | Per provider: participants with a working key |
 
-The public cut is made in one file, `worker/src/engine/public.ts`, and every public endpoint reads through it. `worker/test/engine/public.test.ts` plays a run with bots that leave a secret in every place one can live (messages, diaries, bribes, empty inspections) and checks that no live run's endpoint returns any of them, or its moves, forecasts, answers, welfare or seed. Live answers are sent `no-store`; finished runs are cached for an hour.
+The public cut is made in one file, `worker/src/engine/public.ts`, and every public endpoint reads through it. `worker/test/engine/public.test.ts` plays a run with bots that leave a secret in every place one can live (messages, bribes, empty inspections) and checks that no live run's endpoint returns any of them, or its moves, forecasts, answers, welfare or seed. Live answers are sent `no-store`; finished runs are cached for an hour.
 
 Scores show live, as decided. A live Chief or gang score moves with bribes paid or taken, so a careful reader can infer a bribe from it. Players never see the site, so the game is unaffected.
 
@@ -157,5 +157,6 @@ D1 to D2 can run on week-0 bot data, so the run page can be checked before any m
 | Secrets visible to the public after a run ends | Yes |
 | Who paid | Public: payer names and token counts are data attached to each run |
 | Confidant texts | Shown live, under a red CONFIDENTIAL label |
+| Diaries | Shown live, under the texts to Sam, same label (Germ, 31 Oct) |
 | Live view delay | None |
 | Map | Risograph style of GERM-ART-0016 |
