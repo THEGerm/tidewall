@@ -205,7 +205,7 @@ function renderLog() {
   const suffix = [filter.day && `day${filter.day}`, !log.noPlayer && filter.player].filter(Boolean).join("-");
   $("filters").replaceChildren(
     select("Day", filter.day, [["", "All days"], ...days.map((d) => [String(d), `Day ${d}`])], (v) => { filter.day = v; page = 0; renderLog(); }),
-    log.noPlayer ? null : select("Player", filter.player, [["", "All players"], ...names.map((n) => [n, n])], (v) => { filter.player = v; page = 0; renderLog(); }),
+    ...(log.noPlayer ? [] : [select("Player", filter.player, [["", "All players"], ...names.map((n) => [n, n])], (v) => { filter.player = v; page = 0; renderLog(); })]),
     h("a", { class: "button ghost small", href: csvUrl, download: `${current.run.id}-${tab}${suffix ? `-${suffix}` : ""}.csv` }, `Download CSV (${rows.length} ${rows.length === 1 ? "row" : "rows"})`),
   );
 
@@ -241,7 +241,7 @@ function renderRun() {
     fact("Status", STATUS[run.status] || run.status, run.live ? "Public data only until it ends" : run.seed ? `Seed ${run.seed}` : null),
     fact("Days", String(days), run.rules_version ? `Rules ${run.rules_version}` : null),
     fact("Cost", money(cost), days ? `${money(cost / days)} a day` : null),
-    fact("Fallbacks", run.live ? "at the end" : `${fb} of ${answers.length}`, run.live ? "Answers are secret while live" : `answers; ${retries} more came on the retry`),
+    fact("Fallbacks", run.live ? "When it ends" : `${fb} of ${answers.length}`, run.live ? "Answers are secret while live" : `answers; ${retries} more came on the retry`),
   );
   const enc = encodeURIComponent(run.id);
   const link = (href, text, download) => h("a", { class: "button ghost small", href, download }, text);
@@ -249,7 +249,7 @@ function renderRun() {
     link(`/run/?id=${enc}`, "Watch the run"),
     link(`/run/theory/?id=${enc}`, "Game theory page"),
     link(`/run/data/?id=${enc}`, "Data and downloads"),
-    run.live ? null : link(`/api/runs/${enc}/export`, "Full export (JSON)", `${run.id}.json`),
+    ...(run.live ? [] : [link(`/api/runs/${enc}/export`, "Full export (JSON)", `${run.id}.json`)]),
   );
   $("run-link").href = `/run/?id=${enc}`;
   $("theory-link").href = `/run/theory/?id=${enc}`;
