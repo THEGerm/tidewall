@@ -80,6 +80,13 @@ describe("public API", () => {
     expect(r.confidant.texts).toEqual([{ player: "Chief", window: "after", text: "Took money today.", reply: "Be careful." }]);
   });
 
+  it("lists each player's texts to Sam in day order: before, then after", async () => {
+    const { db, get } = await setup(1);
+    await db.prepare("INSERT INTO confidant (run_id, day, player, window, text, reply) VALUES ('t1-r1', 1, 'Chief', 'before', 'Morning.', 'OK.')").run();
+    const r = (await get("/api/runs/t1-r1/days/1")).body;
+    expect(r.confidant.texts.filter((t: any) => t.player === "Chief").map((t: any) => t.window)).toEqual(["before", "after"]);
+  });
+
   it("shows each day's diary entries live, under the CONFIDENTIAL label", async () => {
     const { get } = await setup(2);
     const r = (await get("/api/runs/t1-r1/days/2")).body;

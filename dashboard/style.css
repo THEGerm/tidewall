@@ -145,7 +145,7 @@ svg .line.wire { stroke: var(--wire); } svg .pt.wire { fill: var(--wire); }
 .spark { width: 100%; max-width: 200px; height: 36px; }
 .confidential { display: inline-block; background: var(--conf); color: #fff; font-size: 0.8rem; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-right: 6px; }
 .confidant { display: grid; gap: 8px; }
-.confidant article { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--conf); border-radius: 8px; padding: 10px 12px; }
+.confidant article { min-width: 0; overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--conf); border-radius: 8px; padding: 10px 12px; }
 .confidant p { margin: 2px 0; }
 .confidant .who { font-size: 0.82rem; color: var(--muted); }
 .confidant .sam { color: var(--muted); font-style: italic; }

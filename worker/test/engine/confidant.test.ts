@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CONFIDANTS, CONFIDANT_REPLIES, TURF, type PlayerName } from "../../src/engine/config";
 import { confidantReply } from "../../src/engine/confidant";
+import { checkConfide } from "../../src/engine/validate";
 import { playDay } from "../../src/engine/day";
 import { newGame } from "../../src/engine/resolve";
 import { createRun, exportRun, getRun, saveDay, yesterday } from "../../src/engine/store";
@@ -111,6 +112,12 @@ describe("confidant (rules 3.6)", () => {
     expect(r.confidant.filter((c) => c.player === "Council").every((c) => c.text === null)).toBe(true);
     expect(r.records.filter((x) => x.player === "Council" && x.step === "confide_before")[0]).toMatchObject({ source: "fallback", reason: "invalid" });
     expect(r.records.filter((x) => x.player === "Chief" && x.step === "confide_after")[0]).toMatchObject({ source: "fallback", reason: "refused" });
+  });
+
+  it("rejects moves sent to Sam as JSON, so the retry asks for plain words", () => {
+    expect(checkConfide({ text: '{"crime":{"Lowtown":false},"turf":{},"diary":"Day 15"}' })).toEqual(["text to Sam must be plain words, not JSON; your moves come in the next step"]);
+    expect(checkConfide({ text: "{not json, just a brace} we hold today" })).toEqual([]);
+    expect(checkConfide({ text: "We hold today." })).toEqual([]);
   });
 
   it("is saved with the day and exported", async () => {

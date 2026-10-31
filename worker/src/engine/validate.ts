@@ -37,10 +37,15 @@ export function checkOffers(a: unknown, gang: Gang, open: District[]): string[] 
   return e;
 }
 
+const looksJson = (t: string) => { try { JSON.parse(t); return true; } catch { return false; } };
+
 export function checkConfide(a: unknown): string[] {
   if (!isObj(a) || !("text" in a)) return ["answer must be {text: \"...\"} or {text: null}"];
   if (a.text === null) return [];
   if (typeof a.text !== "string") return ["text must be a string or null"];
+  // GPT Luna's gangs sent their step-5 moves to Sam as JSON (test run
+  // 004-germ, 31 Oct). A text to Sam is plain words; the retry says so.
+  if (/^\s*[{[]/.test(a.text) && looksJson(a.text)) return ["text to Sam must be plain words, not JSON; your moves come in the next step"];
   return words(a.text) > CONFIDANT_MAX_WORDS ? [`text must be at most ${CONFIDANT_MAX_WORDS} words`] : [];
 }
 

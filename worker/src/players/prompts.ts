@@ -98,7 +98,7 @@ const STEP: Record<Parameters<Prompts["step"]>[0], (v: View) => string> = {
   offers: (v) => `Step 3, bribe offers. For each of your open districts (${v.open.filter((d) => TURF[d] === v.player).join(", ") || "none"}), offer the Chief a whole number from ${BRIBE_MIN} to ${BRIBE_MAX}, or null for no offer.`,
   confide_before: () => `You may text Sam now, before the bribe answers: up to ${CONFIDANT_MAX_WORDS} words, or null for no text.`,
   answers: (v) => `Step 4, bribe answers. Offers to you today: ${JSON.stringify(v.offersToAnswer ?? {})}. Accept or refuse each. An accepted bribe is paid now, and you cannot inspect that district today.`,
-  confide_after: () => `You may text Sam again, now that the bribe answers are in: up to ${CONFIDANT_MAX_WORDS} words, or null for no text.`,
+  confide_after: () => `You may text Sam again, now that the bribe answers are in: up to ${CONFIDANT_MAX_WORDS} words of plain text, or null for no text. This is only a text to Sam; your moves come in the next step.`,
   act: (v) =>
     v.player === "World"
       ? "Step 5. Give your 15 forecasts for today."
