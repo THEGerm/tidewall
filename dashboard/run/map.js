@@ -247,6 +247,11 @@
         }
       }
     }
+    // a paper knock-out band round a closed shape, so a mark lifts off busy ground
+    halo(pts, w) {
+      const c = Array.from(pts); c.push(pts[0], pts[1], pts[2], pts[3]);
+      this.stroke(c, w, [0, 0, 0, 0], { ko: true, taper: false, ext: 0, wob: 0.15 });
+    }
     ell(cx, cy, rx, ry, ink, o) { this.poly(ellipse(cx, cy, rx, ry, 0, Math.max(10, Math.min(40, ((rx + ry) * 0.8) | 0))), ink, o); }
     dot(cx, cy, r, ink, ko) { this.push(ellipse(cx, cy, r, r, 0, 8), ink, !!ko); }
     // stepped halftone light: concentric overprinted rings, ink steps up toward the source
@@ -374,11 +379,11 @@
     civ: [0.04, 0.03, 0.1, 0.02], civRoof: [0.55, 0.04, 0.04, 0.14],
     green: [0.1, 0, 0.55, 0.62], greenD: [0.3, 0, 0.5, 0.65], wood: [0.25, 0.45, 0.6, 0],
     win: [0.66, 0.2, 0.1, 0.12], lit: [0, 0.14, 0.85, 0], lamp: [0, 0.03, 0.13, 0],
-    fam: [0.05, 0.9, 0.2, 0], salt: [0.12, 0, 0.05, 0.9],
+    fam: [0, 1, 0.2, 0], salt: [0.08, 0, 0, 1],
   };
   function palette(d) {
-    if (FAM.has(d)) return { wall: [0.04, 0.4, 0.3, 0], wall2: [0.02, 0.22, 0.38, 0], roof: [0.14, 0.82, 0.42, 0], roof2: [0.32, 0.6, 0.18, 0], ground: [0.02, 0.13, 0.22, 0] };
-    return { wall: [0.05, 0.03, 0.18, 0.3], wall2: [0.02, 0.02, 0.3, 0.12], roof: [0.2, 0, 0.04, 0.76], roof2: [0.42, 0, 0, 0.5], ground: [0.03, 0, 0.12, 0.16] };
+    if (FAM.has(d)) return { wall: [0.04, 0.4, 0.3, 0], wall2: [0.02, 0.22, 0.38, 0], roof: [0.14, 0.82, 0.42, 0], roof2: [0.32, 0.6, 0.18, 0], ground: [0.02, 0.3, 0.2, 0] };
+    return { wall: [0.05, 0.03, 0.18, 0.3], wall2: [0.02, 0.02, 0.3, 0.12], roof: [0.2, 0, 0.04, 0.76], roof2: [0.42, 0, 0, 0.5], ground: [0.03, 0, 0.08, 0.36] };
   }
   // a closed district prints in a cold lapis grey
   const GREY = (i) => { const l = i[0] + 0.55 * (i[1] + i[2] + i[3]); return l <= 0 ? i : [cl(0.16 + l * 0.62), i[1] * 0.1, i[2] * 0.1, i[3] * 0.1]; };
@@ -514,6 +519,9 @@
       const pl = palette(d);
       P.grey = closed(d) ? GREY : null;
       P.poly(qp(POLY[d], LAND), pl.ground, { wob: 0.2 });
+      // a border band in the holding gang's ink
+      const bd = inset(POLY[d], 4);
+      P.stroke(qp(bd.concat([bd[0], bd[1]]), LAND), 7, FAM.has(d) ? K.fam : K.salt, { taper: false, ext: 0, wob: 0.3 });
       if (closed(d)) {
         const [x0, y0] = POLY[d].reduce((m, p) => [Math.min(m[0], p[0]), Math.min(m[1], p[1])], [1e9, 1e9]);
         const [x1, y1] = POLY[d].reduce((m, p) => [Math.max(m[0], p[0]), Math.max(m[1], p[1])], [-1e9, -1e9]);
@@ -551,7 +559,8 @@
     for (let y = 4; y < 356; y += 8) add(450 + y + 16, "", () => box(P, 450 - wt, y, wt, 3.5, LAND + wallH, 2.5, K.wall, { lw: 0.35 }));
     for (let x = 4; x < 356; x += 8) add(450 + x + 16, "", () => box(P, x, 450 - wt, 3.5, wt, LAND + wallH, 2.5, K.wall, { lw: 0.35 }));
 
-    const F = { P, r, er, T, add, closed };
+    const ek = lay.narrow ? 1.85 : 1.1; // event marks grow to read at the fitted view
+    const F = { P, r, er, T, add, closed, ek, narrow: lay.narrow };
     prison(F, st);
     council(F);
     oldQuarter(F);
@@ -564,19 +573,19 @@
 
     // the ship, the banners and the strike live in the sorted pass too
     const ship = !!(st.nature && st.nature.ship) || st.events.some((e) => e.kind === "ship");
-    if (ship) add(860, "", () => { const i = P.ops.length, c = q(372, 372, 0); cargoShip(P, 372, 372, er); grow(P, i, c[0], c[1], 1.3); });
+    if (ship) add(860, "", () => { const i = P.ops.length, c = q(372, 372, 0); cargoShip(P, 372, 372, er); grow(P, i, c[0], c[1], lay.narrow ? 1.6 : 1.3); });
     const strike = !!(st.nature && st.nature.strike) || st.events.some((e) => e.kind === "strike");
     if (strike) placards(F);
     const turf = st.turf || (st.events.find((e) => e.kind === "turf") || {}).detail || null;
     if (turf) add(400, "", () => {
-      for (const [x, y, g] of [[198, 184, "Families"], [184, 198, "Saltdogs"]]) { const i = P.ops.length, c = q(x, y, LAND); banner(P, x, y, g, turf[g]); grow(P, i, c[0], c[1], 1.5); }
+      for (const [x, y, g] of [[198, 184, "Families"], [184, 198, "Saltdogs"]]) { const i = P.ops.length, c = q(x, y, LAND); banner(P, x, y, g, turf[g]); grow(P, i, c[0], c[1], lay.narrow ? 1.9 : 1.5); }
     });
 
     T.sort((a, b) => a[0] - b[0]);
     for (const [, d, f] of T) { P.grey = d && closed(d) ? GREY : null; f(); }
     P.grey = null;
 
-    overlays(F, st, storm, lay.narrow ? 1.45 : 1);
+    overlays(F, st, storm, ek);
     labels(P, st, closed, ts);
     cartouche(P, st, lay);
     return P.ops;
@@ -589,6 +598,16 @@
       if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
     }
     return c;
+  }
+  // an orthogonal polygon pulled inward by d
+  function inset(poly, d) {
+    const n = poly.length, nr = (a, b) => {
+      let nx = -(b[1] - a[1]), ny = b[0] - a[0];
+      const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+      if (!inPoly(poly, (a[0] + b[0]) / 2 + nx * 0.5, (a[1] + b[1]) / 2 + ny * 0.5)) { nx = -nx; ny = -ny; }
+      return [nx, ny];
+    };
+    return poly.map((b, i) => { const a = poly[(i + n - 1) % n], c = poly[(i + 1) % n], n1 = nr(a, b), n2 = nr(b, c); return [b[0] + d * (n1[0] + n2[0]), b[1] + d * (n1[1] + n2[1])]; });
   }
   function districtAt(x, y) { for (const d of DISTRICTS) if (inPoly(POLY[d], x, y)) return d; return null; }
 
@@ -616,33 +635,38 @@
   }
 
   function prison(F, st) {
-    const { P, add } = F, n = Math.max(0, Math.min(40, Math.round(st.prison || 0)));
+    const { P, add } = F, n = Math.max(0, Math.min(40, Math.round(Number(st.prison) || 0)));
     add(16, "", () => box(P, 8, 8, 94, 3, LAND, 7, K.stone, { lw: 0.4 }));
     add(16, "", () => box(P, 8, 8, 3, 94, LAND, 7, K.stone, { lw: 0.4 }));
-    add(70, "", () => {
-      // the cell block: 40 windows, one per place, lit Ochre when filled
-      const x = 18, y = 16, dx = 60, dy = 46, z0 = LAND, h = 30;
-      box(P, x, y, dx, dy, z0, h, K.civ, { lw: 0.8, top: [0.3, 0.05, 0.06, 0.06] });
-      let k = 0;
-      for (let row = 0; row < 2; row++) for (let i = 0; i < 10; i++, k++) {
-        const u = x + 4 + i * 5.4, v = z0 + 7 + row * 11;
-        P.poly(qp([[u, y + dy, v], [u + 2.6, y + dy, v], [u + 2.6, y + dy, v + 5], [u, y + dy, v + 5]]), k < n ? K.lit : K.win, { wob: 0.04 });
-        P.stroke(qp([[u + 1.3, y + dy, v], [u + 1.3, y + dy, v + 5]]), 0.35, LINE, { taper: false, wob: 0 });
+    // on a phone the block is drawn bigger, and late so its neighbours do not hide it
+    add(F.narrow ? 176 : 70, "", () => {
+      const x = 16, y = 16, dx = 78, dy = 64, z0 = LAND, h = 48, i0 = P.ops.length;
+      prism(P, ngon(12, 12, 6, 8), LAND, LAND + 70, K.stone, { lw: 0.6 }); // watch tower behind
+      prism(P, ngon(12, 12, 8, 8), LAND + 70, LAND + 74, K.stoneD, { lw: 0.5 });
+      // the cell block: 40 windows on the front face, 10 across, 4 high,
+      // filled in reading order, lit solid Ochre for each prisoner
+      box(P, x, y, dx, dy, z0, h, [0.42, 0.06, 0.12, 0.12], { lw: 0.9, top: [0.6, 0.04, 0.06, 0.12] });
+      const pu = (dx - 8) / 10, ww = pu * 0.7, wh = 7.4;
+      for (let row = 0; row < 4; row++) for (let i = 0; i < 10; i++) {
+        const k = row * 10 + i, u = x + 4 + i * pu + (pu - ww) / 2, v = z0 + h - 12 - row * 10.6;
+        const pts = qp([[u, y + dy, v], [u + ww, y + dy, v], [u + ww, y + dy, v + wh], [u, y + dy, v + wh]]);
+        P.poly(pts, k < n ? [0, 0.12, 1, 0] : [1, 0, 0, 0.25], { wob: 0.03 });
+        P.stroke(qp([[u + ww / 2, y + dy, v], [u + ww / 2, y + dy, v + wh]]), 0.35, LINE, { taper: false, wob: 0 });
       }
-      for (let row = 0; row < 2; row++) for (let i = 0; i < 10; i++, k++) {
-        const u = y + 3 + i * 4.2, v = z0 + 7 + row * 11;
-        P.poly(qp([[x + dx, u, v], [x + dx, u + 2.2, v], [x + dx, u + 2.2, v + 5], [x + dx, u, v + 5]]), k < n ? K.lit : K.win, { wob: 0.04 });
-        P.stroke(qp([[x + dx, u + 1.1, v], [x + dx, u + 1.1, v + 5]]), 0.35, LINE, { taper: false, wob: 0 });
-      }
+      // a barred door on the side
+      P.poly(qp([[x + dx, y + dy / 2 - 5, z0], [x + dx, y + dy / 2 + 5, z0], [x + dx, y + dy / 2 + 5, z0 + 14], [x + dx, y + dy / 2 - 5, z0 + 14]]), [1, 0, 0, 0.25], { line: 0.5 });
+      // the count, on a Lapis plate standing on the roof
+      const [sx, sy] = q(x + dx / 2, y + dy / 2, z0 + h), pw = 30, ph = 17, py = sy - 22;
+      P.stroke([sx - 14, sy, sx - 14, py], 1.1, LINE, { taper: false }); P.stroke([sx + 14, sy, sx + 14, py], 1.1, LINE, { taper: false });
+      const plate = [sx - pw, py - ph, sx + pw, py - ph, sx + pw, py + ph, sx - pw, py + ph];
+      P.halo(plate, 3);
+      P.poly(plate, [1, 0, 0, 0.15], { line: 0.9, wob: 0.15 });
+      P.text("PRISON", sx, py - 5, 9, [0, 0, 0, 0], { bold: true });
+      P.text(n + " / 40", sx, py + 12, 17, [0, 0.12, 1, 0], { bold: true });
+      if (F.narrow) { const c = q(x + dx, y + dy, z0); grow(P, i0, c[0], c[1], 1.6); }
     });
     add(150, "", () => box(P, 8, 102, 94, 3, LAND, 7, K.stone, { lw: 0.4 }));
     add(150, "", () => box(P, 102, 8, 3, 97, LAND, 7, K.stone, { lw: 0.4 }));
-    add(112, "", () => { // the watch tower
-      prism(P, ngon(92, 22, 7, 8), LAND, LAND + 46, K.stone, { lw: 0.6 });
-      prism(P, ngon(92, 22, 9, 8), LAND + 46, LAND + 50, K.stoneD, { lw: 0.5 });
-      const [sx, sy] = q(92, 22, LAND + 56);
-      P.poly([sx - 9, sy + 2, sx, sy - 8, sx + 9, sy + 2], K.civRoof, { line: 0.5 });
-    });
   }
 
   function council(F) {
@@ -825,19 +849,20 @@
   }
 
   function placards(F) {
-    const { P, er, add } = F;
+    const { P, er, add } = F, gk = F.narrow ? 1.8 : 1.45, red = [0, 1, 0.22, 0];
     const spots = [[140, 198], [154, 199], [168, 198], [182, 199], [198, 140], [199, 154], [198, 168], [199, 182]];
     spots.forEach(([x, y]) => add(x + y + 1, "", () => {
       const s = q(x, y, LAND), i0 = P.ops.length;
-      P.poly([s[0] - 1.4, s[1], s[0] + 1.4, s[1], s[0] + 1, s[1] - 4.5, s[0] - 1, s[1] - 4.5], [0.5, 0.1, 0.1, 0.2], { wob: 0 });
-      P.dot(s[0], s[1] - 5.8, 1.2, [0.1, 0.35, 0.45, 0]);
+      P.poly([s[0] - 1.6, s[1], s[0] + 1.6, s[1], s[0] + 1.2, s[1] - 4.8, s[0] - 1.2, s[1] - 4.8], [0.9, 0.1, 0.1, 0.2], { wob: 0 });
+      P.dot(s[0], s[1] - 6, 1.3, [0.2, 0.45, 0.55, 0]);
       const lean = (er() - 0.5) * 3;
-      P.stroke([s[0] + 1.2, s[1] - 3, s[0] + 1.2 + lean, s[1] - 15], 0.5, K.wood, { taper: false });
-      const px = s[0] + 1.2 + lean, py = s[1] - 15;
-      P.poly([px - 5, py - 6, px + 5, py - 6.5, px + 5, py + 0.5, px - 5, py + 1], [0, 0, 0.04, 0], { line: 0.55, li: [0.1, 0.9, 0.2, 0] });
-      P.stroke([px - 3, py - 3.5, px + 3, py - 3.7], 0.6, [0.1, 0.9, 0.2, 0], { taper: false });
-      P.stroke([px - 3, py - 1.2, px + 1.5, py - 1.3], 0.6, [0.1, 0.9, 0.2, 0], { taper: false });
-      grow(P, i0, s[0], s[1], 1.45);
+      P.stroke([s[0] + 1.2, s[1] - 3, s[0] + 1.2 + lean, s[1] - 15], 0.8, [0.5, 0.5, 0.6, 0], { taper: false });
+      const px = s[0] + 1.2 + lean, py = s[1] - 15, pl = [px - 6, py - 7, px + 6, py - 7.5, px + 6, py + 0.5, px - 6, py + 1];
+      P.halo(pl, 2);
+      P.poly(pl, red, { line: 0.7 });
+      P.stroke([px - 3.6, py - 4.4, px + 3.6, py - 4.6], 0.9, [0, 0, 0, 0], { ko: true, taper: false });
+      P.stroke([px - 3.6, py - 1.8, px + 1.8, py - 1.9], 0.9, [0, 0, 0, 0], { ko: true, taper: false });
+      grow(P, i0, s[0], s[1], gk);
     }));
   }
 
@@ -846,16 +871,20 @@
     const s = q(x, y, LAND), side = gang === "Families" ? 1 : -1, ink = gang === "Families" ? K.fam : K.salt;
     const torn = move === "encroach";
     const lean = torn ? side * 7 : 0, top = [s[0] + lean, s[1] - 40];
-    P.stroke([s[0], s[1], top[0], top[1]], 1.1, K.wood, { taper: false });
+    P.stroke([s[0], s[1], top[0], top[1]], 2.4, [0, 0, 0, 0], { ko: true, taper: false });
+    P.stroke([s[0], s[1], top[0], top[1]], 1.4, [0.5, 0.5, 0.6, 0], { taper: false });
     P.dot(top[0], top[1] - 1, 1.4, [0, 0.1, 0.9, 0]);
     const fy = torn ? 14 : 2, fx = top[0] + (torn ? lean * (fy / 40) * -1 : 0), y0 = top[1] + fy;
     const w = 22 * side, h = 13;
     if (!torn) {
-      P.poly(spline([fx, y0, fx + w * 0.5, y0 - 2, fx + w, y0 + 1, fx + w * 0.98, y0 + h * 0.5, fx + w, y0 + h + 1, fx + w * 0.5, y0 + h - 1, fx, y0 + h], false, 3), ink, { line: 0.55 });
+      const fl = spline([fx, y0, fx + w * 0.5, y0 - 2, fx + w, y0 + 1, fx + w * 0.98, y0 + h * 0.5, fx + w, y0 + h + 1, fx + w * 0.5, y0 + h - 1, fx, y0 + h], false, 3);
+      P.halo(fl, 2.4);
+      P.poly(fl, ink, { line: 0.8 });
     } else {
       // ragged fly edge and a hole, shreds below
       const pts = [fx, y0 + 2, fx + w * 0.45, y0 + 3, fx + w * 0.62, y0 + 1, fx + w * 0.55, y0 + 4.5, fx + w * 0.78, y0 + 4, fx + w * 0.6, y0 + 7, fx + w * 0.72, y0 + 9.5, fx + w * 0.42, y0 + 10, fx + w * 0.5, y0 + 13, fx, y0 + h + 1];
-      P.poly(pts, ink, { line: 0.55, wob: 0.2 });
+      P.halo(pts, 2.4);
+      P.poly(pts, ink, { line: 0.8, wob: 0.2 });
       P.poly([fx + w * 0.22, y0 + 5, fx + w * 0.32, y0 + 6, fx + w * 0.26, y0 + 8.5], [0, 0, 0, 0], { ko: true, wob: 0 });
       for (let i = 0; i < 3; i++) { const bx = fx + w * (0.6 + i * 0.12), by = y0 + 16 + i * 5; P.poly([bx, by, bx + 3 * side, by + 1, bx + 1 * side, by + 3], ink, { wob: 0 }); }
     }
@@ -881,59 +910,80 @@
 
   // Crime: a red signpost arrow lettered CRIME, pointing at the spot on the ground (Germ, 30 Oct: no sun)
   function crimeMark(P, sx, sy) {
-    P.rings(sx, sy, 5, 30, 4, [0, 0.16, 0.04, 0], 0.5); // red glow on the ground
-    const by = sy - 30, w = 40, h = 13;
-    P.poly([sx - w / 2, by - h, sx + w / 2, by - h, sx + w / 2, by, sx + 6, by, sx, by + 9, sx - 6, by, sx - w / 2, by], [0.05, 0.95, 0.2, 0], { wob: 0.25, line: 0.7 });
-    P.text("CRIME", sx, by - 3.2, 8.5, [0, 0, 0, 0], { bold: true });
-    P.dot(sx, sy, 2.4, [0.6, 0.9, 0, 0]);
+    P.rings(sx, sy, 5, 30, 4, [0, 0.3, 0.06, 0], 0.5); // red glow on the ground
+    const by = sy - 32, w = 46, h = 15;
+    const sign = [sx - w / 2, by - h, sx + w / 2, by - h, sx + w / 2, by, sx + 7, by, sx, by + 10, sx - 7, by, sx - w / 2, by];
+    P.halo(sign, 3.2);
+    P.poly(sign, [0, 1, 0.22, 0], { wob: 0.25, line: 1 });
+    P.text("CRIME", sx, by - 3.6, 10, [0, 0, 0, 0], { bold: true });
+    P.dot(sx, sy, 3.6, [0, 0, 0, 0], true);
+    P.dot(sx, sy, 2.6, [0.7, 1, 0, 0]);
   }
   function smoke(P, sx, sy, n, s, dark) {
     for (let i = 0; i < n; i++) {
       const rr = s * (1 + i * 0.35);
-      P.ell(sx - i * s * 0.9, sy - i * s * 1.25, rr, rr * 0.75, dark ? [0.32, 0.12, 0.05, 0] : [0.2, 0.06, 0.03, 0], { ko: false, wob: 0.6, line: i < 2 ? 0.35 : 0, li: [0.4, 0, 0, 0] });
+      P.ell(sx - i * s * 0.9, sy - i * s * 1.25, rr, rr * 0.75, dark ? [0.55, 0.18, 0.06, 0] : [0.3, 0.08, 0.03, 0], { ko: false, wob: 0.6, line: i < 2 ? 0.5 : 0, li: [0.7, 0, 0, 0] });
     }
   }
   function flame(P, x, y, s, seed) {
     const f = Math.sin(seed) * 0.15;
-    const fl = (sc, ink) => {
+    const fl = (sc, ink, edge) => {
       const h = s * sc * (1 + f), w = s * sc * 0.45;
-      P.poly(spline([x - w, y, x - w * 0.6, y - h * 0.5, x + f * w * 2, y - h, x + w * 0.6, y - h * 0.45, x + w, y], true, 3), ink, { ko: false, wob: 0 });
+      const pts = spline([x - w, y, x - w * 0.6, y - h * 0.5, x + f * w * 2, y - h, x + w * 0.6, y - h * 0.45, x + w, y], true, 3);
+      if (edge) P.halo(pts, 2.2);
+      P.poly(pts, ink, { wob: 0, line: edge ? 0.6 : 0 });
     };
-    fl(1, [0, 0.8, 0.6, 0]); fl(0.7, [0, 0.35, 0.9, 0]); fl(0.4, [0, 0, 0.6, 0]);
+    fl(1, [0, 1, 0.75, 0], true); fl(0.7, [0, 0.4, 1, 0]); fl(0.4, [0, 0, 1, 0]);
   }
   function lampRings(P, sx, sy, empty) {
     if (empty) {
-      for (let i = 0; i < 3; i++) { const rr = 11 + i * 10; P.outline(ellipse(sx, sy, rr, rr * 0.5, 0, 28), 1.1, [0.95, 0, 0, 0]); }
-    } else P.rings(sx, sy, 7, 38, 4, [0.14, 0, 0, 0.03], 0.5);
-    P.stroke([sx, sy, sx, sy - 16], 1, LINE, { taper: false });
-    P.dot(sx, sy - 17, 2.6, empty ? [0, 0, 0, 0] : [0.7, 0, 0, 0.3], empty);
-    if (empty) P.outline(ellipse(sx, sy - 17, 2.7, 2.7, 0, 10), 0.7, LINE);
+      for (let i = 0; i < 3; i++) {
+        const rr = 11 + i * 10, e = ellipse(sx, sy, rr, rr * 0.5, 0, 28);
+        P.halo(e, 4.4);
+        P.outline(e, 2, [1, 0, 0, 0.1]);
+      }
+    } else P.rings(sx, sy, 7, 38, 4, [0.26, 0, 0, 0.05], 0.5);
+    P.stroke([sx, sy, sx, sy - 18], 3.4, [0, 0, 0, 0], { ko: true, taper: false });
+    P.stroke([sx, sy, sx, sy - 18], 1.6, LINE, { taper: false });
+    P.dot(sx, sy - 19, 5.2, [0, 0, 0, 0], true);
+    P.dot(sx, sy - 19, 3.8, empty ? [0, 0, 0, 0] : [1, 0, 0.1, 0.2], empty);
+    if (empty) P.outline(ellipse(sx, sy - 19, 3.8, 3.8, 0, 12), 1, LINE);
   }
   function wagon(P, x, y, tx, ty) {
-    const a = Math.atan2(ty - y, tx - x);
-    prism(P, rot(x, y, a, [[-10, -5], [9, -5], [9, 5], [-10, 5]]), LAND + 3, LAND + 14, [0.85, 0.05, 0.05, 0.12], { lw: 0.5, top: [0.6, 0, 0, 0.1] });
-    for (const [u, v] of [[-6.5, 5.2], [5.5, 5.2], [-6.5, -5.2], [5.5, -5.2]]) { const p = rot(x, y, a, [[u, v]])[0], s = q(p[0], p[1], LAND + 3); P.dot(s[0], s[1], 2.6, [0.4, 0.5, 0.6, 0]); }
+    const a = Math.atan2(ty - y, tx - x), c0 = q(x, y, LAND + 8);
+    P.ell(c0[0], c0[1], 17, 11, [0, 0, 0, 0], { wob: 0.3 }); // paper plate so it reads over roofs
+    prism(P, rot(x, y, a, [[-10, -5], [9, -5], [9, 5], [-10, 5]]), LAND + 3, LAND + 14, [1, 0.05, 0.05, 0.15], { lw: 0.8, top: [0.75, 0, 0, 0.1] });
+    for (const [u, v] of [[-6.5, 5.2], [5.5, 5.2], [-6.5, -5.2], [5.5, -5.2]]) { const p = rot(x, y, a, [[u, v]])[0], s = q(p[0], p[1], LAND + 3); P.dot(s[0], s[1], 2.8, [0.9, 0.6, 0.6, 0]); }
     const s = q(x, y, LAND + 17);
-    P.rings(s[0], s[1], 2, 10, 3, [0.15, 0, 0, 0.08]);
-    P.dot(s[0], s[1], 2.2, [0.2, 0, 0, 0.95]);
+    P.rings(s[0], s[1], 2, 11, 3, [0.25, 0, 0, 0.12]);
+    P.dot(s[0], s[1], 3, [0, 1, 0.2, 0]);
     // speed lines behind it
     const b = rot(x, y, a, [[-14, -3], [-23, -3], [-14, 3], [-26, 3]]).map((p) => q(p[0], p[1], LAND + 6));
-    P.stroke([b[0][0], b[0][1], b[1][0], b[1][1]], 0.4, LINE, { taper: false });
-    P.stroke([b[2][0], b[2][1], b[3][0], b[3][1]], 0.4, LINE, { taper: false });
+    P.stroke([b[0][0], b[0][1], b[1][0], b[1][1]], 0.8, LINE, { taper: false });
+    P.stroke([b[2][0], b[2][1], b[3][0], b[3][1]], 0.8, LINE, { taper: false });
   }
   function coins(P, sx, sy, n, refused) {
     for (let i = 0; i < n; i++) {
-      const y = sy - i * 3.6;
-      P.poly(ellipse(sx, y + 1.8, 7.5, 4.5, 0, 18), [0.15, 0.3, 0.8, 0], { wob: 0.1, line: 0.5 });
-      P.poly(ellipse(sx, y, 7.5, 4.5, 0, 18), [0, 0.04, 0.95, 0], { wob: 0.1, line: 0.6 });
+      const y = sy - i * 4.2;
+      P.poly(ellipse(sx, y + 1.2, 11.4, 7.6, 0, 20), [0, 0, 0, 0], { wob: 0.1 });
+      P.poly(ellipse(sx, y + 2.2, 9, 5.4, 0, 18), [0.25, 0.35, 1, 0], { wob: 0.1, line: 0.8 });
+      P.poly(ellipse(sx, y, 9, 5.4, 0, 18), [0, 0.1, 1, 0], { wob: 0.1, line: 0.9 });
     }
-    P.text("$", sx, sy - (n - 1) * 3.6 + 2.6, 7, [0.2, 0.4, 0.6, 0], { bold: true });
-    if (refused) { P.stroke([sx - 9, sy - 8, sx + 9, sy + 4], 1.4, [0.05, 0.9, 0.2, 0]); P.stroke([sx + 9, sy - 8, sx - 9, sy + 4], 1.4, [0.05, 0.9, 0.2, 0]); }
+    P.text("$", sx, sy - (n - 1) * 4.2 + 3.2, 9, [0.5, 0.6, 0.3, 0], { bold: true });
+    if (refused) for (const d of [[-11, -10, 11, 5], [11, -10, -11, 5]]) {
+      P.stroke([sx + d[0], sy + d[1], sx + d[2], sy + d[3]], 4.2, [0, 0, 0, 0], { ko: true, taper: false });
+      P.stroke([sx + d[0], sy + d[1], sx + d[2], sy + d[3]], 2.4, [0, 1, 0.22, 0]);
+    }
   }
   function stamp(P, sx, sy, caught) {
-    P.poly([sx - 5, sy - 6, sx + 5, sy - 6, sx + 5, sy + 6, sx - 5, sy + 6], [0, 0, 0.05, 0], { line: 0.6, wob: 0.2 });
-    for (let i = 0; i < 3; i++) P.stroke([sx - 3, sy - 3 + i * 3, sx + 3, sy - 3 + i * 3], 0.4, LINE, { taper: false });
-    if (caught) P.outline(ellipse(sx + 2, sy + 2, 4.5, 4.5, 0, 14), 0.9, [0.05, 0.9, 0.2, 0]);
+    const pl = [sx - 8, sy - 10, sx + 8, sy - 10, sx + 8, sy + 10, sx - 8, sy + 10];
+    P.halo(pl, 3);
+    P.poly(pl, [0, 0, 0.06, 0], { line: 1, wob: 0.2 });
+    for (let i = 0; i < 4; i++) P.stroke([sx - 5, sy - 6 + i * 3.6, sx + 5, sy - 6 + i * 3.6], 0.8, [1, 0, 0, 0], { taper: false });
+    if (caught) {
+      P.outline(ellipse(sx + 3, sy + 3, 7, 7, 0, 16), 2.4, [0, 1, 0.22, 0]);
+      P.text("X", sx + 3, sy + 6.6, 10, [0, 1, 0.22, 0], { bold: true });
+    } else P.stroke([sx - 1, sy + 4, sx + 2.5, sy + 8, sx + 9, sy - 2], 2.2, [0, 0, 0, 1], { taper: false });
   }
 
   function overlays(F, st, storm, ek) {
@@ -954,8 +1004,8 @@
       if (e.kind === "fire") {
         const [x, y] = at(d), [sx, sy] = q(x, y, LAND + 14);
         const i0 = P.ops.length;
-        P.rings(sx, sy, 10, 66, 6, [0, 0.12, 0.05, 0], 0.62);
-        P.rings(sx, sy, 5, 36, 4, [0, 0, 0.18, 0], 0.62);
+        P.rings(sx, sy, 10, 66, 6, [0, 0.2, 0.06, 0], 0.62);
+        P.rings(sx, sy, 5, 36, 4, [0, 0, 0.3, 0], 0.62);
         G(i0, sx, sy);
         e._p = [sx, sy];
       } else if (e.kind === "arrest" || e.kind === "fine_no_place" || e.kind === "inspection_empty") {
@@ -1004,12 +1054,13 @@
           pts.push(cx + Math.cos(a) * 62 * rr, cy + Math.sin(a) * 24 * rr);
         }
         pts.push(cx + 62, cy + 6, cx - 62, cy + 6);
-        P.poly(pts, [0.3, 0, 0, 0.06], { line: 0.8, wob: 0.6 });
-        P.stroke([cx - 40, cy - 6, cx + 30, cy - 9], 0.6, [0.6, 0, 0, 0]);
+        P.halo(pts, 3);
+        P.poly(pts, [0.6, 0, 0, 0.12], { line: 1, wob: 0.6 });
+        P.stroke([cx - 40, cy - 6, cx + 30, cy - 9], 1, [1, 0, 0, 0]);
       }
       for (let i = 0; i < 360; i++) {
         const x = c[0] - 130 + er() * 260, y = c[1] + 10 + er() * 250, l = 7 + er() * 7;
-        P.stroke([x, y, x - l * 0.35, y + l], 0.55, [0.85, 0, 0, 0.1], { taper: true, wob: 0.1, ext: 0 });
+        P.stroke([x, y, x - l * 0.35, y + l], 0.8, [1, 0, 0, 0.15], { taper: true, wob: 0.1, ext: 0 });
       }
     }
   }
@@ -1019,41 +1070,49 @@
       const [[lx, ly], [ex, ey]] = LABEL[d];
       const [sx, sy] = q(lx, ly, 0), [tx, ty] = q(ex, ey, LAND - 4);
       const txt = d + (closed(d) ? ", closed" : ""), size = 11 * ts;
-      const w = textW(txt, (closed(d) ? "italic " : "") + size + "px " + SERIF) + 14 * ts, h = size * 1.5;
+      const h = size * 1.5, tw = h, w = textW(txt, (closed(d) ? "italic " : "") + size + "px " + SERIF) + 10 * ts + tw;
       P.stroke([tx, ty, sx, sy], 0.6, LINE, { taper: false });
       P.poly([sx - w / 2, sy - h / 2, sx + w / 2, sy - h / 2, sx + w / 2, sy + h / 2, sx - w / 2, sy + h / 2], closed(d) ? [0.12, 0, 0, 0] : [0, 0, 0, 0], { line: 0.7, wob: 0.15 });
-      P.dot(sx - w / 2 + 5 * ts, sy, 2 * ts, FAM.has(d) ? K.fam : K.salt);
-      P.text(txt, sx + 3.5 * ts, sy + size * 0.34, size, LINE, { italic: closed(d) });
+      // the holding gang: a tab in its ink with F or S
+      P.poly([sx - w / 2, sy - h / 2, sx - w / 2 + tw, sy - h / 2, sx - w / 2 + tw, sy + h / 2, sx - w / 2, sy + h / 2], FAM.has(d) ? K.fam : K.salt, { wob: 0.1 });
+      P.text(FAM.has(d) ? "F" : "S", sx - w / 2 + tw / 2, sy + size * 0.36, size, [0, 0, 0, 0], { bold: true });
+      P.text(txt, sx + tw / 2, sy + size * 0.34, size, LINE, { italic: closed(d) });
     }
   }
 
-  // the corner card: Day N, prison and treasury as small printed gauges
+  // the corner card: Day N, prison and treasury as small printed gauges, and the gangs
   function cartouche(P, st, lay) {
     const s = lay.cs, X = lay.cx, Y = lay.cy, wide = !lay.narrow;
-    const W = wide ? 300 : 540, H = wide ? 196 : 150;
+    const W = wide ? 300 : 540, H = wide ? 240 : 154;
     const T = (x, y) => [X + x * s, Y + y * s];
     const R = (x, y, w, h) => { const a = T(x, y), b = T(x + w, y + h); return [a[0], a[1], b[0], a[1], b[0], b[1], a[0], b[1]]; };
     P.poly(R(0, 0, W, H), [0, 0, 0.03, 0], { wob: 0.3 });
     P.outline(R(0, 0, W, H), 1.6 * s, LINE);
     P.outline(R(5, 5, W - 10, H - 10), 0.6 * s, LINE);
     const tx = (str, x, y, size, ink, o) => { const p = T(x, y); P.text(str, p[0], p[1], size * s, ink || LINE, o); };
-    const gx = wide ? 22 : 230, gy = wide ? 92 : 28, gw = wide ? 256 : 286;
+    const gx = wide ? 22 : 230, gy = wide ? 92 : 26, gw = wide ? 256 : 286;
     tx("TIDEWALL", 22, 32, 12, LINE, { align: "left" });
-    tx("Day " + (st.day || 0), 22, wide ? 70 : 84, 34, [0.05, 0.85, 0.25, 0], { align: "left", italic: true });
-    tx(st.live ? "Live: public facts only" : "After the run: secrets shown", 22, wide ? 182 : 116, 10, LINE, { align: "left", italic: true });
-    // prison: 40 places, filled in Lapis
-    const n = Math.max(0, Math.min(40, Math.round(st.prison || 0)));
+    tx("Day " + (st.day || 0), 22, wide ? 70 : 76, 34, [0.05, 0.85, 0.25, 0], { align: "left", italic: true });
+    tx(st.live ? "Live: public facts only" : "After the run: secrets shown", 22, wide ? 226 : 104, 10, LINE, { align: "left", italic: true });
+    // the gangs and their inks
+    const ly = wide ? 206 : 136;
+    for (const [lx, g, ink] of [[22, "Families", K.fam], [wide ? 140 : 120, "Saltdogs", K.salt]]) {
+      P.poly(R(lx, ly - 10, 18, 12), ink, { wob: 0.1, line: 0.5 * s });
+      tx(g, lx + 24, ly, 12, LINE, { align: "left", bold: true });
+    }
+    // prison: 40 places in 4 rows of 10, lit Ochre like the cell block windows
+    const n = Math.max(0, Math.min(40, Math.round(Number(st.prison) || 0)));
     tx("Prison", gx, gy, 11, LINE, { align: "left" });
-    tx(n + " of 40", gx + gw, gy, 11, LINE, { align: "right" });
-    const cw = gw / 20;
+    tx(n + " of 40", gx + gw, gy, 12, LINE, { align: "right", bold: true });
+    const cw = gw / 10, ch = 9;
     for (let i = 0; i < 40; i++) {
-      const c = i % 20, rw = (i / 20) | 0, b = R(gx + c * cw + 0.8, gy + 6 + rw * (cw + 1), cw - 1.6, cw - 1.6);
-      P.poly(b, i < n ? [0.95, 0, 0, 0.05] : [0, 0, 0.04, 0], { wob: 0.15 });
-      if (i >= n) P.outline(b, 0.45 * s, LINE);
+      const c = i % 10, rw = (i / 10) | 0, b = R(gx + c * cw + 1, gy + 6 + rw * (ch + 1.5), cw - 2, ch);
+      P.poly(b, i < n ? [0, 0.12, 1, 0] : [0, 0, 0.03, 0], { wob: 0.1 });
+      P.outline(b, 0.5 * s, LINE);
     }
     // treasury: an Ochre bar against a scale
     const t = Math.max(0, st.treasury || 0), top = Math.max(1000, Math.ceil(t / 500) * 500);
-    const ty = gy + 6 + 2 * (cw + 1) + 22;
+    const ty = gy + 6 + 4 * (ch + 1.5) + 18;
     tx("Treasury", gx, ty, 11, LINE, { align: "left" });
     tx(String(Math.round(st.treasury || 0)), gx + gw, ty, 11, LINE, { align: "right" });
     P.poly(R(gx, ty + 6, gw, 10), [0, 0, 0.03, 0], { wob: 0.1 });
