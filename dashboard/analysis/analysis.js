@@ -2,7 +2,8 @@
 // theory results and its raw logs. A finished run reads its export; a live
 // run shows only what the public API gives while it plays. The figures come
 // from run/theory/metrics.js and are drawn by run/theory/view.js, the same
-// code as the per-run theory page.
+// code as the per-run theory page. "Across runs" (?view=across) puts the
+// finished runs side by side; it lives in across.js and loads on first use.
 
 import { forecastPairs, panel, scoredOn } from "../run/theory/metrics.js";
 import { SECTIONS, get, load, render } from "../run/theory/view.js";
@@ -23,6 +24,8 @@ let filter = { day: "", player: "" };
 let page = 0;
 let ticket = 0; // the latest load; older ones drop their answer
 let csvUrl = null;
+let view = params.get("view") === "across" ? "across" : "run";
+let wanted = null; // the run to open when the one-run view is first shown
 
 function h(tag, attrs = {}, ...kids) {
   const el = document.createElement(tag);
@@ -235,8 +238,10 @@ function renderRun() {
   const fb = answers.filter((a) => a.source === "fallback").length;
   const retries = answers.filter((a) => a.source === "retry").length;
   const fact = (label, value, sub) => h("article", {}, h("h3", {}, label), h("p", { class: "big" }, value), sub ? h("p", { class: "muted small" }, sub) : null);
-  $("title").textContent = run.id;
-  document.title = `${run.id} analysis · Tidewall`;
+  if (view === "run") {
+    $("title").textContent = run.id;
+    document.title = `${run.id} analysis · Tidewall`;
+  }
   $("facts").replaceChildren(
     fact("Seating", h("span", { class: "seats" }, ["Government", "Criminals", "World"].map((s) => h("span", {}, `${s}: `, h("strong", {}, FAMILY[run.seating?.[s]] || run.seating?.[s] || "?")))), isBot(run) ? "Bot run: equilibrium bots, no models" : isTest(run) ? "Test run" : `Study run, triple ${run.triple}, rotation ${run.rotation}`),
     fact("Status", STATUS[run.status] || run.status, run.live ? "Public data only until it ends" : run.seed ? `Seed ${run.seed}` : null),
@@ -264,9 +269,38 @@ function renderRun() {
 
 function setUrl() {
   const u = new URL(location.href);
-  if (current) u.searchParams.set("id", current.run.id);
-  u.searchParams.set("tab", tab);
+  if (view === "across") {
+    u.searchParams.set("view", "across");
+    u.searchParams.delete("tab");
+  } else {
+    u.searchParams.delete("view");
+    if (current) u.searchParams.set("id", current.run.id);
+    u.searchParams.set("tab", tab);
+  }
   history.replaceState(null, "", u);
+}
+
+const LEDE = {
+  run: "Pick a run to see its results and its raw logs. A finished run shows everything; a live run shows what is public so far.",
+  across: "The finished runs side by side: each measure by the model family that held the seat, one value per run.",
+};
+
+async function showView(v) {
+  view = v;
+  $("v-run").setAttribute("aria-pressed", String(v === "run"));
+  $("v-across").setAttribute("aria-pressed", String(v === "across"));
+  $("lede").textContent = LEDE[v];
+  $("run-pick").hidden = v !== "run";
+  $("main").hidden = v !== "run" || !current;
+  $("across").hidden = v !== "across";
+  $("title").textContent = v === "across" ? "Across runs" : current?.run.id || "Analysis";
+  document.title = v === "across" ? "Across runs · Tidewall" : current ? `${current.run.id} analysis · Tidewall` : "Analysis · Tidewall";
+  setUrl();
+  if (v === "across") {
+    $("note").textContent = "";
+    try { (await import("./across.js")).show($("across"), runs); }
+    catch (e) { $("note").textContent = `Couldn't open the across-runs view: ${e.message}`; }
+  } else if (!current && wanted) await choose(wanted);
 }
 
 async function choose(id) {
@@ -280,7 +314,7 @@ async function choose(id) {
     filter = { day: "", player: "" };
     page = 0;
     setUrl();
-    $("main").hidden = false;
+    $("main").hidden = view !== "run";
     renderRun();
     render($("panel"), panel(current.x));
     renderTabs();
@@ -298,7 +332,10 @@ async function choose(id) {
   const asked = params.get("id");
   const id = runs.some((r) => r.id === asked) ? asked : defaultRun();
   fillPicker(id);
+  wanted = id;
   $("pick").addEventListener("change", (e) => choose(e.target.value));
-  await choose(id);
-  if (asked && asked !== id) $("note").textContent = `There is no run called ${asked}; showing ${id}.`;
+  $("v-run").addEventListener("click", () => showView("run"));
+  $("v-across").addEventListener("click", () => showView("across"));
+  await showView(view);
+  if (view === "run" && asked && asked !== id) $("note").textContent = `There is no run called ${asked}; showing ${id}.`;
 })();

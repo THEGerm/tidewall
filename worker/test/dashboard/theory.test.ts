@@ -49,4 +49,14 @@ describe("game theory panel (D5): the port of analysis/metrics", () => {
     expect([live.inspection, live.audit, live.bribes, live.forecasts, live.answers, live.welfare]).toEqual([null, null, null, null, null, null]);
     expect(live.crime.k).toBe(2);
   });
+
+  it("counts fallbacks over final answers, as measures.fallbacks does", () => {
+    const answers = [
+      { player: "Chief", source: "retry" }, { player: "Chief", source: "fallback", reason: "invalid" },
+      { player: "Chief", source: "player" }, { player: "Council", source: "player" },
+    ];
+    const p = panel({ days: [], secret: true, answers });
+    expect(p.answers.Chief).toEqual({ n: 2, fallback: 1, refused: 0, retries: 1 });
+    expect(p.answers.Council.n).toBe(1);
+  });
 });
