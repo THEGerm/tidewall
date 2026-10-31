@@ -140,7 +140,7 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 | D3 ✅ | Ledger page, and a "Who paid" table on each run page | Ledger PR (engine) |
 | D4 ✅ | Control page: create runs, start, pause, step, key check, cap, models in use | Scheduler PR (engine) |
 | D5 | Game theory panel | Metrics in the run export |
-| D6 | Finished-run tabs: messages, diaries, confidant, forecasts | D2 |
+| D6 ✅ | Finished-run tabs: secret moves, messages, diaries, forecasts against what happened, and retries or fallbacks (confidant texts show live above) | D2 |
 
 D1 to D2 can run on week-0 bot data, so the run page can be checked before any model is paid for.
 
