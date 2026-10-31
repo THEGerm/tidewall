@@ -65,7 +65,17 @@ As now: save, test, delete. Links to the Control page.
 
 ### 7. Data `/run/data/?id=...` (built 31 Oct)
 
-Every played day of a run in one table (Nature, turf, crimes, arrests, scores, treasury, prison, cost; a finished run adds inspections, audits, bribes and fallbacks), cost by provider, and downloads: the days as CSV, the ledger as JSON, and the whole run as JSON once it ends. Every page now shares one site bar (`nav.js`): Runs, Control, Ledger, My keys.
+Every played day of a run in one table (Nature, turf, crimes, arrests, scores, treasury, prison, cost; a finished run adds inspections, audits, bribes and fallbacks), cost by provider, and downloads: the days as CSV, the ledger as JSON, and the whole run as JSON once it ends. Every page now shares one site bar (`nav.js`): Runs, Analysis, Control, Ledger, My keys.
+
+### 8. Analysis `/analysis/?id=...` (built 31 Oct)
+
+One page for reading a run's results and its raw logs. A menu lists every run, with study runs and test runs in separate groups; the choice goes into the link (`?id=`, and `&tab=` for the log shown), so a link opens the same view.
+
+- **The run:** seating (which family holds Government, Criminals and World), status and seed, days, cost, and how many answers fell back to the fallback move. Links to the run page, the game theory page, the data page, and the full export JSON once the run ends.
+- **Results:** the game theory panel, drawn by the same code as page 3 (`run/theory/view.js` over `run/theory/metrics.js`).
+- **Raw logs:** one tab each for model calls, answers, events (public or secret marked), private messages, diaries (with the day each was forgotten), forecasts (one row per question, with what happened and whether it is scored), the Wire and texts to Sam. Each table filters by day and by player, shows 100 rows at a time, and downloads the matching rows as CSV.
+
+A finished run reads its export. A live run shows what is public: per-day ledger totals instead of single calls, public events, the Wire, texts to Sam and diaries. Answers, messages and forecasts open when it ends.
 
 ## Data and API
 

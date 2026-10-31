@@ -93,6 +93,7 @@ async function load() {
   $("data").href = `/run/data/?id=${encodeURIComponent(run.id)}`;
   $("data-top").href = $("data").href;
   $("theory").href = $("theory-top").href = `/run/theory/?id=${encodeURIComponent(run.id)}`;
+  $("analysis").href = `/analysis/?id=${encodeURIComponent(run.id)}`;
   if (!days.length) return fail("No day played yet. The city opens on day 1.", true);
 
   $("main").hidden = false;
