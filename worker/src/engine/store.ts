@@ -20,9 +20,13 @@ export interface Seating {
   World: string;
 }
 
+// study and test runs call models; bot runs play the equilibrium bots, free,
+// at their own speed (runner.ts playBots).
+export type RunSet = "study" | "test" | "bot";
+
 export interface RunRow {
   id: string;
-  model_set: "study" | "test";
+  model_set: RunSet;
   seed: string;
   triple: number;
   rotation: 1 | 2 | 3;
@@ -43,9 +47,9 @@ export interface ConfidantRow {
 const now = () => new Date().toISOString();
 const json = (v: unknown) => JSON.stringify(v);
 
-export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: "study" | "test" }): Promise<RunRow> {
+export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number }): Promise<RunRow> {
   const modelSet = run.model_set ?? "study";
-  const state = newGame(run.seed);
+  const state = newGame(run.seed, run.fixed_days);
   const t = now();
   await db
     .prepare("INSERT INTO runs (id, seed, triple, rotation, seating, rules_version, status, state, created_at, updated_at, model_set) VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?, ?)")
@@ -107,6 +111,10 @@ export async function saveDay(db: D1Database, runId: string, r: DayResult, confi
   for (const e of r.events)
     q("INSERT INTO events (run_id, day, id, kind, public, district, actor, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       runId, d, e.id, e.kind, e.public ? 1 : 0, e.district ?? null, e.actor ?? null, e.detail ? json(e.detail) : null);
+  // A bot run keeps only the days and events: bots give no answers worth
+  // keeping, flat forecasts and empty diaries, so a 10,000-day run stays small.
+  const lean = run.model_set === "bot";
+  if (!lean) {
   for (const a of r.records)
     q("INSERT INTO answers (run_id, day, player, step, source, reason, errors) VALUES (?, ?, ?, ?, ?, ?, ?)",
       runId, d, a.player, a.step, a.source, a.reason ?? null, a.errors ? json(a.errors) : null);
@@ -122,6 +130,7 @@ export async function saveDay(db: D1Database, runId: string, r: DayResult, confi
     q("INSERT INTO wire (run_id, day, seq, headline, text, events) VALUES (?, ?, ?, ?, ?, ?)", runId, d, i, w.headline, w.text, json(w.events)));
   for (const c of confidant)
     q("INSERT INTO confidant (run_id, day, player, window, text, reply) VALUES (?, ?, ?, ?, ?, ?)", runId, d, c.player, c.window, c.text, c.reply);
+  }
 
   s.push(...extra);
   const status: Status = r.state.over ? (r.state.truncated ? "truncated" : "over") : "running";
@@ -171,7 +180,9 @@ export async function exportRun(db: D1Database, runId: string) {
       updated_at: raw?.updated_at ?? null,
       pace_minutes: pace ? Number(pace.value) : null,
       // The model each seat played, as pinned in the code when exported.
-      models: Object.fromEntries(Object.entries(run.seating).map(([seat, family]) => [seat, { family, ...models[family as keyof typeof models], effort: EFFORT }])),
+      models: run.model_set === "bot"
+        ? { all: "equilibrium bots (src/players/bots.ts), no model calls" }
+        : Object.fromEntries(Object.entries(run.seating).map(([seat, family]) => [seat, { family, ...models[family as keyof typeof models], effort: EFFORT }])),
     },
     // The game's parameters, so the analysis need not hard-code them (#67).
     game: {

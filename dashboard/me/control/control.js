@@ -146,7 +146,7 @@ function runRow(r) {
       render();
     } catch (e) { $("run-msg").textContent = `End ${r.id}: ${e.message}`; ev.currentTarget.disabled = false; }
   }));
-  tr.append(first, cell(r.model_set === "test" ? "Test" : "Study"), cell(["Government", "Criminals", "World"].map((s) => FAMILY[seating[s]]).join(", ")), status, cell(done ? "" : r.day), actionsCell);
+  tr.append(first, cell(r.model_set === "test" ? "Test" : r.model_set === "bot" ? "Bots" : "Study"), cell(["Government", "Criminals", "World"].map((s) => FAMILY[seating[s]]).join(", ")), status, cell(done ? "" : r.day), actionsCell);
   // Labels for the stacked layout on phones (style.css, table.stack).
   ["Run", "Models", "Seats", "Status", "Next day", ""].forEach((label, i) => tr.children[i].setAttribute("data-label", label));
   return tr;
@@ -187,11 +187,16 @@ $("new-form").onsubmit = async (e) => {
     triple: Number(f.get("triple") || 0),
     rotation: Number(f.get("rotation")),
     seating: SEATINGS[f.get("rotation")],
-    model_set: f.get("model_set"),
+    // Bots: the equilibrium bots, free and at their own speed. "10,000 days"
+    // switches the end draw off and plays exactly that many (Germ, 31 Oct).
+    model_set: f.get("model_set") === "bot10k" ? "bot" : f.get("model_set"),
+    ...(f.get("model_set") === "bot10k" ? { fixed_days: 10000 } : {}),
   };
   try {
     await api("runs", { method: "POST", body: JSON.stringify(body) });
-    $("new-msg").textContent = `Created ${body.id} (seed ${body.seed}). It's ready: press Step to play day 1, or Resume and turn the schedule on.`;
+    $("new-msg").textContent = body.model_set === "bot"
+      ? `Created ${body.id} (seed ${body.seed}). The bots start at the next minute and play on their own, schedule or not${body.fixed_days ? ": 10,000 days takes about an hour" : ""}.`
+      : `Created ${body.id} (seed ${body.seed}). It's ready: press Step to play day 1, or Resume and turn the schedule on.`;
     e.target.reset();
     state = await api("status");
     render();
