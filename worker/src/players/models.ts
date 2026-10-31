@@ -32,11 +32,12 @@ export const CHEAP_TEST_MODELS: Record<Family, { provider: Provider; model: stri
   gpt: { provider: "openai", model: "gpt-6-luna" }, // Germ, 30 Oct: current, same generation as Sol
 };
 
-// Test runs play the study models for now (Germ, 31 Oct): test run 002-germ
-// checks the study models' cost and behaviour end to end. Its runs stay
-// model_set = 'test', so they stay out of the analysis. To go back to the
-// cheap models, set this to CHEAP_TEST_MODELS.
-export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = MODELS;
+// Test runs play the cheap models again (Germ, 31 Oct), for a test run that
+// gives the game theory page data. Test runs 002-germ and 003-germ played the
+// study models to check their cost. Models are looked up each day, so a test
+// run resumed now plays the cheap models. To play the study models in a test
+// run, set this to MODELS.
+export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = CHEAP_TEST_MODELS;
 
 export type ModelSet = "study" | "test";
 export const modelsFor = (set: ModelSet) => (set === "test" ? TEST_MODELS : MODELS);
