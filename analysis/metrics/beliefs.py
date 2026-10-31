@@ -94,14 +94,20 @@ def police_should_inspect(p_crime, tol=0.0):
     """Inspecting pays when 15 q > 4, i.e. q > 4/15.
 
     This uses the police payoff that gives the plan's 25% equilibrium (crime
-    damage counted). See the solver's open question 1.
+    damage counted, the #12 default). See the solver's open question 3.
     """
     return _side(p_crime, float(eq.CRIME_RATE), tol)
 
 
-def chief_should_accept(bribe, p_audit, tol=0.0):
-    """The Chief takes a bribe b when b > 100 x a (plan, Bribery)."""
-    return _side(bribe - eq.BRIBE_PENALTY * p_audit, 0.0, tol)
+def chief_should_accept(bribe, p_audit, tol=0.0, counts_damage=None):
+    """The Chief takes a bribe b when b > 100 a + m.
+
+    m is 11 with the #12 performance mark on (decided 31 Oct, the default):
+    an accepted bribe means sure, uninspected crime (-15) instead of the
+    inspection equilibrium's -4. With the mark off, m is 0 and this is rules
+    3.3's b > 100 a. See the solver's bribery block.
+    """
+    return _side(bribe - eq.BRIBE_PENALTY * p_audit - eq.accept_margin(counts_damage), 0.0, tol)
 
 
 def best_response_rate(decisions, tol=0.0):
