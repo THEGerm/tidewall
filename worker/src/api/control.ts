@@ -49,19 +49,27 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   }
 
   if (path === "runs" && request.method === "POST") {
-    const b = (await request.json().catch(() => null)) as { id?: string; seed?: string; triple?: number; rotation?: number; seating?: Seating; model_set?: string } | null;
+    const b = (await request.json().catch(() => null)) as { id?: string; seed?: string; triple?: number; rotation?: number; seating?: Seating; model_set?: string; fixed_days?: number } | null;
     const ok = b && /^[a-z0-9-]{1,40}$/.test(b.id ?? "") && typeof b.seed === "string" && b.seed.length >= 8
       && Number.isInteger(b.triple) && [1, 2, 3].includes(b.rotation as number) && b.seating
       && ["Government", "Criminals", "World"].every((s) => ["claude", "gemini", "gpt"].includes((b.seating as any)[s]))
-      && (b.model_set === undefined || b.model_set === "study" || b.model_set === "test");
+      && (b.model_set === undefined || b.model_set === "study" || b.model_set === "test" || b.model_set === "bot")
+      // a set length is for bot runs only (the 10,000-day engine check)
+      && (b.fixed_days === undefined || (b.model_set === "bot" && Number.isInteger(b.fixed_days) && b.fixed_days >= 1 && b.fixed_days <= 10_000));
     if (!ok) {
       const why = !/^[a-z0-9-]{1,40}$/.test(b?.id ?? "") ? "Run ID: use lowercase letters, numbers and hyphens only (up to 40)"
         : !(typeof b?.seed === "string" && b.seed.length >= 8) ? "Seed: at least 8 characters"
-        : "need triple, rotation 1 to 3, seating of claude/gemini/gpt, and model_set study or test";
+        : "need triple, rotation 1 to 3, seating of claude/gemini/gpt, model_set study, test or bot, and fixed_days (1 to 10,000) only on a bot run";
       return json({ ok: false, error: why }, 400);
     }
     if (await getRun(env.DB, b!.id!)) return json({ ok: false, error: "run exists" }, 409);
     const run = await createRun(env.DB, b as any);
+    if (run.model_set === "bot") {
+      // Bots start at once and play at their own speed, schedule or not.
+      await setStatus(env.DB, run.id, "running");
+      await log(env.DB, `${who} created ${run.id}: bots${b!.fixed_days ? `, ${b!.fixed_days.toLocaleString("en")} days` : ""}. They start at the next tick and play without waiting.`, { run: run.id });
+      return json({ ok: true, run: { id: run.id, status: "running" } });
+    }
     await log(env.DB, `${who} created ${run.id} (${run.model_set} models, triple ${b!.triple}, rotation ${b!.rotation}).`, { run: run.id });
     return json({ ok: true, run: { id: run.id, status: run.status } });
   }

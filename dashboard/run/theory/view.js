@@ -65,8 +65,11 @@ export async function load(id) {
     const x = await get(`/api/runs/${id}/export`);
     return { run, summary, x: { ...x, secret: true }, views: null };
   }
-  const views = await Promise.all(days.map((d) => get(`/api/runs/${id}/days/${d.day}`).catch(() => null)));
-  const rebuilt = days.map((d, i) => {
+  // One request per day: a long live run (a 10,000-day bot run) is read
+  // from its last 400 days only, until it ends and the export opens.
+  const recent = days.length > 400 ? days.slice(-400) : days;
+  const views = await Promise.all(recent.map((d) => get(`/api/runs/${id}/days/${d.day}`).catch(() => null)));
+  const rebuilt = recent.map((d, i) => {
     const v = views[i];
     const crime = {};
     for (const e of v?.events || []) if (["crime", "arrest", "fine_no_place"].includes(e.kind)) crime[e.district] = true;

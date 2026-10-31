@@ -25,6 +25,20 @@ async function setup(days: number) {
 }
 
 describe("Control API", () => {
+  it("creates bot runs that start at once, and a 10,000-day one with no end draw", async () => {
+    const { db, call } = await setup(0);
+    const seating = { Government: "claude", Criminals: "gemini", World: "gpt" };
+    const base = { seed: "bot-seed-99", triple: 0, rotation: 1, seating };
+    expect((await call("runs", "POST", { ...base, id: "b1", model_set: "bot" })).body).toMatchObject({ ok: true, run: { status: "running" } });
+    expect((await call("runs", "POST", { ...base, id: "b2", model_set: "bot", fixed_days: 10000 })).body).toMatchObject({ ok: true });
+    expect((await getRun(db, "b2"))!.state.fixedDays).toBe(10000);
+    expect((await getRun(db, "b1"))!.state.fixedDays).toBeUndefined();
+    // a set length is for bots only, and 10,000 at most
+    expect((await call("runs", "POST", { ...base, id: "t9", model_set: "test", fixed_days: 50 })).status).toBe(400);
+    expect((await call("runs", "POST", { ...base, id: "b3", model_set: "bot", fixed_days: 10001 })).status).toBe(400);
+    expect((await recentLog(db)).at(-1)!.text).toContain("10,000 days");
+  });
+
   it("pause then resume carries on from the next day, nothing restarts", async () => {
     const { db, call } = await setup(3);
     expect((await call("runs/r1/pause")).status).toBe(200);
