@@ -2,6 +2,7 @@
 // player and this day: only open districts, only its own, only offered
 // bribes. The providers enforce them; the engine still validates.
 
+import { wireMin } from "../engine/validate";
 import { BRIBE_MAX, BRIBE_MIN, MAX_AUDITS, PLAYERS, TURF, type District, type PlayerName } from "../engine/config";
 import type { View } from "../engine/types";
 
@@ -54,5 +55,5 @@ export function actSchema(v: View): Schema {
 }
 
 export function wireSchema(eventIds: string[]): Schema {
-  return obj({ wire: { type: "array", minItems: 2, maxItems: 5, items: obj({ headline: { type: "string" }, text: text(60), events: { type: "array", minItems: 1, items: { type: "string", enum: eventIds } } }) }, diary: text(100), forget });
+  return obj({ wire: { type: "array", minItems: wireMin(eventIds.length), maxItems: 5, items: obj({ headline: { type: "string" }, text: text(60), events: { type: "array", minItems: 1, items: { type: "string", enum: eventIds } } }) }, diary: text(100), forget });
 }
