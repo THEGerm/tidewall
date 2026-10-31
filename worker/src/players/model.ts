@@ -26,6 +26,7 @@ export interface CallRecord {
   error: string | null;
   latencyMs: number | null;
   requestId?: string | null;
+  stopDetail?: string | null; // the provider's own stop reason
   text?: string | null; // the raw answer, kept for the export of a finished run
   promptSha?: string; // sha-256 of the system prompt and the step's prompt
 }
@@ -86,7 +87,7 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
         if (err instanceof ProviderError && err.tryNextKey) continue;
         throw err;
       }
-      await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: result.modelReported, payer: k.email, fallbackKey: !k.owner, ok: true, stop: result.stop, usage: result.usage, error: null, latencyMs: result.latencyMs, requestId: result.requestId, text: result.text, promptSha });
+      await o.onCall({ player: o.name, step, day, provider: o.provider, model: o.model, modelReported: result.modelReported, payer: k.email, fallbackKey: !k.owner, ok: true, stop: result.stop, usage: result.usage, error: null, latencyMs: result.latencyMs, requestId: result.requestId, stopDetail: result.stopDetail, text: result.text, promptSha });
       if (result.stop === "refused") throw new Refusal(result.stopDetail);
       try {
         return JSON.parse(result.text);

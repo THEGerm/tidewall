@@ -275,5 +275,16 @@ describe("scheduler", () => {
     const ex = await exportRun(env.DB, "t1-r1");
     expect(ex.responses.length).toBe(raw!.n);
     expect(ex.ledger[0]).toHaveProperty("at");
+    // #67: what the analysis used to guess
+    expect(ex.ledger[0]).toHaveProperty("stop_detail");
+    expect(ex.run).toMatchObject({ end_reason: null, truncated: false, pace_minutes: expect.any(Number) });
+    expect(ex.run.models.Government).toMatchObject({ family: "claude", provider: "anthropic", model: expect.any(String) });
+    expect(ex.game).toMatchObject({ end_chance: 0.08, min_days: 12, crime_damage: 15, turf_payoffs: { R: 6, T: 10, S: 0, P: 2 } });
+    expect(ex.days[0].chief_penalty).toBe(15 * ex.events.filter((e: any) => e.day === 1 && e.kind === "crime").length);
+    const savedCalls = new Set(ex.ledger.filter((l: any) => l.day_saved).map((l: any) => `${l.day}|${l.seq}`));
+    for (const a of ex.answers) {
+      expect(a.calls.length).toBeGreaterThan(0);
+      for (const seq of a.calls) expect(savedCalls.has(`${a.day}|${seq}`)).toBe(true);
+    }
   });
 });
