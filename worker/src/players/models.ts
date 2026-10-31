@@ -25,11 +25,10 @@ export const EFFORT = "medium" as const;
 // stay out of the analysis.
 export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = {
   claude: { provider: "anthropic", model: "claude-haiku-5-5" },
-  // Gemini 2.5 Flash-Lite (Germ, 31 Oct): an eighth of 3 Flash Preview's output
-  // price; 3 Flash Preview spent 90% of its output on thinking in the first test
-  // run. Google limits 2.5 to accounts that used it before; if the calls fail,
-  // gemini-3.1-flash-lite (priced below) is the next choice.
-  gemini: { provider: "google", model: "gemini-2.5-flash-lite" },
+  // Gemini 3.1 Flash-Lite (Germ, 31 Oct): half the output price of 3 Flash
+  // Preview, which spent 90% of its output on thinking in the first test run.
+  // 2.5 Flash-Lite was tried first and is "no longer available to new users".
+  gemini: { provider: "google", model: "gemini-3.1-flash-lite" },
   gpt: { provider: "openai", model: "gpt-6-luna" }, // Germ, 30 Oct: current, same generation as Sol
 };
 

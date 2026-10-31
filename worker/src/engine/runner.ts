@@ -116,6 +116,14 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
       `Day ${day} of ${runId} played: ${calls} calls, $${cost.toFixed(3)}, ${seconds} s, ${fallbacks ? `${fallbacks} fallback${fallbacks > 1 ? "s" : ""}` : "no fallbacks"}.` +
         (result.state.over ? ` The run is over${result.state.truncated ? " (hidden cap)" : ""}.` : ""),
       { run: runId, level: fallbacks ? "warn" : "info" });
+    // A seat that failed with an error (not a refusal or a bad answer) would
+    // fall back again tomorrow: pause the run so a person looks.
+    const failed = result.records.find((r) => r.source === "fallback" && r.reason === "error");
+    if (failed && !result.state.over) {
+      const why = `${failed.player} could not play (${failed.step}): ${failed.errors?.[0] ?? "error"}`;
+      await setStatus(env.DB, runId, "paused", why);
+      await log(env.DB, `${runId} paused after day ${day}. ${why}. Fix it, then press Resume.`, { run: runId, level: "error" });
+    }
     return { played: true, day, over: result.state.over, calls, costUsd: cost, seconds, fallbacks };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

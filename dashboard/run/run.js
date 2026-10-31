@@ -335,7 +335,7 @@ async function renderPaid() {
     by.set(k, t);
   }
   const m = (x) => (x / 1e6).toFixed(2);
-  const head = h("thead", {}, h("tr", {}, ["Payer", "Provider", "Calls", "Fallback", "Input", "Cached", "Output", "Cost"].map((x) => h("th", {}, x))));
+  const head = h("thead", {}, h("tr", {}, ["Payer", "Provider", "Calls", "Covering", "Input", "Cached", "Output", "Cost"].map((x) => h("th", {}, x))));
   const body = h("tbody", {}, by.size
     ? [...by.values()].map((t) => h("tr", {}, [t.payer, PROVIDER[t.provider] || t.provider, t.calls, t.fallback || "", m(t.input), m(t.cached), m(t.output), `$${t.cost.toFixed(2)}`].map((x) => h("td", {}, x))))
     : h("tr", {}, h("td", { colspan: "8" }, "No model calls yet (bots cost nothing).")));
@@ -343,7 +343,7 @@ async function renderPaid() {
 }
 
 load();
-// Live runs: check for a new day every two minutes; follow it if the reader is on the latest day.
+// Live runs: check for a new day every 30 seconds; follow it if the reader is on the latest day.
 setInterval(async () => {
   if (!summary?.run.live || document.hidden) return;
   try {
@@ -357,6 +357,7 @@ setInterval(async () => {
       $("slider").max = next.days.length;
       if ($("main").hidden) { location.reload(); return; }
       show(atEnd ? next.days.length : day);
+      renderPaid();
     }
   } catch {}
-}, 120000);
+}, 30000);

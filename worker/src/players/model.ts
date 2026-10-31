@@ -41,8 +41,8 @@ export interface ModelPlayerOptions {
 }
 
 export class NoKeyError extends Error {
-  constructor(provider: Provider) {
-    super(`no participant has a working ${provider} key`);
+  constructor(provider: Provider, last?: string) {
+    super(`no participant has a working ${provider} key${last ? ` (last error: ${last})` : ""}`);
     this.name = "NoKeyError";
   }
 }
@@ -85,7 +85,9 @@ export function modelPlayer(o: ModelPlayerOptions): Player {
         return { _unparsed: result.text.slice(0, 500) }; // the engine's check rejects it and retries
       }
     }
-    if (lastError instanceof ProviderError && lastError.tryNextKey) throw new NoKeyError(o.provider);
+    // Every key failed. A missing model is the model's fault, not the keys': say so.
+    if (lastError instanceof ProviderError && lastError.kind === "model_unavailable") throw lastError;
+    if (lastError instanceof ProviderError && lastError.tryNextKey) throw new NoKeyError(o.provider, lastError.message);
     throw lastError;
   }
 
