@@ -165,8 +165,11 @@ export function panel(x) {
 
   if (x.answers) {
     const per = {};
+    // n counts final answers only (the player's or the fallback), so a retry
+    // row is not a second answer: analysis/stats/measures.py, fallbacks().
     for (const a of x.answers) {
-      const t = (per[a.player] ??= { n: 0, fallback: 0, refused: 0 });
+      const t = (per[a.player] ??= { n: 0, fallback: 0, refused: 0, retries: 0 });
+      if (a.source === "retry") { t.retries++; continue; }
       t.n++;
       if (a.source === "fallback") t.fallback++;
       if (a.reason === "refused") t.refused++;

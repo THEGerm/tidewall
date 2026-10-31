@@ -107,8 +107,9 @@ def bribes(runs, prior_weight=10):
     For H3, each offer is set against a_hat, the Council's per-district audit
     rate up to the day before, Laplace-smoothed toward 0.10 with
     `prior_weight` pseudo district-days (rules 3.3; the weight is our choice).
-    The Chief's answer agrees with its payoff when it accepts b > 100 a_hat
-    and refuses otherwise.
+    The Chief's answer agrees with its payoff when it accepts b > 100 a_hat + m
+    and refuses otherwise; m is 11 under the #12 performance mark (decided
+    31 Oct), 0 without it (analysis.metrics.equilibrium.accept_margin).
     """
     out = []
     for run in runs:
@@ -139,7 +140,8 @@ def bribes(runs, prior_weight=10):
         offered = [r for r in run.district_days if r["open"] and r["bribe_offered"]]
         acc = sum(r["bribe_accepted"] for r in offered)
         lo, hi = rates.wilson(acc, len(offered))
-        agree = [(acc_ and b > eq.BRIBE_PENALTY * a) or (not acc_ and b <= eq.BRIBE_PENALTY * a) for a, b, acc_ in h3]
+        m = eq.accept_margin()
+        agree = [(acc_ and b > eq.BRIBE_PENALTY * a + m) or (not acc_ and b <= eq.BRIBE_PENALTY * a + m) for a, b, acc_ in h3]
         low_a = [x for x in h3 if x[0] < float(eq.AUDIT_LINE)]
         row = _run_cols(run)
         row.update(measure="acceptance rate", player="Chief", seat="Government", family=_family(run, "Government"),

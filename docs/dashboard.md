@@ -32,7 +32,7 @@ The main page. One day at a time, with a day slider and back and forward buttons
 - **Confidant panel, live:** each human player's texts to Sam and Sam's replies, for both windows, under a red **CONFIDENTIAL** label. Players never see this page, so showing it live changes nothing in the game.
 - **After the run ends:** tabs for messages and forecasts. Diaries show live, under the texts to Sam.
 
-### 3. Game theory `/run/theory/?id=...` (per run built; across runs to come)
+### 3. Game theory `/run/theory/?id=...` (per run and across runs built)
 
 The panel the plan promises, per run and across runs:
 
@@ -44,7 +44,7 @@ The panel the plan promises, per run and across runs:
 
 Figures use the same functions as `analysis/metrics`, ported to the page or precomputed into the run export. The paper's figures come from the notebooks; the page is for watching.
 
-Built (31 Oct): the per-run page, with the functions ported to `dashboard/run/theory/metrics.js` and tested against the Python values. A live run shows only crime and turf, from public data; the rest opens when the run ends. It adds welfare against the best feasible day. Still to come: the across-runs view, once there are finished runs to compare.
+Built (31 Oct): the per-run page, with the functions ported to `dashboard/run/theory/metrics.js` and tested against the Python values. A live run shows only crime and turf, from public data; the rest opens when the run ends. It adds welfare against the best feasible day. The across-runs view is on the analysis page (page 8).
 
 ### 4. Ledger `/me/ledger/` (signed in, built)
 
@@ -77,6 +77,8 @@ One page for reading a run's results and its raw logs. A menu lists every run, w
 - **Raw logs:** one tab each for model calls, answers, events (public or secret marked), private messages, diaries (with the day each was forgotten), forecasts (one row per question, with what happened and whether it is scored), the Wire and texts to Sam. Each table filters by day and by player, shows 100 rows at a time, and downloads the matching rows as CSV.
 
 A finished run reads its export. A live run shows what is public: per-day ledger totals instead of single calls, public events, the Wire, texts to Sam and diaries. Answers, messages and forecasts open when it ends.
+
+**Across runs** (`/analysis/?view=across`, built 31 Oct, `dashboard/analysis/across.js`): the finished runs side by side. Tick which runs count: all finished study runs to start with, or the test runs while there are none. Bot runs are their own group, the equilibrium baseline, off by default and loaded only when ticked, since the 10,000-day run is a 10 MB export. Each run's export is read once and put through the same `panel()` as its theory page. For each seat and model family the page shows the mean of the run-level values, the number of runs and the lowest to highest: crime rate and both-respect share for the Criminals' family; inspection and audit rates for the Government's; welfare per day, fallback share and cost per day for every seat. Inspections count only districts without an accepted bribe, as in `analysis/stats`. A chart shows crime, inspection and audit by family (a dot per run, a ring for the mean, a tick for the equilibrium), then a table of each run's headline numbers with a CSV download. Bot runs are grouped as Bots whatever their seating. The page says plainly that with this few runs it describes and tests nothing; the confirmatory tests are the Bambi models in `analysis/bayes`, run offline.
 
 ## Data and API
 
@@ -156,7 +158,7 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 | D2b ✅ | The risograph map (section "The map"), in `dashboard/run/map.js`. Crime is a red CRIME arrow (Germ, 30 Oct) | D2 |
 | D3 ✅ | Ledger page, and a "Who paid" table on each run page | Ledger PR (engine) |
 | D4 ✅ | Control page: create runs, start, pause, step, key check, cap, models in use | Scheduler PR (engine) |
-| D5 ⏳ | Game theory panel: per run built; across runs to come | Finished runs |
+| D5 ✅ | Game theory panel: per run, and across runs on the analysis page | Finished runs |
 | D6 ✅ | Finished-run tabs: secret moves, messages, diaries, forecasts against what happened, and retries or fallbacks (confidant texts show live above) | D2 |
 
 D1 to D2 can run on week-0 bot data, so the run page can be checked before any model is paid for.

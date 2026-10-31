@@ -72,8 +72,13 @@ class Beliefs(unittest.TestCase):
         self.assertIsNone(beliefs.gang_should_commit(0.27, tol=0.03))
         self.assertTrue(beliefs.police_should_inspect(0.5))
         self.assertFalse(beliefs.police_should_inspect(0.1))
-        self.assertTrue(beliefs.chief_should_accept(9, 0.05))   # 9 > 5
-        self.assertFalse(beliefs.chief_should_accept(9, 0.2))   # 9 < 20
+        # Rules 3.3 without the #12 mark: b > 100 a.
+        self.assertTrue(beliefs.chief_should_accept(9, 0.05, counts_damage=False))   # 9 > 5
+        self.assertFalse(beliefs.chief_should_accept(9, 0.2, counts_damage=False))   # 9 < 20
+        # With the mark (the default, decided 31 Oct): b > 100 a + 11.
+        self.assertFalse(beliefs.chief_should_accept(10, 0.0))  # no bribe a gang would pay clears 11
+        self.assertTrue(beliefs.chief_should_accept(20, 0.05))   # 20 > 5 + 11
+        self.assertIsNone(beliefs.chief_should_accept(16, 0.05))  # indifferent
 
     def test_best_response_rate(self):
         r = beliefs.best_response_rate([(True, True), (False, True), (None, False), (False, False)])

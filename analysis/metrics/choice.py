@@ -24,9 +24,10 @@ def police_delta(p_crime):
     return eq.CRIME_DAMAGE * p_crime - eq.INSPECTION_COST
 
 
-def chief_delta(bribe, p_audit):
-    """Accept minus refuse: b - 100 a."""
-    return bribe - eq.BRIBE_PENALTY * p_audit
+def chief_delta(bribe, p_audit, counts_damage=None):
+    """Accept minus refuse: b - 100 a - m, with m = 11 under the #12 mark
+    (the default) and 0 without it. See beliefs.chief_should_accept."""
+    return bribe - eq.BRIBE_PENALTY * p_audit - eq.accept_margin(counts_damage)
 
 
 def fit_lambda(pairs):

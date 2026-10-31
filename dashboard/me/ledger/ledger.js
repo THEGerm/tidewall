@@ -61,9 +61,15 @@ async function load() {
   $("capbar").firstElementChild.style.width = `${(share * 100).toFixed(1)}%`;
   $("capbar").setAttribute("aria-label", `${Math.round(share * 100)}% of the spending cap used`);
 
+  // Fallback payback (#117): open debts, repaid through the debtor's Anthropic key.
+  const owed = data.balances || [];
+  $("balance").textContent = owed.length
+    ? `${owed.map((b) => `${b.debtor} owes ${b.creditor} ${usd(b.usd)}`).join(". ")}. Paid back through ${owed.length > 1 ? "their" : `${owed[0].debtor}'s`} Anthropic key on ${owed.length > 1 ? "the creditors'" : `${owed[0].creditor}'s`} days.`
+    : "Fallbacks: settled.";
+
   const head = ["Calls", "Fallback", "Input (M)", "Cached (M)", "Output (M)", "Cost"];
-  table($("payers"), ["Payer", "Provider", ...head],
-    data.byPayer.map((r) => [r.payer_name ?? "nobody (no key)", PROVIDER[r.provider] || r.provider, calls(r), r.fallback_calls || "", ...tokens(r), usd(r.cost_usd)]));
+  table($("payers"), ["Payer", "Provider", "Calls", "Fallback", "Payback", ...head.slice(2)],
+    data.byPayer.map((r) => [r.payer_name ?? "nobody (no key)", PROVIDER[r.provider] || r.provider, calls(r), r.fallback_calls || "", r.payback_calls || "", ...tokens(r), usd(r.cost_usd)]));
   table($("runs"), ["Run", ...head],
     data.byRun.map((r) => [r.run_id, calls(r), r.fallback_calls || "", ...tokens(r), usd(r.cost_usd)]));
 
