@@ -75,7 +75,7 @@
       <form id="new-form" class="grid-form">
         <label>Run ID <input name="id" required pattern="[a-z0-9-]{1,40}" placeholder="test-1"></label>
         <label>Seed <input name="seed" minlength="8" autocomplete="off" placeholder="leave blank for a random one"><span class="help">Fixes the dice: weather, fires and the day the game ends. Two runs with the same seed get the same events. Leave blank for tests.</span></label>
-        <label>Models <select name="model_set"><option value="test">Test (cheap)</option><option value="study">Study</option><option value="bot">Bots (free, one normal run)</option><option value="bot-encroach">Bots, gangs encroaching (free)</option><option value="bot10k">Bots, 10,000 days (engine check)</option></select></label>
+        <label>Models <select name="model_set"><option value="study">Study</option><option value="test" selected>Test</option><option value="bot">Bot</option><option value="bot-encroach">Bot + encroachment</option><option value="bot10k">10k bots</option></select></label>
         <label>Triple <input name="triple" type="number" min="0" value="0"><span class="help">The study is 9 triples of 3 runs; the 3 runs of a triple share a seed and rotate the models through the seats. Use 0 for tests.</span></label>
         <label>Rotation <select name="rotation"><option value="1">1: Claude govern, Gemini crime, GPT world</option><option value="2">2: Gemini govern, GPT crime, Claude world</option><option value="3">3: GPT govern, Claude crime, Gemini world</option></select></label>
         <button type="submit">Create</button>
