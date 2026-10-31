@@ -172,9 +172,23 @@ $("new-form").onsubmit = async (e) => {
 // "20:31" in the reader's own time zone.
 const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+// What the scheduler is doing right now, worked out from the status (not stored).
+function nowLine() {
+  const playing = state.runs.find((r) => r.playing);
+  const queued = state.runs.find((r) => r.step_queued);
+  const live = state.runs.find((r) => r.status === "running");
+  if (playing) return `Now: playing day ${playing.day} of ${playing.id}.`;
+  if (queued) return `Now: day ${queued.day} of ${queued.id} queued, starting within a minute.`;
+  if (state.schedule !== "on") return "Now: schedule off. Step queues one day.";
+  if (!live && !state.runs.some((r) => r.status === "ready")) return "Now: schedule on, but no run is ready or running.";
+  const due = state.next_due && Date.parse(state.next_due) > Date.now() ? `about ${clock(state.next_due)}` : "within a minute";
+  return `Now: waiting. Next day of ${live ? live.id : "the next ready run"} due ${due}.`;
+}
+
 function renderLog() {
   const box = $("log");
-  box.replaceChildren(...(state.log.length ? state.log.map((l) => {
+  const now = Object.assign(document.createElement("li"), { textContent: nowLine(), className: "now" });
+  box.replaceChildren(now, ...(state.log.length ? state.log.map((l) => {
     const li = document.createElement("li");
     li.className = l.level;
     const t = document.createElement("time");
@@ -182,7 +196,7 @@ function renderLog() {
     t.textContent = clock(l.at);
     li.append(t, " ", l.text);
     return li;
-  }) : [Object.assign(document.createElement("li"), { textContent: "Nothing yet.", className: "info" })]));
+  }) : [Object.assign(document.createElement("li"), { textContent: "Nothing logged yet.", className: "info" })]));
 }
 
 load();

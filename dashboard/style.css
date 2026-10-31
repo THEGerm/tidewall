@@ -186,3 +186,4 @@ table.num td, table.num th { white-space: nowrap; }
 .log time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
 .log li.warn { border-left: 3px solid var(--wire); }
 .log li.error { border-left: 3px solid var(--conf); }
+.log li.now { font-weight: 600; background: var(--bg); }
