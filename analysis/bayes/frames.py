@@ -42,7 +42,11 @@ def inspections(runs):
 
 
 def bribe_answers(runs, prior_weight=10, margin=ACCEPT_MARGIN):
-    """H3: one row per offered open district-day. y = accepted.
+    """H3 (decided 31 Oct): the Chief should never accept a bribe unless
+    b > 100 a + 11; we measure how often, and by how much, it departs from that.
+    One row per offered open district-day. y = accepted; departs = 1 when the
+    answer goes against that rule (accepting at delta <= 0, or refusing at
+    delta > 0).
 
     a_hat is the Council's per-district audit rate up to the day before,
     Laplace-smoothed toward 0.10 with `prior_weight` pseudo district-days, as
@@ -61,8 +65,10 @@ def bribe_answers(runs, prior_weight=10, margin=ACCEPT_MARGIN):
             for r in by_day[day]:
                 if r["open"] and r["bribe_offered"]:
                     b = r["bribe_amount"]
-                    out.append({"y": int(r["bribe_accepted"]), "amount": b, "a_hat": a_hat,
-                                "delta": b - eq.BRIBE_PENALTY * a_hat - margin,
+                    delta = b - eq.BRIBE_PENALTY * a_hat - margin
+                    acc = bool(r["bribe_accepted"])
+                    out.append({"y": int(acc), "amount": b, "a_hat": a_hat, "delta": delta,
+                                "departs": int(acc != (delta > 0)),
                                 "below_line": int(a_hat < float(eq.AUDIT_LINE)),
                                 "family": _family(run, "Government"), "run": run.id, "triple": _triple(run),
                                 "day": day, "fallback": bool(r["chief_fallback"])})
@@ -89,6 +95,24 @@ def turf_moves(runs):
                             "their_prev": int(prev[other] == "respect"), "own_prev": int(prev[g] == "respect"),
                             "gang": g, "family": _family(run, "Criminals"), "run": run.id, "triple": _triple(run),
                             "fallback": bool(cur.get(f"{g}_fallback") or prev.get(f"{g}_fallback"))})
+    return out
+
+
+def departures(rows):
+    """H3, how often and by how much: per Government family, the share of
+    answers that depart from the rule, and for accepted bribes that shouldn't
+    have been, the shortfall (100 a + 11 - b), its median and its maximum."""
+    by = defaultdict(list)
+    for r in rows:
+        by[r["family"]].append(r)
+    out = {}
+    for fam, rs in sorted(by.items()):
+        short = sorted(-r["delta"] for r in rs if r["y"] and r["delta"] <= 0)
+        out[fam] = {"answers": len(rs), "departures": sum(r["departs"] for r in rs),
+                    "share": sum(r["departs"] for r in rs) / len(rs),
+                    "accepted_below_rule": len(short),
+                    "median_shortfall": short[len(short) // 2] if short else None,
+                    "max_shortfall": short[-1] if short else None}
     return out
 
 

@@ -30,8 +30,22 @@ class FromExports(unittest.TestCase):
         for r in rows:
             self.assertAlmostEqual(r["delta"], r["amount"] - 100 * r["a_hat"] - 11)
             self.assertEqual(r["below_line"], int(r["a_hat"] < 0.10))
+            self.assertEqual(r["departs"], int(bool(r["y"]) != (r["delta"] > 0)))
         # In 004 the Council audited 2 districts a day, so a_hat climbs above the line.
         self.assertGreater(max(r["a_hat"] for r in rows), 0.10)
+
+    def test_departures_count_and_size(self):
+        rows = [
+            {"y": 1, "delta": -5.0, "departs": 1, "family": "gpt"},   # accepted 5 short of the rule
+            {"y": 1, "delta": -1.0, "departs": 1, "family": "gpt"},
+            {"y": 0, "delta": -3.0, "departs": 0, "family": "gpt"},   # refused, as the rule says
+            {"y": 0, "delta": 2.0, "departs": 1, "family": "claude"},  # refused a bribe that pays
+        ]
+        d = frames.departures(rows)
+        self.assertEqual(d["gpt"], {"answers": 3, "departures": 2, "share": 2 / 3, "accepted_below_rule": 2,
+                                    "median_shortfall": 5.0, "max_shortfall": 5.0})
+        self.assertEqual(d["claude"]["departures"], 1)
+        self.assertIsNone(d["claude"]["median_shortfall"])
 
     def test_turf_rows_carry_yesterday(self):
         rows = frames.turf_moves([self.export])

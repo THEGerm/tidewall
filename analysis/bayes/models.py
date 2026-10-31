@@ -8,8 +8,12 @@ pre-registered priors:
 Formulas follow #17:
 - H2a  inspected ~ 0 + family + (1|run): each Government family's inspection
        rate, against the equilibrium 1/4.
-- H3   accepted ~ delta + family + (delta|run): does the Chief accept more when
-       accepting pays more? delta = b - 100 a_hat - 11 (the #12 mark).
+- H3   (decided 31 Oct: never accept unless b > 100 a + 11; measure how often
+       and by how much models depart)
+       departs ~ 0 + family + (1|run): each Government family's departure rate;
+       accepted ~ delta + family + (delta|run): how strongly answers follow
+       delta = b - 100 a_hat - 11. The size of departures is descriptive
+       (frames.departures).
 - H4   respect ~ day + after_min + their_prev + own_prev + family + (day|run):
        cooperation against the game's age, holding reciprocity fixed.
 - H5   tone ~ seat + world_family * holder_family + (1|run) + (1|item) + (1|judge),
@@ -65,6 +69,12 @@ def h3_bribes(runs, with_fallbacks=True):
     if df["family"].nunique() == 1:
         priors.pop("family")
     return bmb.Model(formula, df, family="bernoulli", priors=priors)
+
+
+def h3_departures(runs, with_fallbacks=True):
+    df = _frame(frames.bribe_answers(runs), with_fallbacks)
+    priors = {"family": _slope(), "1|run": _group()}
+    return bmb.Model("departs ~ 0 + family + (1|run)", df, family="bernoulli", priors=priors)
 
 
 def h4_turf(runs, with_fallbacks=True):

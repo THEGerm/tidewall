@@ -25,7 +25,8 @@ def main(argv):
     kw = {"draws": 500, "tune": 500, "chains": 2} if a.quick else {}
     keep = not a.without_fallbacks
     results = {}
-    for name, build, rule in (("H2a", models.h2a_inspection, decide.h2a), ("H3", models.h3_bribes, decide.h3), ("H4", models.h4_turf, decide.h4)):
+    for name, build, rule in (("H2a", models.h2a_inspection, decide.h2a), ("H3 departures", models.h3_departures, decide.h3_departures),
+                              ("H3", models.h3_bribes, decide.h3), ("H4", models.h4_turf, decide.h4)):
         try:
             post = models.fit(build(runs, with_fallbacks=keep), **kw)
         except Exception as e:  # too little data in these runs for this model
@@ -38,6 +39,9 @@ def main(argv):
     print("Log-odds scale. An effect clears when its 95% interval lies wholly past the threshold, in the predicted direction.")
     print(f"{'effect':<24}{'median':>8}{'95% low':>9}{'95% high':>9}{'threshold':>11}{'p_d':>7}{'Holm':>7}  clears")
     for k, v in decide.confirm(results).items():
+        if v.get("measure"):
+            print(f"{k:<24}{v['estimate']:>8.2f}{v['low']:>9.2f}{v['high']:>9.2f}{'(rate)':>11}{'':>7}{'':>7}  measure")
+            continue
         side = ">" if v["direction"] == "above" else "<"
         print(f"{k:<24}{v['estimate']:>8.2f}{v['low']:>9.2f}{v['high']:>9.2f}{side + format(v['threshold'], '.2f'):>11}{v['p_d']:>7.3f}{v['holm']:>7.3f}  {'yes' if v['clears'] else 'no'}")
     return 0

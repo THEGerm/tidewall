@@ -56,8 +56,21 @@ def h2a(posterior):
 
 
 def h3(posterior):
-    """The Chief accepts more when accepting pays more: slope on delta above 0."""
+    """The Chief's answers follow delta = b - 100 a_hat - 11: slope above 0."""
     return {"H3 delta": rule(draws(posterior, "delta"), 0.0, "above")}
+
+
+def h3_departures(posterior):
+    """H3 as decided (31 Oct) is a measurement: each Government family's rate
+    of departing from 'never accept unless b > 100 a + 11', as a probability
+    with its 95% interval. No threshold, so it stays out of Holm."""
+    x = draws(posterior, "family")
+    out = {}
+    for i, f in enumerate(labels(posterior, "family")):
+        p = 1 / (1 + np.exp(-x[:, i]))
+        lo, hi = np.quantile(p, [(1 - LEVEL) / 2, 1 - (1 - LEVEL) / 2])
+        out[f"H3 departures {f}"] = {"estimate": float(np.median(p)), "low": float(lo), "high": float(hi), "measure": True}
+    return out
 
 
 def h4(posterior):
@@ -84,6 +97,8 @@ def h5(posterior):
 
 
 def confirm(results, alpha=0.05):
-    """Holm across the confirmatory decisions, on p = 1 - p_d."""
-    adj = holm({k: v["p"] for k, v in results.items()}, alpha)
-    return {k: v | {"holm": adj[k]["adjusted"], "holm_reject": adj[k]["reject"]} for k, v in results.items()}
+    """Holm across the confirmatory decisions, on p = 1 - p_d. Measurements
+    (no threshold) pass through untouched."""
+    tests = {k: v for k, v in results.items() if "p" in v}
+    adj = holm({k: v["p"] for k, v in tests.items()}, alpha) if tests else {}
+    return {k: (v | {"holm": adj[k]["adjusted"], "holm_reject": adj[k]["reject"]}) if k in adj else v for k, v in results.items()}

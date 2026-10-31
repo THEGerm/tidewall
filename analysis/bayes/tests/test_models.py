@@ -64,6 +64,17 @@ class Recovery(unittest.TestCase):
         self.assertTrue(d["clears"])
         self.assertGreater(d["p_d"], 0.99)
 
+    def test_h3_departure_rate_is_measured_per_family(self):
+        from analysis.bayes import decide, frames, models
+        runs = sim_runs(chief_slope=0.4)
+        post = models.fit(models.h3_departures(runs), **QUICK)
+        d = decide.h3_departures(post)
+        observed = frames.departures(frames.bribe_answers(runs))
+        for fam, v in observed.items():
+            est = d[f"H3 departures {fam}"]
+            self.assertTrue(est["low"] <= v["share"] <= est["high"], (fam, v["share"], est))
+        self.assertNotIn("holm", decide.confirm(d)[f"H3 departures {fam}"])
+
     def test_h4_finds_an_end_game_drop_and_none_when_absent(self):
         from analysis.bayes import decide, models
         drop = decide.h4(models.fit(models.h4_turf(sim_runs(coop_drop=0.25)), **QUICK))["H4 day"]
