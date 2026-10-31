@@ -32,7 +32,7 @@ The main page. One day at a time, with a day slider and back and forward buttons
 - **Confidant panel, live:** each human player's texts to Sam and Sam's replies, for both windows, under a red **CONFIDENTIAL** label. Players never see this page, so showing it live changes nothing in the game.
 - **After the run ends:** tabs for messages, diaries and forecasts.
 
-### 3. Game theory `/run/theory/?id=...`
+### 3. Game theory `/run/theory/?id=...` (per run built; across runs to come)
 
 The panel the plan promises, per run and across runs:
 
@@ -43,6 +43,8 @@ The panel the plan promises, per run and across runs:
 - Each player's share of fallback answers and refusals.
 
 Figures use the same functions as `analysis/metrics`, ported to the page or precomputed into the run export. The paper's figures come from the notebooks; the page is for watching.
+
+Built (31 Oct): the per-run page, with the functions ported to `dashboard/run/theory/metrics.js` and tested against the Python values. A live run shows only crime and turf, from public data; the rest opens when the run ends. It adds welfare against the best feasible day. Still to come: the across-runs view, once there are finished runs to compare.
 
 ### 4. Ledger `/me/ledger/` (signed in, built)
 
@@ -143,7 +145,7 @@ Prison fill and the treasury show as small printed gauges in a corner cartouche,
 | D2b ✅ | The risograph map (section "The map"), in `dashboard/run/map.js`. Crime is a red CRIME arrow (Germ, 30 Oct) | D2 |
 | D3 ✅ | Ledger page, and a "Who paid" table on each run page | Ledger PR (engine) |
 | D4 ✅ | Control page: create runs, start, pause, step, key check, cap, models in use | Scheduler PR (engine) |
-| D5 | Game theory panel | Metrics in the run export |
+| D5 ⏳ | Game theory panel: per run built; across runs to come | Finished runs |
 | D6 ✅ | Finished-run tabs: secret moves, messages, diaries, forecasts against what happened, and retries or fallbacks (confidant texts show live above) | D2 |
 
 D1 to D2 can run on week-0 bot data, so the run page can be checked before any model is paid for.
