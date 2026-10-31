@@ -113,7 +113,7 @@
         return tr;
       };
       const live = runs.filter(r => r.live).sort((a, b) => (b.status === "running") - (a.status === "running"));
-      const done = runs.filter(r => !r.live);
+      const done = runs.filter(r => !r.live).sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true })); // by run name (#77)
       document.getElementById("runs").replaceChildren(...live.map(row));
       document.getElementById("runs-empty").hidden = live.length > 0;
       document.getElementById("runs-empty").textContent = "No live run. Finished runs are in the archive below.";
