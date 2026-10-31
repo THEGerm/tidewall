@@ -193,3 +193,11 @@ table.num td, table.num th { white-space: nowrap; }
 .seg button:first-child { border-radius: 8px 0 0 8px; }
 .seg button:last-child { border-radius: 0 8px 8px 0; border-left: none; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+/* Finished-run tabs (D6) */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.tabs button { padding: 6px 12px; font-size: 0.9rem; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+ul.plain { padding-left: 20px; }
+ul.plain li { margin: 4px 0; }
+table.forecasts td.yes { font-weight: 700; color: var(--fam); }

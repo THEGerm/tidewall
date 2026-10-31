@@ -309,16 +309,54 @@ function renderConfidant(v) {
   );
 }
 
+// Finished runs only (step D6): tabs for what was hidden while the run was live.
+let tab = "moves"; // remembered across days
+const TABS = [["moves", "Secret moves"], ["messages", "Messages"], ["diaries", "Diaries"], ["forecasts", "Forecasts"], ["answers", "Answers"]];
+const pct = (x) => (typeof x === "number" ? `${Math.round(x * 100)}%` : "");
+
 function renderSecrets(v) {
   if (v.run.live) { $("after").hidden = true; return; }
   $("after").hidden = false;
-  const hidden = v.events.filter((e) => !e.public);
-  const block = (title, items) => h("div", { class: "block" }, h("h3", {}, title), items.length ? h("ul", {}, items) : h("p", { class: "muted" }, "None."));
-  $("secrets").replaceChildren(
-    block("Secret moves", hidden.map((e) => h("li", {}, describe(e)))),
-    block("Private messages", (v.messages || []).map((m) => h("li", {}, h("strong", {}, `${m.from} to ${m.to}: `), m.text))),
-    block("Diaries", (v.diaries || []).filter((x) => x.text).map((x) => h("li", {}, h("strong", {}, `${x.player}: `), x.text))),
-  );
+  const list = (items, empty) => (items.length ? h("ul", { class: "plain" }, items) : h("p", { class: "muted" }, empty));
+  const panels = {
+    moves: () => list(v.events.filter((e) => !e.public).map((e) => h("li", {}, describe(e))), "No secret moves today."),
+    messages: () => list((v.messages || []).map((m) => h("li", {}, h("strong", {}, `${m.from} to ${m.to}: `), m.text)), "No private messages today."),
+    diaries: () => list((v.diaries || []).filter((x) => x.text).map((x) => h("li", {}, h("strong", {}, `${x.player}: `), x.text)), "No diary entries today."),
+    forecasts: () => forecastTable(v),
+    answers: () => {
+      const odd = (v.answers || []).filter((a) => a.source !== "player");
+      return odd.length
+        ? list(odd.map((a) => h("li", {}, h("strong", {}, `${a.player}, ${a.step.replace("_", " ")}: `), a.source === "retry" ? "answered on the retry" : `fallback (${a.reason})`)), "")
+        : h("p", { class: "muted" }, "Every answer came from the players themselves, first time.");
+    },
+  };
+  const bar = h("div", { class: "tabs", role: "tablist", "aria-label": "Opened after the run" },
+    TABS.map(([key, label]) => h("button", {
+      type: "button", role: "tab", class: "ghost", "aria-selected": String(key === tab), "aria-controls": "tabpanel",
+      onclick: () => { tab = key; renderSecrets(v); },
+    }, label)));
+  $("secrets").replaceChildren(bar, h("div", { id: "tabpanel", role: "tabpanel", class: "tabpanel" }, panels[tab]()));
+}
+
+// Each player's forecasts for the day, next to what happened.
+function forecastTable(v) {
+  const fs = v.forecasts || [];
+  if (!fs.length) return h("p", { class: "muted" }, "No forecasts today.");
+  const m = v.moves || {};
+  const open = v.open || [];
+  const yn = (b) => (b ? "yes" : "no");
+  const rows = [
+    ...open.map((d) => [`Crime in ${d}`, (f) => f.p_crime?.[d], yn(m.crime?.[d])]),
+    ...open.map((d) => [`Inspection in ${d}`, (f) => f.p_inspect?.[d], yn((m.inspect || []).includes(d))]),
+    ["Both gangs respect", (f) => f.p_both_respect, m.turf ? yn(m.turf.Families === "respect" && m.turf.Saltdogs === "respect") : ""],
+    ["Any bribe taken", (f) => f.p_any_bribe_accepted, yn((m.accepted || []).length)],
+    ["Any audit", (f) => f.p_any_audit, yn((m.audit || []).length)],
+  ];
+  return h("div", { class: "table-wrap" }, h("table", { class: "num forecasts" },
+    h("thead", {}, h("tr", {}, h("th", {}, "Question"), h("th", {}, "Happened"), fs.map((f) => h("th", {}, f.player)))),
+    h("tbody", {}, rows.map(([q, get, actual]) => h("tr", {},
+      h("td", {}, q), h("td", { class: actual === "yes" ? "yes" : "" }, actual),
+      fs.map((f) => h("td", {}, pct(get(f.forecasts)))))))));
 }
 
 // Who paid: the run's ledger summed by payer and provider (step D3).
