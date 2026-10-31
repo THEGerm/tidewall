@@ -115,6 +115,7 @@ PER_TABLE = {
         "model_reported": ("model id", "model version the provider reported"),
         "payer_name": ("name", "participant whose key paid"),
         "fallback_key": ("0/1", "1 when the call used another participant's key"),
+        "payback": ("0/1", "1 when a participant's key paid back earlier fallback costs (#117); not a fallback"),
         "ok": ("0/1", "the call succeeded"),
         "stop": ("label", "normalised stop reason: done, max_tokens, refused, other"),
         "input": ("tokens", "input tokens"),
