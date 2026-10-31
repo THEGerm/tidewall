@@ -111,13 +111,17 @@ const STEP: Record<Parameters<Prompts["step"]>[0], (v: View) => string> = {
 
 export const interimPrompts: Prompts = {
   system: (p) => `${RULES}\n\n${ROLE[p]}`,
+  // The diary comes first, straight after the system prompt: it only grows,
+  // so every call of the day shares it as a cacheable prefix. Gemini caches
+  // implicitly only from 4,096 tokens and Argon has no explicit caching
+  // (#68), so a long run's diary is what gets it there.
   step: (step, v) => [
+    v.notebook?.length ? `Your diary, the entries you kept:\n${v.notebook.map((e) => `- Day ${e.day}: ${e.text}`).join("\n")}` : "Your diary is empty.",
     `# Day ${v.day}`,
     `Open districts: ${v.open.join(", ")}.`,
     `Nature today: ${[v.nature.storm && "storm (Port closed)", v.nature.fire && `fire in ${v.nature.fire}`, v.nature.strike && "strike", v.nature.ship && "a cargo ship"].filter(Boolean).join(", ") || "calm"}.`,
     `Your balance: ${JSON.stringify(v.balances)}.`,
     v.score !== undefined ? `Your score so far: ${v.score}.` : "",
-    v.notebook?.length ? `Your diary, the entries you kept:\n${v.notebook.map((e) => `- Day ${e.day}: ${e.text}`).join("\n")}` : "Your diary is empty.",
     `Yesterday's public events: ${JSON.stringify(v.publicYesterday)}.`,
     `Yesterday's news: ${JSON.stringify(v.wireYesterday)}.`,
     `Messages to you today: ${JSON.stringify(v.inbox)}.`,
