@@ -1,9 +1,10 @@
 // What the public may see of a run (docs/dashboard.md, "Data and API").
 // While a run is live: public events, the Wire, scores, open districts, the
-// treasury, the prison count and confidant texts (shown under a red label).
+// treasury, the prison count, and confidant texts and diaries (both shown
+// under a red CONFIDENTIAL label; Germ, 31 Oct).
 // Once it ends: everything, as in exportRun. Every public endpoint reads
 // through this file, and test/engine/public.test.ts checks that a live run
-// never returns a secret event, a message, a diary, a forecast or a move.
+// never returns a secret event, a message, a forecast or a move.
 
 import { START } from "./config";
 import { exportRun, getRun, type RunRow, type Status } from "./store";
@@ -83,6 +84,7 @@ export async function dayView(db: D1Database, id: string, day: number) {
   const events = await rows(`SELECT * FROM events WHERE run_id = ? AND day = ? ${live ? "AND public = 1" : ""} ORDER BY rowid`);
   const wire = await rows("SELECT headline, text, events FROM wire WHERE run_id = ? AND day = ? ORDER BY seq");
   const confidant = await rows("SELECT player, window, text, reply FROM confidant WHERE run_id = ? AND day = ? ORDER BY player, window");
+  const diary = await rows("SELECT player, text, forgotten_on FROM diaries WHERE run_id = ? AND day = ? ORDER BY player");
 
   const base = {
     run: { id, status: run.status, live },
@@ -99,6 +101,9 @@ export async function dayView(db: D1Database, id: string, day: number) {
     })),
     wire: wire.map((w) => ({ headline: w.headline, text: w.text, events: parse(w.events) })),
     confidant: { label: "CONFIDENTIAL", texts: confidant },
+    // Each player's diary entry written this day, live (Germ, 31 Oct). No
+    // player sees another's diary; the page is for people watching.
+    diary: { label: "CONFIDENTIAL", entries: diary.map((x) => ({ player: x.player, text: x.text, forgotten_on: x.forgotten_on ?? null })) },
   };
   if (live) return base;
 

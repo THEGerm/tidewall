@@ -9,7 +9,8 @@ import { testD1 } from "./d1";
 const seating = { Government: "claude", Criminals: "gemini", World: "gpt" };
 
 // Bots that leave a secret in every place a secret can live: messages,
-// diaries, bribes (offered and taken) and empty inspections.
+// bribes (offered and taken) and empty inspections. Diaries are marked DIARY:
+// they show live, like the confidant texts (Germ, 31 Oct).
 function leakyPlayers(seed: string) {
   const p = equilibriumPlayers(seed);
   const say = (from: string): Player["messages"] => async () => ({ messages: [{ to: "Chief", text: `SECRET message from ${from}` }] });
@@ -19,13 +20,13 @@ function leakyPlayers(seed: string) {
     p[g] = {
       ...p[g],
       bribeOffers: async (v: View) => ({ bribe_offers: Object.fromEntries(v.open.slice(0, 2).map((d) => [d, 15])) }),
-      act: async (v: View) => ({ ...(await act(v)), diary: `SECRET diary of ${g}` }),
+      act: async (v: View) => ({ ...(await act(v)), diary: `DIARY of ${g}` }),
     };
   }
   p.Chief = {
     ...p.Chief,
     bribeAnswers: async (v: View) => ({ bribe_answers: Object.fromEntries(Object.keys(v.offersToAnswer ?? {}).map((d) => [d, "accept"])) }),
-    act: async (v: View) => ({ moves: { inspect: v.open.filter((d) => !(v.acceptedToday ?? []).includes(d)) }, diary: "SECRET diary of the Chief" }),
+    act: async (v: View) => ({ moves: { inspect: v.open.filter((d) => !(v.acceptedToday ?? []).includes(d)) }, diary: "DIARY of the Chief" }),
   };
   return p;
 }
@@ -79,6 +80,14 @@ describe("public API", () => {
     expect(r.confidant.texts).toEqual([{ player: "Chief", window: "after", text: "Took money today.", reply: "Be careful." }]);
   });
 
+  it("shows each day's diary entries live, under the CONFIDENTIAL label", async () => {
+    const { get } = await setup(2);
+    const r = (await get("/api/runs/t1-r1/days/2")).body;
+    expect(r.diary.label).toBe("CONFIDENTIAL");
+    expect(r.diary.entries.map((e: any) => e.player)).toEqual(expect.arrayContaining(["Families", "Saltdogs"]));
+    expect(r.diary.entries.find((e: any) => e.player === "Families")).toEqual({ player: "Families", text: "DIARY of Families", forgotten_on: null });
+  });
+
   it("opens everything once the run ends", async () => {
     const { db, get } = await setup(3);
     await setStatus(db, "t1-r1", "over");
@@ -86,7 +95,7 @@ describe("public API", () => {
     expect(r.cache).toContain("max-age");
     expect(r.body.events.some((e: any) => !e.public)).toBe(true);
     expect(JSON.stringify(r.body.messages)).toContain("SECRET message");
-    expect(JSON.stringify(r.body.diaries)).toContain("SECRET diary");
+    expect(JSON.stringify(r.body.diaries)).toContain("DIARY of");
     expect(r.body.moves.accepted.length).toBeGreaterThan(0);
     expect((await get("/api/runs/t1-r1")).body.run.seed).toBe("public-cut");
     const ex = await get("/api/runs/t1-r1/export");

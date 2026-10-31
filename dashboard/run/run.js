@@ -148,6 +148,7 @@ async function show(n) {
   renderMap(v);
   renderWire(v);
   renderConfidant(v);
+  renderDiaries(v);
   renderSecrets(v);
 }
 
@@ -310,9 +311,23 @@ function renderConfidant(v) {
   );
 }
 
+// Every diary entry written that day, live (Germ, 31 Oct). An entry the
+// player later deleted from its memory is marked; the record keeps it.
+function renderDiaries(v) {
+  const entries = (v.diary?.entries || []).filter((x) => x.text);
+  $("diaries").replaceChildren(
+    ...(entries.length
+      ? entries.map((x) => h("article", {},
+          h("p", { class: "who" }, x.player, x.forgotten_on ? h("span", { class: "muted" }, ` (deleted on day ${x.forgotten_on})`) : null),
+          h("p", { class: "them" }, x.text),
+        ))
+      : [h("p", { class: "muted" }, "No diary entries today.")]),
+  );
+}
+
 // Finished runs only (step D6): tabs for what was hidden while the run was live.
 let tab = "moves"; // remembered across days
-const TABS = [["moves", "Secret moves"], ["messages", "Messages"], ["diaries", "Diaries"], ["forecasts", "Forecasts"], ["answers", "Answers"]];
+const TABS = [["moves", "Secret moves"], ["messages", "Messages"], ["forecasts", "Forecasts"], ["answers", "Answers"]];
 const pct = (x) => (typeof x === "number" ? `${Math.round(x * 100)}%` : "");
 
 function renderSecrets(v) {
@@ -322,7 +337,6 @@ function renderSecrets(v) {
   const panels = {
     moves: () => list(v.events.filter((e) => !e.public).map((e) => h("li", {}, describe(e))), "No secret moves today."),
     messages: () => list((v.messages || []).map((m) => h("li", {}, h("strong", {}, `${m.from} to ${m.to}: `), m.text)), "No private messages today."),
-    diaries: () => list((v.diaries || []).filter((x) => x.text).map((x) => h("li", {}, h("strong", {}, `${x.player}: `), x.text)), "No diary entries today."),
     forecasts: () => forecastTable(v),
     answers: () => {
       const odd = (v.answers || []).filter((a) => a.source !== "player");
