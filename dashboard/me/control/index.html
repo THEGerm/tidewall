@@ -21,7 +21,7 @@
         <article>
           <h3>Schedule</h3>
           <p class="big" id="sched"></p>
-          <p class="muted">When on, the scheduler plays one day of the first live run every 10 minutes.</p>
+          <p class="muted" id="sched-note">When on, the first live run plays a day every 10 minutes. You can close this page.</p>
           <button type="button" id="sched-btn"></button>
         </article>
         <article>
@@ -39,7 +39,7 @@
 
     <section aria-labelledby="h-runs">
       <h2 id="h-runs">Runs</h2>
-      <p class="muted"><strong>Step</strong> plays one day now. <strong>Check</strong> says what would stop the next day (a missing key, an unpinned model, the cap). A run that can't play pauses with its reason.</p>
+      <p class="muted"><strong>Step</strong> queues one day, which starts within a minute, even with the schedule off; you can close the page. <strong>Check</strong> says what would stop the next day (a missing key, an unpinned model, the cap). A run that can't play pauses with its reason.</p>
       <div class="table-wrap">
         <table class="stack">
           <thead><tr><th>Run</th><th>Models</th><th>Government, Criminals, World</th><th>Status</th><th>Next day</th><th></th></tr></thead>
@@ -47,6 +47,12 @@
         </table>
       </div>
       <p id="run-msg" class="msg" role="status"></p>
+    </section>
+
+    <section aria-labelledby="h-log">
+      <h2 id="h-log">Log</h2>
+      <p class="muted">The last 15 things that happened, newest at the bottom. Updates every 15 seconds.</p>
+      <ol id="log" class="log"></ol>
     </section>
 
     <section aria-labelledby="h-new">

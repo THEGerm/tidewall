@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createRun, getRun } from "../../src/engine/store";
 import { playNextDay, tick, type RunnerEnv } from "../../src/engine/runner";
 import { fullLedger, runLedger, studySpend } from "../../src/ledger/ledger";
+import { recentLog } from "../../src/engine/log";
 import { PRICES, costOf } from "../../src/ledger/pricing";
 import { saveKey } from "../../src/keys/store";
 import { MODELS } from "../../src/players/models";
@@ -153,7 +154,7 @@ describe("scheduler", () => {
     await on(env);
     expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 });
     const models = (await env.DB.prepare("SELECT DISTINCT model FROM ledger ORDER BY model").all<{ model: string }>()).results.map((r) => r.model);
-    expect(models).toEqual(["claude-haiku-5-5", "gemini-3-flash-preview", "gpt-6-luna"]);
+    expect(models).toEqual(["claude-haiku-5-5", "gemini-2.5-flash-lite", "gpt-6-luna"]);
     const unpriced = await env.DB.prepare("SELECT COUNT(*) AS n FROM ledger WHERE cost_usd IS NULL").first<{ n: number }>();
     expect(unpriced!.n).toBe(0);
   });
@@ -163,6 +164,7 @@ describe("scheduler", () => {
     await createRun(env.DB, { id: "t1-r1", seed: "seed-first", triple: 1, rotation: 1, seating });
     await createRun(env.DB, { id: "t1-r2", seed: "seed-first", triple: 1, rotation: 2, seating: { Government: "gemini", Criminals: "gpt", World: "claude" } });
     await on(env);
+    await env.DB.prepare("UPDATE meta SET value = '0' WHERE key = 'pace_minutes'").run(); // no wait between days
     let ticks = 0;
     while ((await getRun(env.DB, "t1-r1"))!.status === "ready" || (await getRun(env.DB, "t1-r1"))!.status === "running") {
       await tick(env, opts);
@@ -171,5 +173,47 @@ describe("scheduler", () => {
     expect(["over", "truncated"]).toContain((await getRun(env.DB, "t1-r1"))!.status);
     expect((await tick(env, opts) as any).day).toBe(1);
     expect((await getRun(env.DB, "t1-r2"))!.status).toBe("running");
+  });
+
+  it("waits pace_minutes between scheduled days", async () => {
+    const env = await setup();
+    await createRun(env.DB, { id: "t1-r1", seed: "seed-pace", triple: 1, rotation: 1, seating });
+    await on(env);
+    expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 });
+    expect(await tick(env, opts)).toEqual({ played: false, reason: "next day not due yet" });
+    const later = () => new Date(Date.now() + 11 * 60_000);
+    expect(await tick(env, { ...opts, now: later })).toMatchObject({ played: true, day: 2 });
+  });
+
+  it("plays a queued Step at the next tick, schedule off, and logs it", async () => {
+    const env = await setup();
+    await createRun(env.DB, { id: "t1-r1", seed: "seed-step", triple: 1, rotation: 1, seating });
+    expect(await tick(env, opts)).toEqual({ played: false, reason: "schedule is off" });
+    await env.DB.prepare("UPDATE runs SET status = 'running', step_queued = 1 WHERE id = 't1-r1'").run();
+    expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 });
+    expect((await env.DB.prepare("SELECT step_queued AS q FROM runs").first<{ q: number }>())!.q).toBe(0);
+    expect(await tick(env, opts)).toEqual({ played: false, reason: "schedule is off" }); // one Step, one day
+    const lines = (await recentLog(env.DB)).map((l) => l.text);
+    expect(lines[0]).toBe("Playing day 1 of t1-r1 (Step).");
+    expect(lines[1]).toMatch(/^Day 1 of t1-r1 played: \d+ calls, \$\d+\.\d{3}, \d+ s, (no fallbacks|\d+ fallbacks?)\.$/);
+  });
+
+  it("keeps every paid call in the ledger when a day fails, and numbers the retry after it", async () => {
+    const env = await setup();
+    await createRun(env.DB, { id: "t1-r1", seed: "seed-fail", triple: 1, rotation: 1, seating });
+    await on(env);
+    const batch = env.DB.batch.bind(env.DB);
+    let failOnce = true;
+    (env.DB as any).batch = async (s: any) => { if (failOnce) { failOnce = false; throw new Error("D1 went away"); } return batch(s); };
+    const out = await tick(env, opts);
+    expect(out).toEqual({ played: false, reason: "day 1 failed: D1 went away" });
+    const lost = await env.DB.prepare("SELECT COUNT(*) AS n, MAX(seq) AS top FROM ledger WHERE day_saved = 0").first<{ n: number; top: number }>();
+    expect(lost!.n).toBeGreaterThan(0);
+    expect((await getRun(env.DB, "t1-r1"))!.state.day).toBe(1);
+    expect((await recentLog(env.DB)).at(-1)).toMatchObject({ level: "error", text: expect.stringContaining("are in the ledger") });
+    expect(await tick(env, opts)).toMatchObject({ played: true, day: 1 }); // the lock was released
+    const saved = await env.DB.prepare("SELECT MIN(seq) AS low, COUNT(*) AS n FROM ledger WHERE day_saved = 1").first<{ low: number; n: number }>();
+    expect(saved!.low).toBe(lost!.top + 1);
+    expect((await studySpend(env.DB)).usd).toBeGreaterThan(0);
   });
 });

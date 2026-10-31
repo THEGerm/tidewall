@@ -51,7 +51,8 @@ After every game day: tokens in, cached and out, plus cost, per participant and 
 ### 5. Control `/me/control/` (signed in, built)
 
 - Create a run by hand (a test run, or one study run). The 27 study runs come from a script with the published seeds (#38).
-- Start, pause and resume the schedule; play one day by hand (useful for the cheap test run).
+- Start, pause and resume the schedule (a day every 10 minutes, `meta.pace_minutes`). **Step** queues one day, which the next minute's scheduler tick plays, so closing the page never cuts a day short (Germ, 31 Oct, after the first test run).
+- **Log:** the last 15 things that happened (days played with calls, cost, time and fallbacks; pauses and their reasons; failed days; who changed what), refreshed every 15 seconds.
 - Key check: for each provider, who has a working key today. A run that can't find a key pauses here with the reason.
 - Spending cap: total so far against the cap, and the setting.
 - Model IDs in use, so pinning can be checked before week 1.

@@ -3,24 +3,43 @@
 
 import type { Env } from "../index";
 import { createRun, getRun, setStatus, type Seating } from "../engine/store";
-import { blocker, playNextDay } from "../engine/runner";
+import { blocker } from "../engine/runner";
+import { log, recentLog } from "../engine/log";
 import { runLedger, studySpend } from "../ledger/ledger";
 import { EFFORT, MODELS, TEST_MODELS } from "../players/models";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
-export async function handleControl(request: Request, env: Env, path: string): Promise<Response> {
+export async function handleControl(request: Request, env: Env, path: string, who: string): Promise<Response> {
   const meta = async (k: string) => (await env.DB.prepare("SELECT value FROM meta WHERE key = ?").bind(k).first<{ value: string }>())?.value ?? null;
 
   if (path === "status" && request.method === "GET") {
-    const { results: runs } = await env.DB.prepare("SELECT id, model_set, triple, rotation, seating, status, pause_reason, json_extract(state, '$.day') AS day FROM runs ORDER BY triple, rotation").all();
-    return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")), spend: await studySpend(env.DB), models: { study: MODELS, test: TEST_MODELS }, effort: EFFORT, runs });
+    const { results: runs } = await env.DB.prepare(
+      `SELECT id, model_set, triple, rotation, seating, status, pause_reason, step_queued,
+              json_extract(state, '$.day') AS day, (lock_until > ?) AS playing
+       FROM runs ORDER BY triple, rotation`).bind(new Date().toISOString()).all();
+    const pace = Number((await meta("pace_minutes")) ?? 10);
+    const last = (await env.DB.prepare("SELECT MAX(created_at) AS at FROM days").first<{ at: string | null }>())?.at ?? null;
+    return json({
+      ok: true, schedule: await meta("schedule"), pace_minutes: pace, last_day_at: last,
+      next_due: last ? new Date(Date.parse(last) + pace * 60_000).toISOString() : null,
+      cap_usd: Number(await meta("cap_usd")), spend: await studySpend(env.DB),
+      models: { study: MODELS, test: TEST_MODELS }, effort: EFFORT, runs, log: await recentLog(env.DB, 15),
+    });
   }
 
   if (path === "schedule" && request.method === "POST") {
     const body = (await request.json().catch(() => null)) as { on?: unknown; cap_usd?: unknown } | null;
-    if (typeof body?.on === "boolean") await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'schedule'").bind(body.on ? "on" : "off").run();
-    if (typeof body?.cap_usd === "number" && body.cap_usd >= 0) await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'cap_usd'").bind(String(body.cap_usd)).run();
+    if (typeof body?.on === "boolean") {
+      await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'schedule'").bind(body.on ? "on" : "off").run();
+      await log(env.DB, body.on
+        ? `${who} turned the schedule on: a day every ${(await meta("pace_minutes")) ?? 10} minutes, checked each minute.`
+        : `${who} turned the schedule off. A day already playing finishes.`);
+    }
+    if (typeof body?.cap_usd === "number" && body.cap_usd >= 0) {
+      await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'cap_usd'").bind(String(body.cap_usd)).run();
+      await log(env.DB, `${who} set the spending cap to $${body.cap_usd}.`);
+    }
     return json({ ok: true, schedule: await meta("schedule"), cap_usd: Number(await meta("cap_usd")) });
   }
 
@@ -38,6 +57,7 @@ export async function handleControl(request: Request, env: Env, path: string): P
     }
     if (await getRun(env.DB, b!.id!)) return json({ ok: false, error: "run exists" }, 409);
     const run = await createRun(env.DB, b as any);
+    await log(env.DB, `${who} created ${run.id} (${run.model_set} models, triple ${b!.triple}, rotation ${b!.rotation}).`, { run: run.id });
     return json({ ok: true, run: { id: run.id, status: run.status } });
   }
 
@@ -49,15 +69,26 @@ export async function handleControl(request: Request, env: Env, path: string): P
     if (action === "ledger" && request.method === "GET") return json({ ok: true, ledger: await runLedger(env.DB, id) });
     if (action === "check" && request.method === "GET") return json({ ok: true, blocker: await blocker(env, run, run.state.day) });
     if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
-    if (action === "pause") { await setStatus(env.DB, id, "paused", "paused by a participant"); return json({ ok: true }); }
+    if (action === "pause") {
+      await setStatus(env.DB, id, "paused", `paused by ${who}`);
+      await log(env.DB, `${who} paused ${id}. A day already playing finishes.`, { run: id });
+      return json({ ok: true, message: `${id} paused.` });
+    }
     if (action === "resume") {
       if (run.status !== "paused" && run.status !== "ready") return json({ ok: false, error: `run is ${run.status}` }, 409);
       await setStatus(env.DB, id, "running");
-      return json({ ok: true });
+      await log(env.DB, `${who} resumed ${id}.`, { run: id });
+      return json({ ok: true, message: `${id} resumed.` });
     }
+    // Step only queues a day: the next minute's tick plays it, so closing the
+    // page can't cut a day short.
     if (action === "step") {
+      if (run.status === "paused") return json({ ok: false, error: `${id} is paused (${(await env.DB.prepare("SELECT pause_reason AS r FROM runs WHERE id = ?").bind(id).first<{ r: string }>())?.r ?? "no reason"}). Press Resume first.` }, 409);
+      if (run.status === "over" || run.status === "truncated") return json({ ok: false, error: `${id} is over.` }, 409);
       if (run.status === "ready") await setStatus(env.DB, id, "running");
-      return json({ ok: true, outcome: await playNextDay(env, id) });
+      await env.DB.prepare("UPDATE runs SET step_queued = 1 WHERE id = ?").bind(id).run();
+      await log(env.DB, `${who} queued day ${run.state.day} of ${id}. It starts within a minute.`, { run: id });
+      return json({ ok: true, message: `Day ${run.state.day} of ${id} queued. It starts within a minute; you can close this page.` });
     }
   }
   return json({ ok: false, error: "not found" }, 404);

@@ -5,13 +5,16 @@
 //   - nobody has a key for a provider the run needs
 //   - the study's spending cap is reached
 // A lock on the run stops two scheduler ticks playing the same day.
+// Every call is written to the ledger as it returns, and every outcome to the
+// Control page's log.
 
 import { PLAYERS, type PlayerName } from "./config";
 import { playDay, type DayResult } from "./day";
 import { getRun, saveDay, setStatus, yesterday, type RunRow } from "./store";
 import type { Player } from "./types";
-import { ledgerStatements, studySpend } from "../ledger/ledger";
-import { priceOf } from "../ledger/pricing";
+import { ledgerRow, markDaySaved, nextSeq, studySpend } from "../ledger/ledger";
+import { log } from "./log";
+import { costOf, priceOf } from "../ledger/pricing";
 import type { callModel } from "../providers";
 import { keyChain, participants } from "../players/keys";
 import { modelPlayer, type CallRecord } from "../players/model";
@@ -36,7 +39,7 @@ const SEAT_OF: Record<PlayerName, "Government" | "Criminals" | "World"> = {
 };
 
 export type StepOutcome =
-  | { played: true; day: number; over: boolean; calls: number }
+  | { played: true; day: number; over: boolean; calls: number; costUsd: number; seconds: number; fallbacks: number }
   | { played: false; reason: string };
 
 async function meta(db: D1Database, key: string): Promise<string | null> {
@@ -60,7 +63,7 @@ export async function blocker(env: RunnerEnv, run: RunRow, day: number): Promise
   return null;
 }
 
-export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOptions = {}): Promise<StepOutcome> {
+export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOptions = {}, why: "step" | "schedule" = "step"): Promise<StepOutcome> {
   const now = o.now ?? (() => new Date());
   const run = await getRun(env.DB, runId);
   if (!run) return { played: false, reason: `no run ${runId}` };
@@ -72,22 +75,33 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
     .bind(until, runId, now().toISOString()).run();
   if (!lock.meta?.changes) return { played: false, reason: "another tick is playing this run" };
 
+  const day = run.state.day;
+  const started = Date.now();
+  let calls = 0;
+  let cost = 0;
   try {
-    const day = run.state.day;
-    const why = await blocker(env, run, day);
-    if (why) {
-      await setStatus(env.DB, runId, "paused", why);
-      return { played: false, reason: why };
+    const blocked = await blocker(env, run, day);
+    if (blocked) {
+      await setStatus(env.DB, runId, "paused", blocked);
+      await log(env.DB, `${runId} paused before day ${day}: ${blocked}.`, { run: runId, level: "warn" });
+      return { played: false, reason: blocked };
     }
+    await log(env.DB, `Playing day ${day} of ${runId} (${why === "step" ? "Step" : "schedule"}).`, { run: runId });
 
-    const calls: CallRecord[] = [];
+    const names = Object.fromEntries((await participants(env.DB)).map((p) => [p.email, p.name]));
+    const base = await nextSeq(env.DB, runId, day);
+    const record = async (r: CallRecord) => {
+      const seq = base + calls++;
+      cost += (r.usage && costOf(r.model, r.usage)) || 0;
+      await ledgerRow(env.DB, runId, day, seq, r, names).run();
+    };
     const prompts = o.prompts ?? placeholderPrompts;
     const players = Object.fromEntries(PLAYERS.map((name) => {
       const m = modelsFor(run.model_set)[run.seating[SEAT_OF[name]] as Family];
       return [name, modelPlayer({
         name, provider: m.provider, model: m.model, prompts, effort: EFFORT,
         keys: (d) => keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, d),
-        onCall: (r) => { calls.push(r); },
+        onCall: record,
         ...(o.call ? { call: o.call } : {}),
         ...(o.retry ? { retry: o.retry } : {}),
       })];
@@ -95,24 +109,49 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
 
     const y = await yesterday(env.DB, runId, day);
     const result: DayResult = await playDay({ state: run.state, players, ...y });
-    const names = Object.fromEntries((await participants(env.DB)).map((p) => [p.email, p.name]));
-    await saveDay(env.DB, runId, result, result.confidant, ledgerStatements(env.DB, runId, day, calls, names));
-    return { played: true, day, over: result.state.over, calls: calls.length };
+    await saveDay(env.DB, runId, result, result.confidant, [markDaySaved(env.DB, runId, day, base)]);
+    const seconds = Math.round((Date.now() - started) / 1000);
+    const fallbacks = result.records.filter((r) => r.source === "fallback").length;
+    await log(env.DB,
+      `Day ${day} of ${runId} played: ${calls} calls, $${cost.toFixed(3)}, ${seconds} s, ${fallbacks ? `${fallbacks} fallback${fallbacks > 1 ? "s" : ""}` : "no fallbacks"}.` +
+        (result.state.over ? ` The run is over${result.state.truncated ? " (hidden cap)" : ""}.` : ""),
+      { run: runId, level: fallbacks ? "warn" : "info" });
+    return { played: true, day, over: result.state.over, calls, costUsd: cost, seconds, fallbacks };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await log(env.DB, `Day ${day} of ${runId} failed: ${msg}. ${calls} calls were made and are in the ledger; the day will be played again.`, { run: runId, level: "error" }).catch(() => {});
+    return { played: false, reason: `day ${day} failed: ${msg}` };
   } finally {
     await env.DB.prepare("UPDATE runs SET lock_until = NULL WHERE id = ?").bind(runId).run();
   }
 }
 
-// One scheduler tick: if the schedule is on, play one day of the running run,
-// or start the next ready run (by triple, then rotation) when none is running.
+// One scheduler tick, every minute:
+//   1. a Step queued from the Control page plays first, schedule or not;
+//   2. with the schedule on, the running run (or the next ready one) plays a
+//      day once pace_minutes have passed since the last day was saved.
 export async function tick(env: RunnerEnv, o: RunnerOptions = {}): Promise<StepOutcome> {
+  const now = o.now ?? (() => new Date());
+  const queued = await env.DB.prepare("SELECT id FROM runs WHERE step_queued > 0 AND status = 'running' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
+  if (queued) {
+    const out = await playNextDay(env, queued.id, o, "step");
+    if (out.played || out.reason !== "another tick is playing this run")
+      await env.DB.prepare("UPDATE runs SET step_queued = 0 WHERE id = ?").bind(queued.id).run();
+    return out;
+  }
+
   if ((await meta(env.DB, "schedule")) !== "on") return { played: false, reason: "schedule is off" };
+  const pace = Number((await meta(env.DB, "pace_minutes")) ?? "10");
+  const last = await env.DB.prepare("SELECT MAX(created_at) AS at FROM days").first<{ at: string | null }>();
+  if (last?.at && now().getTime() - Date.parse(last.at) < pace * 60_000) return { played: false, reason: "next day not due yet" };
+
   let current = await env.DB.prepare("SELECT id FROM runs WHERE status = 'running' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
   if (!current) {
     if (await env.DB.prepare("SELECT id FROM runs WHERE status = 'paused' LIMIT 1").first()) return { played: false, reason: "a run is paused" };
     current = await env.DB.prepare("SELECT id FROM runs WHERE status = 'ready' ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
     if (!current) return { played: false, reason: "no run left to play" };
     await setStatus(env.DB, current.id, "running");
+    await log(env.DB, `Schedule started ${current.id}.`, { run: current.id });
   }
-  return playNextDay(env, current.id, o);
+  return playNextDay(env, current.id, o, "schedule");
 }
