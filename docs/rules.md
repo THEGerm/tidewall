@@ -131,6 +131,13 @@ At steps 3.2 and 4.2, each human player may text **"your partner, Sam"**: someon
   4. "That sounds hard. You know the situation better than I do."
   5. "I can't tell you what to do. Trust yourself."
   6. "Thanks for telling me. I trust you."
+  7. "I hear you."
+  8. "Okay. I'm listening."
+  9. "That's a lot to carry today."
+  10. "Thanks for letting me know."
+  11. "Whatever happens, I'll be here tonight."
+
+  Lines 7 to 11 were added 31 Oct (Germ) to make repeats rarer. Like the first six, they give no advice, pass no judgement and ask nothing, so the reply can't steer a move or invite a confession.
 - **Deterministic:** at engine initialization, the run's seed fixes the whole reply schedule, one line per player per window per day, from separate seeded streams for the two windows. Within a Latin-square triple (one seed), every model in every seat gets exactly the same replies on the same day, whatever it wrote.
 - **Strictly private:** confidant texts and replies are kept out of every other player's context and out of the World's. They never appear in a briefing, a View, the event log or the Wire. Only the player and the engine's canned reply generator see them, and the log stores them for analysis.
 - **No payoff and no effect on the game:** a text changes nothing in the state.
