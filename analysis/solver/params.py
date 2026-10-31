@@ -90,17 +90,6 @@ WEEK0_ALPHA = 0.05
 WEEK0_POWER = 0.8
 
 OPEN_QUESTIONS = [
-    "Bribery with the Chief's performance mark (#12, and H3). With the mark on, an accepted bribe "
-    "means sure crime in that district (the gang knows the answer before moving, and the district "
-    "can't be inspected), so the Chief's score loses 15. Refusing leaves the district at the "
-    "inspection equilibrium, where the Chief's expected payoff is -4. So the Chief accepts b only "
-    "when b - 100a - 15 > -4, that is b > 100a + 11, not b > 100a as rules 3.3 says. A gang gains at "
-    "most 10 from a sure skip. So no bribe that both sides want exists for any audit rate: with the "
-    "mark on, there is no corruption in equilibrium, and the 'corruption pays below a = 0.10' line "
-    "holds only with the mark off. But with the mark off, the Chief never inspects, so a gang gains "
-    "nothing from a bribe either. Options: keep the mark and say bribes are off-equilibrium (H3 then "
-    "measures a departure from 'never take', not a threshold), or change the numbers so a deal "
-    "window exists.",
     "Week-0 turf bots. Which strategy do the scripted gangs play in the turf war: always encroach "
     "(the one-day equilibrium) or grim trigger (cooperation)? Both are equilibria at a continuation "
     "chance of 0.92, and the week-0 check needs one. The engine's test bots always respect.",
