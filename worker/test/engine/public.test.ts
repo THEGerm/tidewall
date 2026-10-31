@@ -92,6 +92,8 @@ describe("public API", () => {
     const ex = await get("/api/runs/t1-r1/export");
     expect(ex.status).toBe(200);
     expect(ex.body.days).toHaveLength(3);
+    expect(Array.isArray(ex.body.ledger)).toBe(true);
+    expect(JSON.stringify(ex.body)).not.toContain("payer_email");
   });
 
   it("charts scores, treasury, prison and turf for every played day", async () => {
