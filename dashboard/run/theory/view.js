@@ -123,7 +123,8 @@ function turfChart(days, W) {
     const y = 8 + r * (sq + 8), cls = g === "Families" ? "fam" : "salt";
     s.append(svg("text", { x: 100, y: y + sq * 0.7, "text-anchor": "end", class: "label" }, g));
     days.forEach((d, i) => s.append(svg("rect", {
-      x: 110 + i * cell + 1, y, width: cell - 2, height: sq, rx: 2,
+      // A long run (10,000 days) leaves under a pixel a day: no gap then, never a negative width.
+      x: 110 + i * cell + (cell > 3 ? 1 : 0), y, width: cell > 3 ? cell - 2 : cell, height: sq, rx: cell > 3 ? 2 : 0,
       fill: d[g] ? `var(--${cls})` : "none", stroke: `var(--${cls})`, "stroke-width": 1.5,
     })));
   });

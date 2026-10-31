@@ -4,15 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Analysis · Tidewall</title>
-  <meta name="description" content="Each Tidewall run's results against the game's equilibrium, and its raw logs: model calls, answers, events, messages, diaries, forecasts, the Wire and texts to Sam.">
+  <meta name="description" content="Each Tidewall run's results against the game's equilibrium and its raw logs, and the finished runs side by side by model family.">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="wide">
   <header>
     <p class="eyebrow"><a href="/">Tidewall</a> / Analysis</p>
     <h1 id="title">Analysis</h1>
-    <p class="lede">Pick a run to see its results and its raw logs. A finished run shows everything; a live run shows what is public so far.</p>
-    <label class="pick" for="pick">Run <select id="pick"><option value="">Loading runs...</option></select></label>
+    <p class="lede" id="lede">Pick a run to see its results and its raw logs. A finished run shows everything; a live run shows what is public so far.</p>
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" class="ghost" id="v-run" aria-pressed="true">One run</button>
+      <button type="button" class="ghost" id="v-across" aria-pressed="false">Across runs</button>
+    </div>
+    <label class="pick" for="pick" id="run-pick">Run <select id="pick"><option value="">Loading runs...</option></select></label>
     <p class="msg" id="note"></p>
   </header>
 
@@ -41,6 +45,8 @@
       </div>
     </section>
   </main>
+
+  <main id="across" hidden></main>
 
   <footer>
     <a href="/">All runs</a>
