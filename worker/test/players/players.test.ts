@@ -7,7 +7,7 @@ import { saveKey } from "../../src/keys/store";
 import { ProviderError, type ChatRequest, type ChatResult } from "../../src/providers";
 import { keyChain, payingOrder, type KeyCandidate } from "../../src/players/keys";
 import { modelPlayer, NoKeyError, type CallRecord } from "../../src/players/model";
-import { placeholderPrompts } from "../../src/players/prompts";
+import { studyPrompts } from "../../src/players/prompts";
 import { testD1 } from "../engine/d1";
 
 const SECRET = btoa(String.fromCharCode(...new Uint8Array(32).map((_, i) => i + 1)));
@@ -67,7 +67,7 @@ describe("model player", () => {
     const calls: CallRecord[] = [];
     const seen: string[] = [];
     const p = modelPlayer({
-      name: "Council", provider: "anthropic", model: "claude-opus-5-5", prompts: placeholderPrompts,
+      name: "Council", provider: "anthropic", model: "claude-opus-5-5", prompts: studyPrompts,
       keys: keys("owner@x", "other@x"), onCall: (r) => { calls.push(r); }, retry: noSleep,
       call: async (_p, key, req) => {
         seen.push(key);
@@ -86,7 +86,7 @@ describe("model player", () => {
   it("doesn't try another key for an error every key would hit", async () => {
     const seen: string[] = [];
     const p = modelPlayer({
-      name: "Chief", provider: "anthropic", model: "m", prompts: placeholderPrompts, keys: keys("a@x", "b@x"), onCall: () => {}, retry: noSleep,
+      name: "Chief", provider: "anthropic", model: "m", prompts: studyPrompts, keys: keys("a@x", "b@x"), onCall: () => {}, retry: noSleep,
       call: async (_p, key) => { seen.push(key); throw new ProviderError("anthropic", "bad_request", 400, "bad schema"); },
     });
     await expect(p.messages(view("Chief"))).rejects.toThrow(/bad_request/);
@@ -96,7 +96,7 @@ describe("model player", () => {
   it("turns a provider refusal into a Refusal, so the engine falls back", async () => {
     const calls: CallRecord[] = [];
     const p = modelPlayer({
-      name: "Saltdogs", provider: "openai", model: "m", prompts: placeholderPrompts, keys: keys("a@x"), onCall: (r) => { calls.push(r); }, retry: noSleep,
+      name: "Saltdogs", provider: "openai", model: "m", prompts: studyPrompts, keys: keys("a@x"), onCall: (r) => { calls.push(r); }, retry: noSleep,
       call: async () => result("", "refused"),
     });
     await expect(p.messages(view("Saltdogs"))).rejects.toBeInstanceOf(Refusal);
@@ -105,47 +105,19 @@ describe("model player", () => {
   });
 
   it("fails clearly when nobody has a key for the provider", async () => {
-    const p = modelPlayer({ name: "World", provider: "google", model: "m", prompts: placeholderPrompts, keys: async () => [], onCall: () => {}, retry: noSleep });
+    const p = modelPlayer({ name: "World", provider: "google", model: "m", prompts: studyPrompts, keys: async () => [], onCall: () => {}, retry: noSleep });
     await expect(p.messages(view("World"))).rejects.toBeInstanceOf(NoKeyError);
   });
 
   it("five model players play a legal day through the engine", async () => {
     const calls: CallRecord[] = [];
     const players = Object.fromEntries(PLAYERS.map((name) => [name, modelPlayer({
-      name, provider: "anthropic", model: "m", prompts: placeholderPrompts, keys: keys("a@x"), onCall: (r) => { calls.push(r); }, retry: noSleep, call: schemaFiller,
+      name, provider: "anthropic", model: "m", prompts: studyPrompts, keys: keys("a@x"), onCall: (r) => { calls.push(r); }, retry: noSleep, call: schemaFiller,
     })])) as Record<PlayerName, Player>;
     const r = await playDay({ state: newGame("models"), players, publicYesterday: [], wireYesterday: [] });
     expect(r.records.every((x) => x.source === "player")).toBe(true);
     expect(r.wire.length).toBeGreaterThanOrEqual(2);
     expect(calls.every((c) => c.ok && c.payer === "a@x")).toBe(true);
     expect(Object.keys(r.forecasts).sort()).toEqual([...PLAYERS].sort());
-  });
-});
-
-describe("interim prompts", () => {
-  const view = (player: any, extra: any = {}) => ({ player, day: 3, nature: { storm: true, fire: null, strike: false, ship: false }, open: ["Hightown", "Old Quarter", "Lowtown", "Market", "Seawall"], balances: { Families: 180 }, publicYesterday: [], wireYesterday: [], inbox: [], ...extra }) as any;
-
-  it("gives every seat the rules and the turf payoff table, and its own role", () => {
-    for (const p of ["Council", "Chief", "Families", "Saltdogs", "World"] as const) {
-      const s = placeholderPrompts.system(p);
-      expect(s).toContain("you 10, they 0"); // encroach on a gang that respects
-      expect(s).toContain("you 6, they 6");
-      expect(s).toContain(`Your seat: the ${p === "Chief" ? "Police Chief" : p}`);
-    }
-    expect(placeholderPrompts.system("Families")).toContain("Your turf is Port, Hightown, Old Quarter");
-  });
-
-  it("keeps the system prompt free of day facts, so it caches", () => {
-    expect(placeholderPrompts.system("Chief")).not.toMatch(/Day \d/);
-  });
-
-  it("lists only the gang's own open districts for offers, and says the Port is closed", () => {
-    const s = placeholderPrompts.step("offers", view("Families"));
-    expect(s).toContain("(Hightown, Old Quarter)");
-    expect(s).toContain("storm (Port closed)");
-  });
-
-  it("tells the World not to invent causes", () => {
-    expect(placeholderPrompts.wire([])).toContain("no invented causes");
   });
 });
