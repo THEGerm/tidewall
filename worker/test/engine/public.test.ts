@@ -127,6 +127,7 @@ describe("public API", () => {
     expect(last.treasury).toBe(1000 + sum("Council"));
     expect(last.prison).toBeGreaterThanOrEqual(0);
     expect(["respect", "encroach"]).toContain(last.turf.Families);
+    for (const d of days) expect(d.prisonBy.Families + d.prisonBy.Saltdogs).toBe(d.prison);
   });
 
   it("lists runs with days played, and answers 404 and 405 plainly", async () => {
