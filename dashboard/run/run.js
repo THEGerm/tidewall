@@ -352,7 +352,7 @@ setInterval(async () => {
     const grew = next.days.length > summary.days.length;
     if (!next.run.live) { location.reload(); return; } // finished: reload to open the secrets
     summary = next;
-    $("status").textContent = `${STATUS[next.run.status] || next.run.status}, ${next.days.length} days played`;
+    $("status").textContent = `${STATUS[next.run.status] || next.run.status}, ${next.days.length} ${next.days.length === 1 ? "day" : "days"} played`;
     if (grew) {
       $("slider").max = next.days.length;
       if ($("main").hidden) { location.reload(); return; }
