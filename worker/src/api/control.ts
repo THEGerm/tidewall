@@ -17,7 +17,7 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     const { results: runs } = await env.DB.prepare(
       `SELECT id, model_set, triple, rotation, seating, status, pause_reason, step_queued,
               json_extract(state, '$.day') AS day, (lock_until > ?) AS playing
-       FROM runs ORDER BY triple, rotation`).bind(new Date().toISOString()).all();
+       FROM runs ORDER BY id`).bind(new Date().toISOString()).all(); // by run name (#113)
     const pace = Number((await meta("pace_minutes")) ?? 10);
     const last = (await env.DB.prepare("SELECT MAX(created_at) AS at FROM days").first<{ at: string | null }>())?.at ?? null;
     return json({
