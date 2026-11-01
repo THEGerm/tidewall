@@ -57,15 +57,15 @@ describe("triple sealing (Germ, 1 Nov)", () => {
     await call({ DB: db }, { confirm: "create the 27 study runs" });
     await db.prepare("UPDATE runs SET status = 'over' WHERE id = 'study-t1-r1'").run();
     expect(await publicExport(db, "study-t1-r1")).toBeNull();
-    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")!.live).toBe(true);
-    // withheld whole: no days, no Nature, no end day, no ledger rows
-    const { runSummary, dayView } = await import("../../src/engine/public");
-    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")).toMatchObject({ status: "sealed", days: 0 });
-    expect(await runSummary(db, "study-t1-r1")).toMatchObject({ run: { status: "sealed", days: 0 }, days: [] });
-    expect(await dayView(db, "study-t1-r1", 1)).toBeNull();
+    // finished, so not live, but sealed: public outcomes show, secrets wait (Germ, 1 Nov)
+    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")).toMatchObject({ status: "over", live: false, sealed: true });
+    const { runSummary } = await import("../../src/engine/public");
+    const sum = (await runSummary(db, "study-t1-r1"))!;
+    expect(sum.run).toMatchObject({ live: false, sealed: true });
+    expect(sum.run).not.toHaveProperty("seed");
     await db.prepare("UPDATE runs SET status = 'over' WHERE id IN ('study-t1-r2', 'study-t1-r3')").run();
     expect(await publicExport(db, "study-t1-r1")).not.toBeNull();
-    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")!.live).toBe(false);
+    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")).toMatchObject({ live: false, sealed: false });
     // test runs open as soon as they end
     const { createRun } = await import("../../src/engine/store");
     await createRun(db, { id: "t1", seed: "test-seed-1", triple: 0, rotation: 1, seating: SEATINGS[1], model_set: "test" });

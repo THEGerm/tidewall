@@ -249,7 +249,7 @@ The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Part
 - **Data and analysis pages:** every day of every run, raw logs, CSV and JSON downloads, and an across-runs view
 - **Ledger:** tokens and cost per day, participant and provider, against the cap
 - **Control:** create, start, pause, step; key check; the cap; models in use
-- **Public view:** anyone with the link can watch and replay. A test run's secrets open when it ends. A finished study run is withheld whole (status "sealed", no days) until all 3 runs of its triple have ended, since they share a seed: its Nature, end day and fallback draws would show what the other two still have to play. Watching a run live still shows each day's Nature as it happens. That can't reach the players, who never see the site, and nobody can change a run's moves. Keys and controls show only to a signed-in participant.
+- **Public view:** anyone with the link can watch and replay. A test run's secrets open when it ends. A study run's secrets (the seed, secret events, moves, messages, forecasts, answers and the full export) open only when all 3 runs of its triple have ended, since they share a seed. Public outcomes of a finished run stay visible on the dashboard, Nature and run length included: watching run 1 stop and run 2 start shows its length anyway. Diaries and texts to Sam are shown live, by design. None of this reaches the players, who never see the site, and nobody can change a run's moves. Keys and controls show only to a signed-in participant.
 
 ### Keys
 
@@ -269,8 +269,8 @@ The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Part
 
 **Fallback payback (#117).** Fallback calls create a debt. The debtor repays it through their Anthropic key on the creditor's days, and the Ledger page shows the balance. Two rules (Germ, 1 Nov):
 
-- **Expiring credit first.** Germ's Anthropic credit expires 18 Nov, so it's on hold: no payback goes ahead of Germ's own Anthropic key until 18 Nov, or until that credit runs out, whichever comes first.
-- **A dry key repays elsewhere.** If the debtor's Anthropic key is out of credit, the debtor repays through its Google and OpenAI keys instead. A key counts as dry from its last Anthropic call. After a top-up it counts as dry until its next successful call, which only happens on the debtor's own days.
+- **Expiring credit first.** Germ's Anthropic credit expires 18 Nov, so it's on hold: no payback goes ahead of Germ's own Anthropic key until the end of 18 Nov (2026-11-19 05:00 UTC), or until that credit runs out, whichever comes first.
+- **A dry key repays elsewhere.** If the debtor's Anthropic key is out of credit, the debtor repays through its Google and OpenAI keys instead. A key counts as dry from its last Anthropic call, and stays dry until its owner's next turn. No top-up is planned for Germ's expiring Anthropic credit.
 
 ### How it's built
 

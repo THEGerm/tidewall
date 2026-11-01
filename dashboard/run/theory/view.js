@@ -61,7 +61,7 @@ export async function get(url) {
 export async function load(id) {
   const summary = await get(`/api/runs/${id}`);
   const { run, days } = summary;
-  if (!run.live) {
+  if (!run.sealed) {
     const x = await get(`/api/runs/${id}/export`);
     return { run, summary, x: { ...x, secret: true }, views: null };
   }

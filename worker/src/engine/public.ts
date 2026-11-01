@@ -15,7 +15,8 @@ export const isLive = (status: Status) => status !== "over" && status !== "trunc
 // A study run's secrets stay closed until every run of its triple is over:
 // the 3 runs share a seed, so the first one's Nature, end day and fallback
 // draws would show what the other two still have to play (Germ, 1 Nov).
-// "live" in the public API means "secrets closed".
+// In the public API, "live" means the run hasn't finished, and "sealed" means
+// its secrets are still closed (live, or finished in an open triple).
 const inTriple = (run: { model_set: string; triple: number }) => run.model_set === "study" && run.triple > 0;
 export async function sealed(db: D1Database, run: RunRow): Promise<boolean> {
   if (isLive(run.status)) return true;
@@ -24,14 +25,9 @@ export async function sealed(db: D1Database, run: RunRow): Promise<boolean> {
   return !!open;
 }
 
-// A finished study run whose triple is still playing is withheld whole: its
-// days would show the shared seed's Nature and end day (Vishnu's review of
-// #127). It reads as status "sealed", with no days, until the triple ends.
-export const withheld = async (db: D1Database, run: RunRow) => !isLive(run.status) && (await sealed(db, run));
-const sealedRun = (run: RunRow) => ({
-  id: run.id, model_set: run.model_set, triple: run.triple, rotation: run.rotation, seating: run.seating,
-  rules_version: run.rules_version, status: "sealed", live: true, sealed: true, days: 0,
-});
+// Public outcomes of a finished run (Nature, day count, end day) stay visible:
+// watching r1 stop and r2 start shows its length anyway, and players never see
+// the site (Germ, 1 Nov). Only secret state waits for the triple.
 
 const parse = (v: unknown) => (typeof v === "string" ? JSON.parse(v) : v);
 
@@ -45,19 +41,16 @@ export async function listRuns(db: D1Database) {
     )
     .all<Record<string, any>>();
   const openTriples = new Set(results.filter((r) => inTriple(r as any) && isLive(r.status)).map((r) => r.triple));
-  return results.map((r) => {
-    const held = !isLive(r.status) && inTriple(r as any) && openTriples.has(r.triple);
-    return held
-      ? { ...r, seating: parse(r.seating), status: "sealed", live: true, sealed: true, days: 0, cost_usd: r.cost_usd ?? 0 }
-      : { ...r, seating: parse(r.seating), live: isLive(r.status), sealed: isLive(r.status), cost_usd: r.cost_usd ?? 0 };
-  });
+  return results.map((r) => ({
+    ...r, seating: parse(r.seating), live: isLive(r.status),
+    sealed: isLive(r.status) || (inTriple(r as any) && openTriples.has(r.triple)), cost_usd: r.cost_usd ?? 0,
+  }));
 }
 
 // One row per played day: what the run page charts. All of it is public.
 export async function runSummary(db: D1Database, id: string) {
   const run = await getRun(db, id);
   if (!run) return null;
-  if (await withheld(db, run)) return { run: sealedRun(run), days: [] };
   const { results: days } = await db
     .prepare("SELECT day, nature, delta FROM days WHERE run_id = ? ORDER BY day")
     .bind(id)
@@ -88,7 +81,8 @@ export async function runSummary(db: D1Database, id: string) {
   return { run: publicRun(run, days.length, await sealed(db, run)), days: series };
 }
 
-function publicRun(run: RunRow, played: number, live: boolean) {
+function publicRun(run: RunRow, played: number, closed: boolean) {
+  const live = isLive(run.status);
   return {
     id: run.id,
     model_set: run.model_set,
@@ -98,10 +92,10 @@ function publicRun(run: RunRow, played: number, live: boolean) {
     rules_version: run.rules_version,
     status: run.status,
     live,
-    sealed: live,
+    sealed: closed,
     days: played,
-    // The seed fixes Nature and the end day, so it waits for the end.
-    ...(live ? {} : { seed: run.seed, truncated: run.state.truncated }),
+    // The seed fixes Nature and the end day, so it waits for the triple.
+    ...(closed ? {} : { seed: run.seed, truncated: run.state.truncated }),
   };
 }
 
@@ -109,20 +103,19 @@ function publicRun(run: RunRow, played: number, live: boolean) {
 export async function dayView(db: D1Database, id: string, day: number) {
   const run = await getRun(db, id);
   if (!run) return null;
-  if (await withheld(db, run)) return null;
   const d = await db.prepare("SELECT * FROM days WHERE run_id = ? AND day = ?").bind(id, day).first<Record<string, any>>();
   if (!d) return null;
-  const live = await sealed(db, run);
+  const closed = await sealed(db, run);
   const rows = async (sql: string) => (await db.prepare(sql).bind(id, day).all<Record<string, any>>()).results;
 
-  const events = await rows(`SELECT * FROM events WHERE run_id = ? AND day = ? ${live ? "AND public = 1" : ""} ORDER BY rowid`);
+  const events = await rows(`SELECT * FROM events WHERE run_id = ? AND day = ? ${closed ? "AND public = 1" : ""} ORDER BY rowid`);
   const wire = await rows("SELECT headline, text, events FROM wire WHERE run_id = ? AND day = ? ORDER BY seq");
   const confidant = await rows("SELECT player, window, text, reply FROM confidant WHERE run_id = ? AND day = ? ORDER BY player, window = 'after'");
   // Every entry up to this day: the diary as each player holds it that night.
   const diary = await rows("SELECT day, player, text, forgotten_on FROM diaries WHERE run_id = ? AND day <= ? ORDER BY player, day");
 
   const base = {
-    run: { id, status: run.status, live },
+    run: { id, status: run.status, live: isLive(run.status), sealed: closed },
     day,
     ended: !!d.ended,
     nature: parse(d.nature),
@@ -144,7 +137,7 @@ export async function dayView(db: D1Database, id: string, day: number) {
       entries: diary.map((x) => ({ day: x.day, player: x.player, text: x.text, forgotten_on: x.forgotten_on != null && x.forgotten_on <= day ? x.forgotten_on : null })),
     },
   };
-  if (live) return base;
+  if (closed) return base;
 
   const messages = await rows("SELECT from_player, to_player, text FROM messages WHERE run_id = ? AND day = ? ORDER BY seq");
   const diaries = await rows("SELECT player, text FROM diaries WHERE run_id = ? AND day = ? ORDER BY player");
