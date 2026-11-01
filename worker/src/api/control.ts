@@ -90,7 +90,9 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   // The recognition check before the freeze (pre-registration; Zhou, Huang
   // et al. 2025, arXiv 2509.18052): each study model, each seat's prompt.
   if (path === "recognition" && request.method === "POST") {
-    const answers = await recognitionCheck(env.DB, env.KEY_ENC_SECRET);
+    const b = (await request.json().catch(() => null)) as { families?: string[] } | null;
+    const only = (b?.families ?? []).filter((f): f is "claude" | "gemini" | "gpt" => f === "claude" || f === "gemini" || f === "gpt");
+    const answers = await recognitionCheck(env.DB, env.KEY_ENC_SECRET, only);
     await log(env.DB, `${who} ran the recognition check: ${answers.filter((a) => a.text).length} of ${answers.length} answers.`);
     return json({ ok: true, answers });
   }

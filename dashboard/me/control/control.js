@@ -213,7 +213,8 @@ $("new-form").onsubmit = async (e) => {
 $("recog-btn").onclick = async () => {
   $("recog-msg").textContent = "Asking the study models... this takes a minute.";
   try {
-    const out = await api("recognition", { method: "POST" });
+    const fam = $("recog-family").value;
+    const out = await api("recognition", { method: "POST", body: JSON.stringify(fam ? { families: [fam] } : {}) });
     const ok = out.answers.filter((a) => a.text).length;
     const failed = out.answers.filter((a) => a.error).map((a) => `${a.model} as ${a.player}: ${a.error}`);
     $("recog-msg").textContent = `${ok} of ${out.answers.length} answers saved for coding.${failed.length ? ` Failed: ${failed.join("; ")}` : ""}`;

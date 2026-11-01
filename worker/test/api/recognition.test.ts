@@ -24,8 +24,21 @@ describe("recognition check", () => {
     expect(answers).toHaveLength(30);
     expect(answers.filter((a) => a.question === "play")).toHaveLength(15);
     expect(answers.every((a) => a.text && !a.error)).toBe(true);
-    const saved = JSON.parse((await db.prepare("SELECT value FROM meta WHERE key = 'recognition_check'").first<{ value: string }>())!.value);
+    const saved = JSON.parse((await db.prepare("SELECT value FROM meta WHERE key LIKE 'recognition_check:%'").first<{ value: string }>())!.value);
     expect(saved.questions).toEqual(QUESTIONS);
     expect((await db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE run_id = 'recognition-check'").first<{ n: number }>())!.n).toBe(30);
+  });
+
+  it("can ask one model only, with room to think, and keeps each run apart", async () => {
+    const db = testD1();
+    await db.prepare("INSERT INTO participants (email, name, turn_order) VALUES ('g@x', 'Germ', 1), ('s@x', 'Shazz', 2)").run();
+    for (const p of ["anthropic", "google", "openai"] as const) await saveKey(db, SECRET, "g@x", p, `test-key-${p}-0000000000000000`);
+    await db.prepare("INSERT INTO meta (key, value) VALUES ('recognition_check', '{\"first\":true}')").run();
+    const answers = await recognitionCheck(db, SECRET, ["claude"]);
+    expect(answers).toHaveLength(10);
+    expect(answers.every((a) => a.family === "claude")).toBe(true);
+    const { callModel } = await import("../../src/providers");
+    expect((callModel as any).mock.calls.at(-1)[2].maxOutputTokens).toBe(4000);
+    expect((await db.prepare("SELECT value FROM meta WHERE key = 'recognition_check'").first<{ value: string }>())!.value).toBe('{"first":true}');
   });
 });
