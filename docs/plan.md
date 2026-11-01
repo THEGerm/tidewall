@@ -13,7 +13,7 @@ The exact rules are in [rules.md](rules.md). The hypotheses and their decision r
 ## The bottom line
 
 - **3 seats:** Government (Council and Police Chief), Criminals (Families and Saltdogs), World. **3 models:** Claude Opus 5.5, Gemini 4 Argon, GPT-6.1 Sol, all at medium reasoning effort.
-- **27 study runs in 9 triples.** Each triple shares one seed and plays all 3 rotations, so each model holds each seat 9 times.
+- **27 study runs in 9 triples.** Each triple shares one seed and plays 3 rotations, from one of two Latin squares, so each model holds each seat 9 times.
 - **4 games inside the city:** an inspection game (police against crime), a repeated prisoner's dilemma (gang against gang), a bribery game (gang, Chief, Council) and an information game (the World and the news).
 - **Payoffs are numbers,** known to every player and scored by the engine. Narrative scores nothing.
 - **The end day is random:** at least 12 days, then an 8% chance each day that it's the last. Expected 23.3 days, median 20.
@@ -160,8 +160,11 @@ A known last day makes cooperation unravel backwards in theory. With no known la
 | 1 | Claude | Gemini | GPT |
 | 2 | Gemini | GPT | Claude |
 | 3 | GPT | Claude | Gemini |
+| 4 | Claude | GPT | Gemini |
+| 5 | GPT | Gemini | Claude |
+| 6 | Gemini | Claude | GPT |
 
-Each triple plays rotations 1, 2 and 3 on one seed. 9 triples, 27 runs. One button on Control creates all 27, ready, as study-t1-r1 to study-t9-r3. With the schedule on, they play in that order. A test run created during the study (triple 0) would play before the remaining study runs, so none is created then. Within a triple, Nature, the end day, Sam's replies and every fallback draw are identical. Only the seating changes.
+Odd triples (1, 3, 5, 7, 9) play rotations 1 to 3, the first Latin square. Even triples (2, 4, 6, 8) play rotations 4 to 6, the mirror square. In one square, each (World, holder) pair always falls in the same seat, so the World x holder interaction H5 tests would be the seat effect; with both squares every pair falls in both seats (Germ, 1 Nov). 9 triples, 27 runs, and each model still holds each seat 9 times. One button on Control creates all 27, ready, as study-t1-r1 to study-t9-r3. With the schedule on, they play in that order. A test run created during the study (triple 0) would play before the remaining study runs, so none is created then. Within a triple, Nature, the end day, Sam's replies and every fallback draw are identical. Only the seating changes.
 
 The 9 seeds come from drand round 6601923, published 31 Oct 2026, by a rule fixed in advance ([seeds.md](seeds.md)). One round was drawn, and no game has been played on them. Control refuses a study run whose seed doesn't match its triple.
 
@@ -393,12 +396,16 @@ Decided 30 to 31 Oct:
 | 31 Oct | Fallback: yesterday's move, seeded draw on day 1; infrastructure days replayed | Germ |
 | 31 Oct | Seeds from drand round 6601923 | Germ |
 | 31 Oct | One game day every 2 minutes | Germ |
+| 1 Nov | Two Latin squares: odd triples rotations 1 to 3, even triples 4 to 6, so H5's interaction is identifiable | Germ |
+| 1 Nov | A skipped or failed confirmatory test stays in Holm at p = 1 | Germ |
+| 1 Nov | Changes from six papers read before the freeze: valid-move floor and a beliefs-free baseline for lambda (arXiv 2603.10029); deception typology and an exploratory model x seat term (2607.05132); judged text marked as data, a second-template check (2506.09443); a human check on the judges (2603.18894); a recognition check on the prompts (2509.18052). Details in the pre-registration | Germ |
 | 31 Oct | Fallback payback through the debtor's Anthropic key (#117), proposed by Vishnu | Germ |
 | 30 Oct | Workers Paid plan ($5 a month), which brings D1 Time Travel | Germ |
 
 ## What changed from rev 3
 
 - 1 run a week for 9 weeks became 27 runs in 9 triples, played back to back over about 2 to 3 days.
+- One rotation cycle became two Latin squares, alternating by triple.
 - The end rule went from 2% a day from day 1 (expected 50, stated 150-day cap) to a 12-day minimum, then 8% (expected 23.3, hidden 60-day cap).
 - One end day reused every week became one seed per triple, published from drand.
 - Payoffs now match the engine: the Council scores the treasury; the Chief scores its account minus a 15 performance mark; approval is gone.

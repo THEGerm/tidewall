@@ -6,6 +6,9 @@ const SEATINGS = {
   1: { Government: "claude", Criminals: "gemini", World: "gpt" },
   2: { Government: "gemini", Criminals: "gpt", World: "claude" },
   3: { Government: "gpt", Criminals: "claude", World: "gemini" },
+  4: { Government: "claude", Criminals: "gpt", World: "gemini" },
+  5: { Government: "gpt", Criminals: "gemini", World: "claude" },
+  6: { Government: "gemini", Criminals: "claude", World: "gpt" },
 };
 const STATUS = { ready: "Ready", running: "Running", paused: "Paused", over: "Finished", truncated: "Finished (cap)", sealed: "Finished, sealed until its triple ends" };
 
@@ -204,6 +207,17 @@ $("new-form").onsubmit = async (e) => {
     state = await api("status");
     render();
   } catch (err) { $("new-msg").textContent = err.message; }
+};
+
+// The recognition check before the freeze (Zhou, Huang et al. 2025).
+$("recog-btn").onclick = async () => {
+  $("recog-msg").textContent = "Asking the study models... this takes a minute.";
+  try {
+    const out = await api("recognition", { method: "POST" });
+    const ok = out.answers.filter((a) => a.text).length;
+    const failed = out.answers.filter((a) => a.error).map((a) => `${a.model} as ${a.player}: ${a.error}`);
+    $("recog-msg").textContent = `${ok} of ${out.answers.length} answers saved for coding.${failed.length ? ` Failed: ${failed.join("; ")}` : ""}`;
+  } catch (err) { $("recog-msg").textContent = err.message; }
 };
 
 // The 27 study runs (#38). The server refuses without the typed phrase and if

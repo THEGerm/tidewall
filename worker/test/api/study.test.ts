@@ -21,15 +21,28 @@ describe("study runs", () => {
     for (let t = 1; t <= 9; t++) expect(await studySeed(t)).toBe(table[t]);
   });
 
-  it("plan 27 runs: each triple shares a seed and plays rotations 1 to 3 in order", async () => {
+  it("plan 27 runs: each triple shares a seed; odd triples play rotations 1 to 3, even ones 4 to 6", async () => {
     const plan = await studyPlan();
     expect(plan).toHaveLength(27);
-    expect(plan.map((r) => r.id).slice(0, 4)).toEqual(["study-t1-r1", "study-t1-r2", "study-t1-r3", "study-t2-r1"]);
+    expect(plan.map((r) => r.id).slice(0, 6)).toEqual(["study-t1-r1", "study-t1-r2", "study-t1-r3", "study-t2-r4", "study-t2-r5", "study-t2-r6"]);
+    expect(plan.at(-1)!.id).toBe("study-t9-r3");
     for (let t = 1; t <= 9; t++) {
       const runs = plan.filter((r) => r.triple === t);
       expect(new Set(runs.map((r) => r.seed)).size).toBe(1);
-      expect(runs.map((r) => r.seating)).toEqual([SEATINGS[1], SEATINGS[2], SEATINGS[3]]);
+      const rs = t % 2 ? [1, 2, 3] as const : [4, 5, 6] as const;
+      expect(runs.map((r) => r.rotation)).toEqual([...rs]);
+      expect(runs.map((r) => r.seating)).toEqual(rs.map((r) => SEATINGS[r]));
+      // each triple is a Latin square: every model in every seat once
+      for (const seat of ["Government", "Criminals", "World"] as const) expect(new Set(runs.map((r) => r.seating[seat])).size).toBe(3);
     }
+    // H5 (Germ, 1 Nov): every (World, holder) pair falls in both seats across the study
+    const pairs = new Map<string, Set<string>>();
+    for (const r of plan) for (const seat of ["Government", "Criminals"] as const) {
+      const k = `${r.seating.World}>${r.seating[seat]}`;
+      pairs.set(k, (pairs.get(k) ?? new Set()).add(seat));
+    }
+    expect(pairs.size).toBe(6);
+    for (const seats of pairs.values()) expect(seats.size).toBe(2);
     // every model holds every seat 9 times
     for (const seat of ["Government", "Criminals", "World"] as const)
       for (const m of ["claude", "gemini", "gpt"]) expect(plan.filter((r) => r.seating[seat] === m)).toHaveLength(9);
