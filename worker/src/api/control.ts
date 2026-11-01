@@ -4,6 +4,7 @@
 import type { Env } from "../index";
 import { createRun, getRun, setStatus, type Seating } from "../engine/store";
 import { blocker } from "../engine/runner";
+import { DRAND_ROUND, studyPlan } from "../engine/study";
 import { log, recentLog } from "../engine/log";
 import { runLedger, studySpend } from "../ledger/ledger";
 import { EFFORT, MODELS, TEST_MODELS } from "../players/models";
@@ -79,6 +80,21 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     }
     await log(env.DB, `${who} created ${run.id} (${run.model_set} models, triple ${b!.triple}, rotation ${b!.rotation}).`, { run: run.id });
     return json({ ok: true, run: { id: run.id, status: run.status } });
+  }
+
+  // The 27 study runs at once (#38), from the published seeds. They are
+  // created ready; with the schedule on, the scheduler plays them one after
+  // another in triple and rotation order. Refused if any study run exists, and
+  // only with the typed confirmation, so a stray click can't start the study.
+  if (path === "study" && request.method === "POST") {
+    const b = (await request.json().catch(() => null)) as { confirm?: string } | null;
+    if (b?.confirm !== "create the 27 study runs") return json({ ok: false, error: 'type "create the 27 study runs" to confirm' }, 400);
+    const existing = await env.DB.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 LIMIT 1").first<{ id: string }>();
+    if (existing) return json({ ok: false, error: `study runs already exist (${existing.id})` }, 409);
+    const plan = await studyPlan();
+    for (const r of plan) await createRun(env.DB, { ...r, model_set: "study" });
+    await log(env.DB, `${who} created the 27 study runs (9 triples, seeds from drand round ${DRAND_ROUND}). With the schedule on, they play in order from ${plan[0].id}.`);
+    return json({ ok: true, runs: plan.map((r) => ({ id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation })) });
   }
 
   const m = path.match(/^runs\/([a-z0-9-]+)\/(step|pause|resume|check|ledger|end)$/);

@@ -160,7 +160,7 @@ A known last day makes cooperation unravel backwards in theory. With no known la
 | 2 | Gemini | GPT | Claude |
 | 3 | GPT | Claude | Gemini |
 
-Each triple plays rotations 1, 2 and 3 on one seed. 9 triples, 27 runs. Within a triple, Nature, the end day, Sam's replies and every fallback draw are identical. Only the seating changes.
+Each triple plays rotations 1, 2 and 3 on one seed. 9 triples, 27 runs. One button on Control creates all 27, ready, as study-t1-r1 to study-t9-r3. With the schedule on, they play in that order. A test run created during the study (triple 0) would play before the remaining study runs, so none is created then. Within a triple, Nature, the end day, Sam's replies and every fallback draw are identical. Only the seating changes.
 
 The 9 seeds come from drand round 6601923, published 31 Oct 2026, by a rule fixed in advance ([seeds.md](seeds.md)). One round was drawn, and no game has been played on them. Control refuses a study run whose seed doesn't match its triple.
 
@@ -312,7 +312,7 @@ Diaries add about 130 tokens a day, read at every step, so late days in a run co
 | ⏳ Before run 1 | Pre-registration (#115) and the forecast split | Vishnu, due 3 Nov |
 | ⏳ Before run 1 | Per-model key check, OpenRouter keys | Vishnu |
 | ⏳ Before run 1 | This plan, rev 4 | Germ, Shazz |
-| ⏳ Before run 1 | The 27-run script | JARVIS (Germ's agent) |
+| ✅ Done | Create the 27 study runs: one button on Control, seeds derived in the Worker and checked against seeds.md | JARVIS (Germ's agent) |
 | ⏳ Before run 1 | Prompt audit of the rendered prompts | JARVIS |
 | ⏳ Before run 1 | One final test run | Germ |
 | ⏳ Before run 1 | Smoke test of the study models, 1 to 2 days | Germ |

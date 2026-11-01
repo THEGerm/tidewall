@@ -206,6 +206,20 @@ $("new-form").onsubmit = async (e) => {
   } catch (err) { $("new-msg").textContent = err.message; }
 };
 
+// The 27 study runs (#38). The server refuses without the typed phrase and if
+// any study run exists, so this can only happen once.
+$("study-btn").onclick = async () => {
+  const phrase = "create the 27 study runs";
+  const typed = prompt(`This creates the 27 study runs from the published seeds. With the schedule on, the study starts.\n\nType "${phrase}" to go ahead.`);
+  if (typed === null) return;
+  try {
+    const out = await api("study", { method: "POST", body: JSON.stringify({ confirm: typed.trim().toLowerCase() }) });
+    $("study-msg").textContent = `Created ${out.runs.length} study runs, ${out.runs[0].id} to ${out.runs.at(-1).id}. Turn the schedule on to start.`;
+    state = await api("status");
+    render();
+  } catch (err) { $("study-msg").textContent = err.message; }
+};
+
 // "20:31" in the reader's own time zone.
 const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
