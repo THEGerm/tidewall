@@ -14,6 +14,9 @@ export const RULES_VERSION = "draft-3";
 
 export type Status = "ready" | "running" | "paused" | "over" | "truncated";
 
+// Rotations 1 to 3 are the first Latin square, 4 to 6 the mirror one (Germ, 1 Nov).
+export type Rotation = 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface Seating {
   Government: string;
   Criminals: string;
@@ -29,7 +32,7 @@ export interface RunRow {
   model_set: RunSet;
   seed: string;
   triple: number;
-  rotation: 1 | 2 | 3;
+  rotation: Rotation;
   seating: Seating;
   rules_version: string;
   status: Status;
@@ -47,7 +50,7 @@ export interface ConfidantRow {
 const now = () => new Date().toISOString();
 const json = (v: unknown) => JSON.stringify(v);
 
-type NewRun = { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number; bot_turf?: "encroach" };
+type NewRun = { id: string; seed: string; triple: number; rotation: Rotation; seating: Seating; model_set?: RunSet; fixed_days?: number; bot_turf?: "encroach" };
 
 // The insert for a new run, so several can go in one batch (the 27 study runs).
 export function createRunStatement(db: D1Database, run: NewRun): { stmt: D1PreparedStatement; row: RunRow } {

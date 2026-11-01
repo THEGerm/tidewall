@@ -33,7 +33,7 @@ TABLES = {
 
 COMMON = {
     "run": ("id", "run id, e.g. 004-germ"),
-    "rotation": ("1 to 3", "Latin-square rotation of the run"),
+    "rotation": ("1 to 6", "Latin-square rotation: 1 to 3 the first square (odd triples), 4 to 6 the mirror square (even triples)"),
     "triple": ("integer", "Latin-square triple (seed group) of the run"),
     "model_set": ("text", "model set of the run; 'test' runs are not study data"),
     "seating": ("text", "families in the run's seats: G = Government, C = Criminals, W = World"),

@@ -6,6 +6,9 @@ const SEATINGS = {
   1: { Government: "claude", Criminals: "gemini", World: "gpt" },
   2: { Government: "gemini", Criminals: "gpt", World: "claude" },
   3: { Government: "gpt", Criminals: "claude", World: "gemini" },
+  4: { Government: "claude", Criminals: "gpt", World: "gemini" },
+  5: { Government: "gpt", Criminals: "gemini", World: "claude" },
+  6: { Government: "gemini", Criminals: "claude", World: "gpt" },
 };
 const STATUS = { ready: "Ready", running: "Running", paused: "Paused", over: "Finished", truncated: "Finished (cap)", sealed: "Finished, sealed until its triple ends" };
 
