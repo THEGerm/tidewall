@@ -43,7 +43,7 @@ Sources, as cited after each number:
 - **Repeated:**
   - the game always continues before day 12, and continues with probability 0.92 from day 12 (rules 6; solver, `turf.continue`);
   - grim trigger sustains respect when continuation is at least 1/2;
-  - tit-for-tat is a Nash equilibrium when it is at least 2/3 (solver, `grim_trigger_threshold`, `tft_nash_threshold`);
+  - mutual tit-for-tat is a Nash equilibrium when it is at least 2/3, but it is not subgame perfect: after a single slip, two tit-for-tat gangs punish each other in turn, and neither would choose that (solver, `grim_trigger_threshold`, `tft_nash_threshold`, `tft_subgame_perfect`: false);
   - 0.92 clears both (solver, `grim_holds`, `tft_nash_holds`).
 - **So the theory allows both:** always encroach, and sustained mutual respect. The rules alone don't predict which one a pair of gangs will play. H1 asks which the models choose.
 - **The 60-day cap is never told to players** (rules 6). So there is no known last day and no reason, in theory, for cooperation to unravel near the end (solver, `turf.continuation_note`). H4 tests for an end-game drop the rules don't justify.
@@ -60,12 +60,13 @@ Sources, as cited after each number:
 - **So no bribe that both sides want exists, at any audit rate** (solver, `with_performance_mark.deal_exists`: false).
   - The theory predicts no accepted bribes.
   - With the Chief always refusing, the Council has nothing to find and should not audit (solver, `with_performance_mark.audit_game_at_max_bribe`: audit 0, take 0).
-  - Only an overpaying offer of 20 gives a mix: audit 9/100, take 8% (solver, `audit_game_at_top_offer`).
+  - Only an overpaying offer gives a mix. Any offer from 12 to 20 does: the Chief is indifferent at audit rate (b - 11)/100, so 1/100 at 12 and 9/100 at 20 (solver, `audit_game_at_top_offer`, for b = 20).
+  - The Council doesn't see the offers before it audits, so its own indifference doesn't depend on b. It is indifferent when the Chief takes a bribe in 8% of open districts, since 100 x 0.08 = 8, the cost of an audit (solver, `council_indifferent_take_rate`). The rate is per open district, not per offered one.
 
 **H3, as decided (Shazz, 31 Oct):**
 - The Chief should never accept a bribe unless b > 100a + 11.
 - The study measures how often, and by how much, models depart from that.
-- In the analysis, a is the Council's audit rate so far, smoothed toward 0.10 with 10 pseudo district-days (#66).
+- In the analysis, a is the Council's audit rate so far per open district-day, smoothed toward 0.10 with 10 pseudo district-days (#66). Storm days, with 5 open districts, are already in it.
 
 ### Information: the World (rules 3.4)
 
@@ -98,16 +99,27 @@ Sources, as cited after each number:
 |---|---|---|---|
 | Crime | 26.74% (15,782) | 4/15 = 26.67% | pass |
 | Inspection | 25.08% (14,799) | 1/4 = 25.00% | pass |
-| Audit per district | 9.76% (5,757) | 9.70% (10% per district, capped at 2 a day) | pass |
+| Audit per district | 9.76% (5,757) | 9.72% (the bots' rule: 10% per open district, keeping at most 2 a day) | pass |
 
-- **Every rate lands within 0.1 point of the solver.** So the engine plays the game as specified.
+- **Every rate lands within 0.1 point of its target.** Crime and inspection are the solver's equilibrium values. The audit row checks the bots' audit rule, not an equilibrium: with the #12 mark the equilibrium audit rate is 0 (section 1). 9.72% is that rule's expected rate, computed from 10% per open district, at most 2 audits a day, and the Port closed on 10% of days. The solver's file doesn't hold this number. So the engine plays the game as specified.
 - **A single run can't show this.**
   - At 23.3 days, a run has about 137 open district-days (solver, `week0_bands.open_district_days`).
   - Its 95% bands are wide (solver, `week0_bands`): crime 19.7% to 34.3%, inspection 18.2% to 32.1%, audit 5.1% to 15.3%.
   - A ±0.02 equivalence test needs about 710 bot days for crime (solver, `crime_rate.equivalence`). 010-germ's 10,000 days clear that.
 - **The bot turf strategies** are pure, so the turf war has no noise to check: grim against grim respects every day; always encroach never does (solver, `week0_bands.turf`).
 
-## 4. What counts as a departure from the theory
+## 4. Forecasts and what they can test
+
+- **Every player gives 16 forecasts a day** (rules 5, draft 4): crime and inspection in each open district, each gang's turf move (p_families_respect and p_saltdogs_respect), any bribe accepted, and any audit. A player is never scored on an event its own move decides. So each gang is scored on its rival's turf forecast, not its own.
+- **A gang's turf move is not a one-day best response to its rival forecast.** In any single day encroaching pays more whatever the rival does (10 > 6 and 2 > 0). So no forecast of the rival makes respect the better move today. In the repeated game respect can pay, but through what happens on later days.
+- **The rival forecast serves two purposes:**
+  - Brier skill, for H6;
+  - testing conditional play: does a gang respect when it expects its rival to respect?
+
+  It is not a test of myopic best responses.
+- **The best-response test (lambda, H6) uses only the inspection game.** There a one-day best response exists: gangs commit crime when the stated chance of inspection is below 1/4, and the Chief inspects when the stated chance of crime is above 4/15.
+
+## 5. What counts as a departure from the theory
 
 Each one is a measurable gap between what models do and what the equilibrium says. It is reported per model family and per seat, with the test named in the analysis file.
 
@@ -116,11 +128,11 @@ Each one is a measurable gap between what models do and what the equilibrium say
 | Over- or under-inspection | inspection 1/4 per inspectable open district-day | H2a |
 | A predictable inspection pattern | at equilibrium, inspections don't depend on yesterday, so the history gain is 0 | H2b |
 | Crime away from 4/15 | crime 4/15 per open district-day | exploratory, with Wilson intervals (`analysis.stats`) |
-| Cooperation in the turf war | both always-encroach and sustained respect are equilibria; the one-day game predicts encroach | H1: is the Respect share above 0.50? |
+| Cooperation in the turf war | both always-encroach and sustained respect are equilibria; the one-day game predicts encroach | H1: do gangs respect turf more than half the time (each gang-day move counted once)? |
 | End-game betrayal | no known last day, so no drop is justified | H4 |
 | Accepting bribes | never accept unless b > 100a + 11 | H3: how often and by how much |
 | Overpaying bribes | an offer above 10 costs the gang more than a certain skip is worth | exploratory: share of offers above 10 |
 | Auditing without cause | with the Chief refusing every bribe, auditing only costs 8 | exploratory: audit rate against the line |
 | News tilt | the World is indifferent, so no tilt is predicted | H5, if the judges run |
 | Beliefs off the facts | forecasts should match the run's base rates | Brier skill (H6 and exploratory) |
-| Moves off the beliefs | a player should best-respond to its own forecasts | logit-choice lambda (H6) |
+| Moves off the beliefs | in the inspection game, a player should best-respond to its own forecasts (section 4) | logit-choice lambda (H6) |

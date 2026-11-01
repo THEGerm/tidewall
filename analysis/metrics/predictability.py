@@ -91,7 +91,7 @@ def _logloss(p, y, eps=1e-6):
     return -log(p) if y else -log(1 - p)
 
 
-def history_gain(inspections, crimes, warmup=5):
+def history_gain(inspections, crimes, warmup=5, score_mask=None):
     """H2b (issue #17): can the police's inspections be predicted from the
     previous day better than from their overall rate so far?
 
@@ -107,6 +107,9 @@ def history_gain(inspections, crimes, warmup=5):
     equilibrium, inspections are independent of history and the gain is 0.
 
     inspections, crimes: lists of days, each a list of booleans per district.
+    score_mask: the same shape, True where a district-day counts (for H2b,
+    inspectable open district-days). Masked-out district-days are neither
+    fitted nor scored, but still serve as yesterday's history. None counts all.
     Returns the mean gain in log loss per district-day (baseline minus
     history model; positive means predictable), its standard error from
     day-level sums (district-days within a day aren't independent), a
@@ -116,14 +119,18 @@ def history_gain(inspections, crimes, warmup=5):
     if len(inspections) != len(crimes) or len(inspections) <= warmup + 1:
         raise ValueError("need equal inspection and crime logs longer than the warm-up")
     districts = len(inspections[0])
+    mask = score_mask or [[True] * districts for _ in inspections]
     day_gains, separated = [], 0
     for t in range(max(warmup, 1), len(inspections)):
+        if not any(mask[t]):
+            continue
         rows, ys = [], []
         for day in range(1, t):
             for d in range(districts):
-                rows.append(_features(inspections, crimes, day, d))
-                ys.append(1 if inspections[day][d] else 0)
-        so_far = [v for day in inspections[:t] for v in day]
+                if mask[day][d]:
+                    rows.append(_features(inspections, crimes, day, d))
+                    ys.append(1 if inspections[day][d] else 0)
+        so_far = [v for day, m in zip(inspections[:t], mask[:t]) for v, ok in zip(day, m) if ok]
         base_p = (sum(so_far) + 1) / (len(so_far) + 2)
         fit = logit(rows, ys, names=["b0", "own_prev", "city_prev", "crime_prev"]) if len(set(ys)) > 1 else None
         if fit is None or fit["separated"]:
@@ -142,8 +149,11 @@ def history_gain(inspections, crimes, warmup=5):
                 cell = table.setdefault((x[1], x[3]), [0, 0])
                 cell[0] += yv
                 cell[1] += 1
-        gain = 0.0
+        gain, scored = 0.0, 0
         for d in range(districts):
+            if not mask[t][d]:
+                continue
+            scored += 1
             y = inspections[t][d]
             if coef is None:
                 f = _features(inspections, crimes, t, d)
@@ -153,8 +163,10 @@ def history_gain(inspections, crimes, warmup=5):
                 z = sum(c * x for c, x in zip(coef, _features(inspections, crimes, t, d)))
                 p_model = 1 / (1 + exp(-z))
             gain += _logloss(base_p, y) - _logloss(p_model, y)
-        day_gains.append(gain / districts)
+        day_gains.append(gain / scored)
     n = len(day_gains)
+    if n == 0:
+        return {"gain_per_district_day": float("nan"), "se": float("nan"), "z": float("nan"), "days_scored": 0, "separated_days": separated}
     mean = sum(day_gains) / n
     var = sum((g - mean) ** 2 for g in day_gains) / (n - 1) if n > 1 else float("nan")
     se = (var / n) ** 0.5 if n > 1 else float("nan")

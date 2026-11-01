@@ -102,7 +102,9 @@ class OtherModels(unittest.TestCase):
                                       "holder_family": holder, "run": f"r{k}", "item": f"r{k}-{seat}-{i}", "judge": judge})
         post = models.fit(models.h5_tone(items), **QUICK)
         d = decide.h5(post)
-        self.assertTrue(any(v["clears"] for v in d.values()), d)
+        self.assertEqual(d["H5 omnibus"]["df"], 1)  # 6 occupied cells, additive model uses 5
+        self.assertTrue(d["H5 omnibus"]["clears"], d["H5 omnibus"])
+        self.assertTrue(all(v.get("measure") for k, v in d.items() if k != "H5 omnibus"))
 
     def test_refusals_hurdle_model_fits(self):
         from analysis.bayes import models
@@ -115,6 +117,28 @@ class OtherModels(unittest.TestCase):
             runs.append(data.Run({"id": f"r{k}", "triple": 0, "seating": {}}, player_days=pd_))
         post = models.fit(models.refusals(runs), **QUICK)
         self.assertIn("seat", list(post["posterior"].data_vars) if hasattr(post, "children") else list(post.posterior.data_vars))
+
+
+@unittest.skipUnless(HAVE, "needs bambi and pymc (analysis/bayes/requirements.txt)")
+class FitLadder(unittest.TestCase):
+    def test_a_good_fit_passes_on_the_first_rung(self):
+        import functools
+        from analysis.bayes import models
+        post, log = models.fit_checked(functools.partial(models.h2a_inspection, sim_runs()), draws=1000, tune=1000, chains=4)
+        self.assertIsNotNone(post, log)
+        self.assertTrue(log[0]["passed"], log)
+        self.assertEqual(len(log), 1)
+
+    def test_a_short_fit_fails_the_ess_rule_and_climbs(self):
+        import functools
+        from analysis.bayes import decide, models
+        tiny = ({"target_accept": 0.95, "draws": 30, "tune": 30}, {"target_accept": 0.95, "draws": 30, "tune": 30, "simple": True})
+        post, log = models.fit_checked(functools.partial(models.h4_turf, sim_runs()), ladder=tiny, chains=2)
+        self.assertIsNone(post)
+        self.assertEqual([r["rung"]["simple"] for r in log], [False, True])
+        self.assertTrue(any("ESS" in reason for r in log for reason in r["reasons"]))
+        u = decide.unreliable("H4 day", log)["H4 day"]
+        self.assertEqual((u["p"], u["clears"], u["note"]), (1.0, False, "not confirmed (fit unreliable)"))
 
 
 @unittest.skipUnless(HAVE, "needs numpy")
@@ -132,6 +156,10 @@ class Rules(unittest.TestCase):
         both = decide.confirm({"a": up, "b": none})
         self.assertTrue(both["a"]["holm_reject"])
         self.assertFalse(both["b"]["holm_reject"])
+        # An unreliable fit and judges below 0.70 stay in Holm at p = 1.
+        fam = decide.confirm({"a": up, **decide.unreliable("u"), **decide.h5_unreliable_judges(0.62)})
+        self.assertEqual(len([k for k, v in fam.items() if "holm" in v]), 3)
+        self.assertEqual(fam["H5 omnibus"]["p"], 1.0)
 
 
 if __name__ == "__main__":

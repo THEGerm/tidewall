@@ -52,14 +52,36 @@ class H1(unittest.TestCase):
 
 
 class H2b(unittest.TestCase):
-    def test_pooled_gain(self):
-        self.assertTrue(rl.h2b([{"run": i, "gain": 0.05 + 0.01 * (i % 3)} for i in range(9)])["clears"])
-        self.assertFalse(rl.h2b([{"run": i, "gain": (-1) ** i * 0.02} for i in range(10)])["clears"])
+    def test_pooled_gain_on_triple_means(self):
+        rows = [{"run": i, "triple": i // 3, "gain": 0.05 + 0.01 * (i % 3) + 0.002 * (i // 3)} for i in range(27)]
+        r = rl.h2b(rows)
+        self.assertTrue(r["clears"])
+        self.assertEqual((r["triples"], r["df"]), (9, 8))
+        noise = [{"run": i, "triple": i // 3, "gain": (-1) ** (i // 3) * 0.02} for i in range(27)]
+        self.assertFalse(rl.h2b(noise)["clears"])
+
+    def test_edge_cases_with_no_spread(self):
+        flat = lambda g: [{"run": i, "triple": i // 3, "gain": g} for i in range(9)]
+        self.assertEqual(rl.h2b(flat(0.03))["p"], 0.0)
+        self.assertEqual(rl.h2b(flat(-0.03))["p"], 1.0)  # not 0.5
+        self.assertEqual(rl.h2b(flat(0.0))["p"], 1.0)
+        with self.assertRaises(ValueError):
+            rl.h2b(flat(0.01)[:3])  # one triple
 
     def test_gains_from_exports(self):
         r = rl.history_gains([data.load(RUNS / "004-germ.json"), data.load(RUNS / "005-germ.json")])
         self.assertEqual([x["run"] for x in r], ["004-germ", "005-germ"])
         self.assertTrue(all(x["gain"] == x["gain"] for x in r))  # not nan
+
+    def test_only_inspectable_open_district_days_are_scored(self):
+        from analysis.metrics import predictability
+        insp = [[i % 2 == 0, False] for i in range(12)]
+        crime = [[False, False] for _ in range(12)]
+        all_ = predictability.history_gain(insp, crime, 3)
+        first_only = predictability.history_gain(insp, crime, 3, score_mask=[[True, False] for _ in range(12)])
+        self.assertGreater(first_only["gain_per_district_day"], all_["gain_per_district_day"])  # the dead column dilutes it
+        none = predictability.history_gain(insp, crime, 3, score_mask=[[False, False] for _ in range(12)])
+        self.assertEqual(none["days_scored"], 0)
 
 
 class H6(unittest.TestCase):
@@ -84,12 +106,45 @@ class H6(unittest.TestCase):
         r = rl.h6(square(noise=0.2, seed=4), resamples=1000)
         self.assertFalse(r["clears"])
 
+    def test_unbalanced_square_uses_type_ii(self):
+        rows = square(model_fx={"claude": 1, "gemini": 0, "gpt": -1}, noise=0.05)
+        # Drop a third of one model's cells: the square is no longer balanced.
+        dropped = [r for i, r in enumerate(rows) if not (r["model"] == "claude" and i % 3 == 0)]
+        w = rl.omega_squared(dropped)
+        self.assertGreater(w["model"], 0.9)
+        self.assertLess(abs(w["seat"]), 0.03)
+        # A seat effect confounded by the imbalance is still separated from model.
+        rows = square(seat_fx={"Government": 1, "Criminals": 0, "World": -1}, noise=0.05)
+        w = rl.omega_squared([r for r in rows if not (r["seat"] == "World" and r["model"] == "gpt")])
+        self.assertGreater(w["seat"], 0.9)
+        self.assertLess(abs(w["model"]), 0.03)
+
+    def test_separated_rows_are_left_out_and_counted(self):
+        rows = square(model_fx={"claude": 0.3, "gemini": 0, "gpt": -0.3})
+        rows[0]["separated"] = True
+        rows[5]["separated"] = True
+        r = rl.h6(rows, resamples=200)
+        self.assertEqual(sum(r["separated_left_out"].values()), 2)
+        self.assertEqual(r["rows"], len(rows) - 2)
+
     def test_rows_from_exports(self):
         runs = [data.load(RUNS / f"00{i}-germ.json") for i in (4, 5)]
         b = rl.brier_skill_rows(runs)
         self.assertTrue(b and all(r["seat"] in SEATS and r["model"] in FAMS for r in b))
         lam = rl.lambda_rows(runs)
+        self.assertTrue(lam, "lambda_rows found nothing in 004 and 005")
         self.assertTrue(all(r["seat"] in ("Government", "Criminals") for r in lam))
+        self.assertTrue(all("separated" in r for r in lam))
+
+    def test_without_fallbacks_drops_what_a_fallback_decided(self):
+        run = data.load(RUNS / "004-germ.json")  # day 21: every Government step fell back
+        with_ = rl.lambda_rows([run])
+        without = rl.lambda_rows([run], with_fallbacks=False)
+        self.assertEqual(len(with_), len(without))
+        b_with = sum(1 for f in run.forecasts if f["scored"] and f["p"] is not None)
+        b_without = sum(1 for f in run.forecasts if f["scored"] and f["p"] is not None and not f.get("fallback_day"))
+        self.assertLess(b_without, b_with)
+        self.assertEqual(rl.respect_shares([run], with_fallbacks=False)[0]["share"], 0.0)
 
 
 if __name__ == "__main__":
