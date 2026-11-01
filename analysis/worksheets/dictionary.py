@@ -94,11 +94,11 @@ PER_TABLE = {
         "confidant_texts": ("count", "non-empty texts to Sam today (0 to 2)"),
     },
     "forecasts": {
-        "event": ("name", "p_crime, p_inspect, p_both_respect, p_any_bribe_accepted or p_any_audit"),
+        "event": ("name", "p_crime, p_inspect, p_families_respect, p_saltdogs_respect, p_any_bribe_accepted or p_any_audit; p_both_respect in exports from before rules draft 4"),
         "district": ("name", "district for p_crime and p_inspect; blank for city events"),
         "p": ("probability", "the stated forecast"),
         "outcome": ("true/false/blank", "what happened; blank for a closed district"),
-        "own_move": ("true/false", "the player's own move decides the event (gang: own crime districts, both-respect, any-bribe; Chief: inspections, any-bribe; Council: any-audit)"),
+        "own_move": ("true/false", "the player's own move decides the event (gang: own crime districts, own respect, any-bribe, and both-respect in old exports; Chief: inspections, any-bribe; Council: any-audit)"),
         "scored": ("true/false", "counts in the Brier score: has an outcome, is a probability, and is not an own-move event"),
         "why_not": ("text", "why an unscored row is left out"),
     },

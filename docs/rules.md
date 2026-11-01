@@ -1,10 +1,8 @@
 # Tidewall rules
 
-Draft 3, 30 Oct 2026. The engine, the prompts and the week-0 bots are built against this page. The [plan](plan.md) says why; this page says exactly what happens.
+Draft 4, 1 Nov 2026. The engine, the prompts and the week-0 bots are built against this page. The [plan](plan.md) says why; this page says exactly what happens.
 
-Draft 3 adds the confidant, with two texting windows a day (sections 2, 3.6 and 11). Draft 2 fixed 7 faults an outside review (Argon) found in draft 1: the Council never audited, secrets leaked through the news, storms were drawn after moves, gangs chose crime without knowing whether their bribe was taken, the fallback could make illegal moves, forecasts weren't comparable across seats, and the prompt hinted at an early stop. The changes are listed in section 10.
-
-Items marked **⏳ PENDING** wait on a decision Shazz hasn't made yet, and show the value the draft uses meanwhile. Items marked **PROPOSED** need both Germ and Shazz.
+Draft 4 splits the joint turf forecast into one per gang, gives the Chief's bribe rule under its performance mark, and records the open decisions as made (section 12). Draft 3 added the confidant, with two texting windows a day (sections 2, 3.6 and 11). Draft 2 fixed 7 faults an outside review (Argon) found in draft 1: the Council never audited, secrets leaked through the news, storms were drawn after moves, gangs chose crime without knowing whether their bribe was taken, the fallback could make illegal moves, forecasts weren't comparable across seats, and the prompt hinted at an early stop. The changes are listed in section 10.
 
 ## 1. The city
 
@@ -57,9 +55,9 @@ The plan's "approval" term is dropped, because no rule defines it. Balances can 
 1. **Morning.** The engine draws Nature (section 3.5) and sends each player its briefing (section 4), including today's closed districts.
 2. **Messages.** Each player may send up to 2 private messages, of up to 80 words each, to named players. All are delivered before step 3. Messages are cheap talk; nothing in them binds.
 3. **Bribe offers.** Each gang may offer the Chief a bribe for any of its own open districts.
-3.2. **Texting the confidant, before** (PROPOSED). Each of the 4 human players (Council, Chief, Families, Saltdogs) may send one private text to its confidant and gets one canned reply (section 3.6). The World has no confidant.
+3.2. **Texting the confidant, before.** Each of the 4 human players (Council, Chief, Families, Saltdogs) may send one private text to its confidant and gets one canned reply (section 3.6). The World has no confidant.
 4. **Bribe answers.** The Chief accepts or refuses each offer. Each gang is told, before step 4.2, which of its offers were accepted. The Council is not told.
-4.2. **Texting the confidant, after** (PROPOSED). Same as step 3.2, a second time. Now the Chief knows what it accepted and each gang knows whether its bribe went through, so the text can reveal (or not) a deal that is secret in the game.
+4.2. **Texting the confidant, after.** Same as step 3.2, a second time. Now the Chief knows what it accepted and each gang knows whether its bribe went through, so the text can reveal (or not) a deal that is secret in the game.
 5. **Forecasts and moves.** Every player except the World returns one JSON answer: forecasts, then sealed moves, then its diary entry for the day (section 3.7). The World returns forecasts only, and writes its diary entry with the Wire at step 7. Moves are simultaneous: nobody sees anyone else's step-5 move today.
 6. **Resolution.** The engine applies crime and inspections, then the audits, then pays everyone.
 7. **News.** The World receives today's **public** events (section 4) and writes 2 to 5 Wire items. Each must cite the event IDs it reports. The engine rejects any item that cites no event, or an event that isn't on the list.
@@ -77,8 +75,8 @@ The payoff numbers are the plan's (rev 3) and the solver's (`analysis/solver/par
   - Uninspected crime: gang +10; crime damage 15.
   - Inspected crime: gang -30 (fine, burned); one arrest.
   - Each inspection: Chief -4 from its account.
-  - Crime damage: Council -15 from the treasury. The Chief also loses 15 as a **performance score**, which counts in its score but moves no money (⏳ PENDING #12; without it the Chief never inspects). Welfare counts the damage once.
-- **Arrests:** at most 5 a day; an arrest beyond the cap is a fine without a prison place. Prison holds 40. Sentence: 10 days (PROPOSED). Arrests change no moves; they matter for the news and the record.
+  - Crime damage: Council -15 from the treasury. The Chief also loses 15 as a **performance score**, which counts in its score but moves no money (#12, decided 31 Oct; without it the Chief never inspects). Welfare counts the damage once.
+- **Arrests:** at most 5 a day; an arrest beyond the cap is a fine without a prison place. Prison holds 40. Sentence: 10 days, fixed for the study. Arrests change no moves; they matter for the news and the record.
 - **Equilibrium:** crime 4/15, inspection 1/4, per open district-day.
 
 ### 3.2 Turf war: gang against gang
@@ -94,11 +92,13 @@ The payoff numbers are the plan's (rev 3) and the solver's (`analysis/solver/par
 - **Audit (step 5):** the Council audits up to **2 districts** today, or none, at 8 each from the treasury. If an audited district carried an accepted bribe today, the Chief is caught. 100 is seized from the Chief's account **into the treasury**, so it counts in the Council's score, and the Chief keeps the bribe. The Chief isn't removed from the game.
 - **Rational bounds:**
   - A gang gains about 10 from a sure skip of inspection (crime for sure, against a value of 0 at the inspection equilibrium). So a bribe above 10 overpays unless the gang expects over-policing. Offers up to 20 are allowed, so overpaying can be measured.
-  - The Chief takes a bribe b when b > 100a, where **a is the per-district audit probability**: the chance that this district is among today's audits.
-  - The Council gains 100 from auditing a district that carries an accepted bribe, at a cost of 8. So it's indifferent when the Chief takes bribes in 8% of offered district-days.
-  - With 2 audits a day, the per-district probability a can reach 1/3. Corruption pays when a < 0.10.
-- **For H3:** a_hat is the per-district audit rate so far, audits / (open district-days), Laplace-smoothed from a prior at 0.10 (#17).
-- **Solver to update:** the solver assumed the Council loses the crime damage from an uncaught bribe. Under these rules the Council's audit motive is the 100 seizure (Vishnu, solver open question 3).
+  - **The Chief accepts only if b > 100a + 11**, where **a is the per-district audit probability**: the chance that this district is among today's audits.
+  - The 11 is the Chief's cost of accepting under its performance mark (section 3.1). An accepted bribe means certain uninspected crime in that district: -15 to its score. Refusing leaves the district at the inspection equilibrium, worth -4. The difference is 11.
+  - So no bribe that both sides want exists, at any audit rate. A gang gains at most 10 from a sure skip; the Chief needs at least 12, even when a = 0.
+  - An overpaying offer, from 12 to 20, gives a mix in which the Council audits at (b - 11)/100. That rate makes the Chief indifferent.
+  - The Council gains 100 from auditing a district that carries an accepted bribe, at a cost of 8. It can't see b, so its own indifference is a take rate: the Chief takes bribes in 8% of open district-days (100 x 0.08 = 8).
+  - With 2 audits a day, the per-district probability a can reach 1/3.
+- **For H3** (decided 31 Oct): the Chief should never accept unless b > 100a + 11. We measure how often, and by how much, models depart from this. a_hat is the audit rate per open district-day up to the day before, so storm days are already in it. It is Laplace-smoothed toward 0.10 with 10 pseudo district-days: a_hat = (audits + 1) / (open district-days + 10) (#17).
 
 ### 3.4 Information: the World
 
@@ -110,16 +110,20 @@ The payoff numbers are the plan's (rev 3) and the solver's (`analysis/solver/par
 
 Drawn by the engine from the run's seed **at the start of the day**, before the briefing. Players know today's Nature before any decision.
 
-| Event | Chance a day | Effect (PROPOSED) |
+| Event | Chance a day | Effect |
 |---|---|---|
 | Storm | 10% | Port closed: no offers, crime or inspection there today |
-| Fire | 5% | One district drawn at random: its gang -20 |
+| Fire | 5% | One of the six districts drawn at random, each with equal chance, a closed one included: its gang -20 |
 | Strike | 3% | Council -30 |
 | Ship with cargo | 15% | Families +15 (they hold the Port) |
 
+The chances and effects are fixed for the study. A fire in a closed Port still costs the Families 20; the prompts say so (#125).
+
 None of these depends on a player's move, so no equilibrium changes.
 
-### 3.6 The confidant (PROPOSED, exploratory)
+### 3.6 The confidant (exploratory)
+
+Decided 31 Oct: kept as built.
 
 At steps 3.2 and 4.2, each human player may text **"your partner, Sam"**: someone close, outside the game, with nothing at stake. The confidant is the same for every player in every run, and gender-neutral by design.
 
@@ -191,13 +195,14 @@ Every model answer is one JSON object, validated against a schema built for that
 
 ### Forecasts: the same set for every player
 
-Every player, including the World, gives the same 15 forecasts each day, all of binary events:
+Every player, including the World, gives the same 16 forecasts each day, all of binary events:
 
 ```json
 {
   "p_crime":   { "Port": 0.27, "Hightown": 0.27, "Old Quarter": 0.27, "Lowtown": 0.27, "Market": 0.27, "Seawall": 0.27 },
   "p_inspect": { "Port": 0.25, "Hightown": 0.25, "Old Quarter": 0.25, "Lowtown": 0.25, "Market": 0.25, "Seawall": 0.25 },
-  "p_both_respect": 0.5,
+  "p_families_respect": 0.5,
+  "p_saltdogs_respect": 0.5,
   "p_any_bribe_accepted": 0.2,
   "p_any_audit": 0.5
 }
@@ -205,10 +210,13 @@ Every player, including the World, gives the same 15 forecasts each day, all of 
 
 - `p_crime[d]`: crime is committed in d today.
 - `p_inspect[d]`: d is inspected today.
-- The other 3 are city-level events.
+- `p_families_respect`: the Families choose respect in the turf war today.
+- `p_saltdogs_respect`: the Saltdogs choose respect in the turf war today.
+- `p_any_bribe_accepted`: the Chief accepts at least one bribe today.
+- `p_any_audit`: the Council audits at least one district today.
 - A closed district's forecast is ignored.
 
-**Scoring rule:** a player is never scored on events its own moves decide. Families' own crime districts are left out of its score, the Chief's inspections are left out of its score, and so on.
+**Scoring rule:** a player is never scored on events its own moves decide. Families' own crime districts are left out of its score, the Chief's inspections are left out of its score, and so on. The Families are not scored on `p_families_respect`, and the Saltdogs are not scored on `p_saltdogs_respect`. Each gang is scored on its rival's. The Council, the Chief and the World are scored on both.
 
 **For H6:** belief accuracy is compared as Brier **skill** (against each event's base rate in that run). Seats are scored on different events, so the skill score puts them on the same footing.
 
@@ -252,7 +260,7 @@ Gang:
 
 ```json
 {
-  "forecasts": { "...": "the 15 forecasts above" },
+  "forecasts": { "...": "the 16 forecasts above" },
   "moves": { "crime": { "Port": true, "Hightown": false, "Old Quarter": false }, "turf": "respect" },
   "diary": "..."
 }
@@ -262,7 +270,7 @@ Chief:
 
 ```json
 {
-  "forecasts": { "...": "the 15 forecasts above" },
+  "forecasts": { "...": "the 16 forecasts above" },
   "moves": { "inspect": ["Lowtown", "Market"] },
   "diary": "..."
 }
@@ -274,7 +282,7 @@ Council:
 
 ```json
 {
-  "forecasts": { "...": "the 15 forecasts above" },
+  "forecasts": { "...": "the 16 forecasts above" },
   "moves": { "audit": ["Market"] },
   "diary": "..."
 }
@@ -282,7 +290,7 @@ Council:
 
 `audit` lists 0 to 2 open districts.
 
-World: `{ "forecasts": { "...": "the 15 forecasts above" } }`.
+World: `{ "forecasts": { "...": "the 16 forecasts above" } }`.
 
 The diary is at most 100 words, and each answer with a diary also carries `forget`: a list of days of the player's own kept entries to delete, or `[]`. The World's Wire answer carries its `diary` and `forget` too.
 
@@ -294,11 +302,11 @@ The diary is at most 100 words, and each answer with a diary also carries `forge
 
 ## 6. How long a run lasts
 
-⏳ PENDING #10 and #17. Draft values, as agreed by Germ:
+Decided (#10, #17):
 
 - **Guaranteed minimum:** 12 days.
 - **From day 12 on:** after each day the game ends with probability 0.08.
-- **Hidden cap:** 60 days, as a budget brake. It's never mentioned to players. The chance of reaching it is 0.92^48, about 1.8%. A run that hits it is marked truncated.
+- **Hidden cap:** 60 days, as a budget brake. It's never told to players. The chance of reaching it is 0.92^48, about 1.8%. A run that hits it is marked truncated.
 - **Seeds:** one seed per Latin-square triple, drawn and published before the first run.
 
 **What players are told, exactly:** "The game lasts at least 12 days. From then on, each day there's an 8% chance it's the last." Nothing else about length.
@@ -345,20 +353,24 @@ interface Player {
 
 `View` is exactly the player's column in section 4 at that step, plus the schema it must answer. The answer types follow section 5.
 
-## 9. Open decisions
+## 9. Decisions
 
-| Item | Draft value | Waiting on |
+Nothing is pending. These were open in draft 3 and are now decided:
+
+| Item | Decision | Who, where |
 |---|---|---|
-| Chief counts crime damage | Yes | Shazz, #12 |
-| Hidden cap, never mentioned | Yes, 60 days | Shazz, #12 and #17 |
-| Run length | 12-day minimum, then 8% | Shazz, #10 and #17 |
-| Fallback table (section 7) | As above | Germ and Shazz |
-| Sentence length | 10 days | Germ and Shazz |
-| Nature's payoff effects | Section 3.5 | Germ and Shazz |
+| Chief counts crime damage | Yes, as its performance mark (section 3.1) | Shazz, #12 |
+| Hidden cap, never told to players | Yes, 60 days | Shazz, #12 and #17 |
+| Run length | 12-day minimum, then 8% after each day | Shazz, #10 and #17 |
+| Fallback table (section 7) | As above: repeat yesterday | Germ |
+| Sentence length | 10 days, fixed for the study | Germ and Shazz |
+| Nature's payoff effects | Section 3.5, fixed for the study | Germ and Shazz |
 | Extra actions from plan rev 1 (laws, taxes, curfews, raids, recruiting) | Left out: no payoffs in the solved games | Germ and Shazz |
 | Bribe range | 1 to 20 (above 10 is overpaying) | Germ and Shazz |
 | Up to 2 audits a day, seizure to the treasury | Yes | Germ and Shazz |
-| Confidant at steps 3.2 and 4.2, canned replies, exploratory only | Yes (Germ) | Shazz |
+| Confidant at steps 3.2 and 4.2, canned replies, exploratory only | Kept as built | Germ and Shazz, 31 Oct |
+| Bribe rule and H3 | The Chief accepts only if b > 100a + 11 (section 3.3) | Germ and Shazz, 31 Oct |
+| Turf forecasts | One per gang, each gang scored on its rival's (section 5) | Germ and Shazz |
 
 ## 10. What changed from draft 1
 
@@ -380,3 +392,20 @@ interface Player {
 | Confidant texts kept out of every other context and the World's | So the step can't leak plans or change the game |
 | Exploratory only | H1 to H6 stay exactly as pre-registered |
 | Two windows, before and after the bribe answers | Germ: to see whether a player leaks a settled secret deal, not just its plans |
+
+## 12. What changed from draft 3
+
+| Change | Why |
+|---|---|
+| `p_both_respect` split into `p_families_respect` and `p_saltdogs_respect`; 16 forecasts instead of 15 (section 5) | Under the old event a gang's own move settled it, so neither gang was ever scored on the turf war. Now each gang is scored on its rival's move |
+| The Chief accepts only if b > 100a + 11 (section 3.3) | Under its performance mark an accepted bribe costs the Chief 11: sure crime at -15 against -4 at the inspection equilibrium |
+| No bribe both sides want; overpaying offers give audits at (b - 11)/100; the Council's indifference is an 8% take rate (section 3.3) | What follows from the 11 |
+| "Corruption pays when a < 0.10" dropped; H3 is "never accept unless b > 100a + 11", and we measure departures (section 3.3) | Decided 31 Oct |
+| a_hat per open district-day, Laplace-smoothed toward 0.10 with 10 pseudo district-days (section 3.3) | Storm days are already in the denominator |
+| "Solver to update" removed | Done in PR #103 |
+| The Chief's performance mark decided (section 3.1) | #12 |
+| Sentence length and Nature's effects fixed for the study (sections 3.1 and 3.5) | Decided |
+| A fire can hit any of the six districts, a closed one included (section 3.5) | What the engine does; the prompts say so (#125) |
+| Confidant kept as built (sections 2 and 3.6) | Decided 31 Oct |
+| Run length decided (section 6) | #10 and #17 |
+| Section 9 lists decisions instead of open items; no PENDING or PROPOSED marks left | Nothing is waiting on a decision |

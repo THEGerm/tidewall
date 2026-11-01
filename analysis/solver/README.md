@@ -1,6 +1,6 @@
 # Solver
 
-Solves the 4 games in [the rules](../../docs/rules.md) (draft 3) from their payoff numbers, checks every number the rules quote, and writes [`equilibria.json`](equilibria.json) for the engine tests to read. Python 3 standard library only. Arithmetic is exact (fractions), so 4/15 is 4/15.
+Solves the 4 games in [the rules](../../docs/rules.md) (draft 4) from their payoff numbers, checks every number the rules quote, and writes [`equilibria.json`](equilibria.json) for the engine tests to read. Python 3 standard library only. Arithmetic is exact (fractions), so 4/15 is 4/15.
 
 ## Run it
 
@@ -18,7 +18,7 @@ Both commands exit 1 if any number the rules quote doesn't come out of the solve
 
 | File | Holds |
 |---|---|
-| `params.py` | Every number, citing the rules section it comes from. DECIDED (31 Oct) and PROPOSED values are marked, and the open questions live here |
+| `params.py` | Every number, citing the rules section it comes from. DECIDED (31 Oct) values are marked, and the open questions live here |
 | `bimatrix.py` | Exact Nash equilibria of small two-player games, by support enumeration |
 | `games.py` | The 4 games, prison, Nature, the run length and the week-0 noise bands. It takes `trials_needed` from `analysis/metrics/week0.py` |
 | `stats.py` | Exact binomial bands and tails |
@@ -37,7 +37,7 @@ The Chief counts crime damage as a performance mark (rules 3.1, decided 31 Oct, 
 | Prison (sentence 10, 40 places) | expected occupancy 3.9 (59/15); full with probability under 1e-32 | nothing binds |
 | Turf war, one day | both encroach | matches |
 | Turf war, repeated | continuation 0.92 from day 12 (certain before). Grim trigger holds above 1/2; tit-for-tat is a Nash equilibrium above 2/3, never subgame perfect here | above 0.9: matches |
-| Bribery, #12 off | Chief takes b when b > 100a; corruption pays below a = 1/10; at b = 10, Council audits 1/10, Chief takes 8% | matches |
+| Bribery, #12 off | Chief takes b when b > 100a; the old line a = 1/10 (draft 4 retires it); at b = 10, Council audits 1/10, Chief takes 8% | matches |
 | Bribery, #12 on (default) | Chief takes b only when b > 100a + 11; a gang gains at most 10; **no deal for any a** | **differs**: see open question 1 |
 | Audit game | Council indifferent when 8% of audited district-days carry a taken bribe (8 / 100); 2 audits reach a = 1/3 (2/5 when the Port is closed) | 8%, 1/3: matches |
 | Information | the World has no payoff, so every reporting rule is an equilibrium for it | matches |

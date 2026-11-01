@@ -50,12 +50,19 @@ export function brierSkill(pairs, events) {
 }
 
 // Which forecast events a player is scored on: never one its own moves decide
-// (rules.md, Forecasts, scoring rule).
+// (rules.md, Forecasts, scoring rule). Each gang is scored on its rival's
+// respect forecast, not its own. p_both_respect is the joint event of exports
+// from before rules draft 4; either gang's move settles it.
 export function scoredOn(player, key, district) {
   if (player === "Families" || player === "Saltdogs") {
     if (key === "p_crime" && TURF[district] === player) return false;
     if (key === "p_both_respect") return false;
+    // A gang that offers nothing settles "any bribe accepted", so it isn't
+    // scored on it (#66, confirmed 31 Oct; analysis/data.py decides()).
+    if (key === "p_any_bribe_accepted") return false;
   }
+  if (player === "Families" && key === "p_families_respect") return false;
+  if (player === "Saltdogs" && key === "p_saltdogs_respect") return false;
   if (player === "Chief" && (key === "p_inspect" || key === "p_any_bribe_accepted")) return false;
   if (player === "Council" && key === "p_any_audit") return false;
   return true;
@@ -70,7 +77,9 @@ export function forecastPairs(f, moves, open) {
     if (typeof f.p_inspect?.[d] === "number") out.push(["p_inspect", d, f.p_inspect[d], inspect.includes(d)]);
   }
   const t = moves.turf || {};
-  if (typeof f.p_both_respect === "number") out.push(["p_both_respect", null, f.p_both_respect, t.Families === "respect" && t.Saltdogs === "respect"]);
+  if (typeof f.p_families_respect === "number" && t.Families) out.push(["p_families_respect", null, f.p_families_respect, t.Families === "respect"]);
+  if (typeof f.p_saltdogs_respect === "number" && t.Saltdogs) out.push(["p_saltdogs_respect", null, f.p_saltdogs_respect, t.Saltdogs === "respect"]);
+  if (typeof f.p_both_respect === "number") out.push(["p_both_respect", null, f.p_both_respect, t.Families === "respect" && t.Saltdogs === "respect"]); // exports before draft 4
   if (typeof f.p_any_bribe_accepted === "number") out.push(["p_any_bribe_accepted", null, f.p_any_bribe_accepted, (moves.accepted || []).length > 0]);
   if (typeof f.p_any_audit === "number") out.push(["p_any_audit", null, f.p_any_audit, (moves.audit || []).length > 0]);
   return out;

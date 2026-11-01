@@ -28,17 +28,25 @@ PLAYERS = ("Council", "Chief", "Families", "Saltdogs", "World")
 SEAT_OF = {"Council": "Government", "Chief": "Government",
            "Families": "Criminals", "Saltdogs": "Criminals", "World": "World"}
 
-CITY_EVENTS = ("p_both_respect", "p_any_bribe_accepted", "p_any_audit")
+CITY_EVENTS = ("p_families_respect", "p_saltdogs_respect", "p_any_bribe_accepted", "p_any_audit")
+# Rules draft 4 split the joint turf event into one per gang. Exports from
+# before it (data/runs/test 001 to 011) carry p_both_respect instead; it is
+# still read, scored and given an outcome for those runs, under its old rule.
+LEGACY_EVENTS = ("p_both_respect",)
 
 # Scoring rule (rules section 5): a player is never scored on events its own
 # moves decide. An event is left out when the player's own move can settle it:
 #   p_crime[d]           the gang that holds d (it chooses crime there)
 #   p_inspect[d]         the Chief (it chooses inspections)
-#   p_both_respect       both gangs (either one encroaching settles it)
+#   p_families_respect   the Families (the Saltdogs are scored on it)
+#   p_saltdogs_respect   the Saltdogs (the Families are scored on it)
+#   p_both_respect       both gangs (either one encroaching settles it); old exports
 #   p_any_bribe_accepted the Chief (it answers) and both gangs (no offer, no
 #                        bribe). This reading is ours; rules.md doesn't list it.
 #   p_any_audit          the Council (it chooses audits)
 CITY_DECIDERS = {
+    "p_families_respect": {"Families"},
+    "p_saltdogs_respect": {"Saltdogs"},
     "p_both_respect": {"Families", "Saltdogs"},
     "p_any_bribe_accepted": {"Chief", "Families", "Saltdogs"},
     "p_any_audit": {"Council"},
@@ -202,7 +210,9 @@ def load(source):
                 "messages_sent": sent[key], "confidant_texts": confided[key],
             })
 
-    # Outcomes for the 15 forecast events, per day.
+    # Outcomes for the 16 forecast events, per day (and the legacy joint turf
+    # event when the export's forecasts use it).
+    legacy = {ev for f in ex.get("forecasts") or [] for ev in LEGACY_EVENTS if ev in (f.get("forecasts") or {})}
     outcomes = {}
     for d in days:
         mv = d.get("moves") or {}
@@ -214,7 +224,10 @@ def load(source):
             if dist in open_:
                 o[("p_crime", dist)] = bool(crime.get(dist))
                 o[("p_inspect", dist)] = dist in set(mv.get("inspect") or [])
-        if all(g in turf for g in GANGS):
+        for g in GANGS:
+            if g in turf:
+                o[("p_%s_respect" % g.lower(), None)] = turf[g] == "respect"
+        if "p_both_respect" in legacy and all(g in turf for g in GANGS):
             o[("p_both_respect", None)] = all(turf[g] == "respect" for g in GANGS)
         o[("p_any_bribe_accepted", None)] = bool(mv.get("accepted"))
         o[("p_any_audit", None)] = bool(mv.get("audit"))
@@ -228,7 +241,7 @@ def load(source):
         for ev in ("p_crime", "p_inspect"):
             for dist, prob in (fc.get(ev) or {}).items():
                 items.append((ev, dist, prob))
-        for ev in CITY_EVENTS:
+        for ev in CITY_EVENTS + LEGACY_EVENTS:
             if ev in fc:
                 items.append((ev, None, fc[ev]))
         for ev, dist, prob in items:

@@ -10,7 +10,7 @@ import type { DayResult } from "./day";
 import { newGame } from "./resolve";
 import type { DiaryEntry, Event, GameState, WireItem } from "./types";
 
-export const RULES_VERSION = "draft-3";
+export const RULES_VERSION = "draft-4";
 
 export type Status = "ready" | "running" | "paused" | "over" | "truncated";
 

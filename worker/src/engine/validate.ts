@@ -65,7 +65,7 @@ export function checkForecasts(f: unknown, open: District[]): string[] {
     if (!isObj(f[key])) { e.push(`forecasts.${key} must give a probability per district`); continue; }
     for (const d of open) if (!isProb(f[key][d])) e.push(`forecasts.${key}.${d} must be a probability from 0 to 1`);
   }
-  for (const key of ["p_both_respect", "p_any_bribe_accepted", "p_any_audit"] as const)
+  for (const key of ["p_families_respect", "p_saltdogs_respect", "p_any_bribe_accepted", "p_any_audit"] as const)
     if (!isProb(f[key])) e.push(`forecasts.${key} must be a probability from 0 to 1`);
   return e;
 }

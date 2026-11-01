@@ -27,10 +27,10 @@ export const CRIME_GAIN = 10;
 export const CRIME_DAMAGE = 15;
 export const FINE = 30;
 export const INSPECTION_COST = 4;
-export const CHIEF_COUNTS_DAMAGE = true; // PENDING #12
+export const CHIEF_COUNTS_DAMAGE = true; // #12, decided 31 Oct
 export const ARREST_CAP = 5;
 export const PRISON_PLACES = 40;
-export const SENTENCE_DAYS = 10; // fixed for the study (plan rev 4)
+export const SENTENCE_DAYS = 10; // fixed for the study (rules draft 4)
 
 // 3.2 Turf war (row player's payoff)
 export const TURF_R = 6;
@@ -45,14 +45,14 @@ export const MAX_AUDITS = 2;
 export const AUDIT_COST = 8;
 export const SEIZURE = 100;
 
-// 3.5 Nature (effects fixed for the study, plan rev 4)
+// 3.5 Nature (effects fixed for the study, rules draft 4)
 export const NATURE = { storm: 0.1, fire: 0.05, strike: 0.03, ship: 0.15 };
 export const FIRE_LOSS = 20;
 export const STRIKE_LOSS = 30;
 export const SHIP_GAIN = 15;
 export const STORM_CLOSES: District = "Port";
 
-// 6. Run length (PENDING #10 and #17)
+// 6. Run length (decided, #10 and #17)
 export const MIN_DAYS = 12;
 export const END_CHANCE = 0.08;
 export const HIDDEN_CAP = 60;

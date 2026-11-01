@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-ignore: plain JS served to the browser, no type declarations
-import { against, brierSkill, classify, panel, scoredOn } from "../../../dashboard/run/theory/metrics.js";
+import { against, brierSkill, classify, forecastPairs, panel, scoredOn } from "../../../dashboard/run/theory/metrics.js";
 
 // Values printed by analysis/metrics (Python) for the same inputs, so the page
 // and the paper compute the same numbers.
@@ -30,10 +30,28 @@ describe("game theory panel (D5): the port of analysis/metrics", () => {
     expect(scoredOn("Families", "p_crime", "Port")).toBe(false);
     expect(scoredOn("Families", "p_crime", "Lowtown")).toBe(true);
     expect(scoredOn("Saltdogs", "p_both_respect", null)).toBe(false);
+    expect(scoredOn("Families", "p_families_respect", null)).toBe(false);
+    expect(scoredOn("Families", "p_saltdogs_respect", null)).toBe(true);
+    expect(scoredOn("Saltdogs", "p_saltdogs_respect", null)).toBe(false);
+    expect(scoredOn("Saltdogs", "p_families_respect", null)).toBe(true);
+    for (const p of ["Council", "Chief", "World"]) {
+      expect(scoredOn(p, "p_families_respect", null)).toBe(true);
+      expect(scoredOn(p, "p_saltdogs_respect", null)).toBe(true);
+    }
     expect(scoredOn("Chief", "p_inspect", "Port")).toBe(false);
     expect(scoredOn("Chief", "p_any_bribe_accepted", null)).toBe(false);
     expect(scoredOn("Council", "p_any_audit", null)).toBe(false);
     expect(scoredOn("World", "p_inspect", "Port")).toBe(true);
+  });
+
+  it("pairs each gang's respect forecast with that gang's move, and reads the old joint key", () => {
+    const moves = { turf: { Families: "respect", Saltdogs: "encroach" } };
+    const pairs = forecastPairs({ p_families_respect: 0.7, p_saltdogs_respect: 0.6, p_both_respect: 0.4 }, moves, []);
+    expect(pairs).toEqual([
+      ["p_families_respect", null, 0.7, true],
+      ["p_saltdogs_respect", null, 0.6, false],
+      ["p_both_respect", null, 0.4, false],
+    ]);
   });
 
   it("counts rates over open districts and keeps secrets out of a live run", () => {

@@ -403,7 +403,11 @@ function forecastTable(v) {
   const rows = [
     ...open.map((d) => [`Crime in ${d}`, (f) => f.p_crime?.[d], yn(m.crime?.[d])]),
     ...open.map((d) => [`Inspection in ${d}`, (f) => f.p_inspect?.[d], yn((m.inspect || []).includes(d))]),
-    ["Both gangs respect", (f) => f.p_both_respect, m.turf ? yn(m.turf.Families === "respect" && m.turf.Saltdogs === "respect") : ""],
+    ["Families respect", (f) => f.p_families_respect, m.turf?.Families ? yn(m.turf.Families === "respect") : ""],
+    ["Saltdogs respect", (f) => f.p_saltdogs_respect, m.turf?.Saltdogs ? yn(m.turf.Saltdogs === "respect") : ""],
+    ...(fs.some((f) => typeof f.forecasts?.p_both_respect === "number") // exports before rules draft 4
+      ? [["Both gangs respect", (f) => f.p_both_respect, m.turf ? yn(m.turf.Families === "respect" && m.turf.Saltdogs === "respect") : ""]]
+      : []),
     ["Any bribe taken", (f) => f.p_any_bribe_accepted, yn((m.accepted || []).length)],
     ["Any audit", (f) => f.p_any_audit, yn((m.audit || []).length)],
   ];

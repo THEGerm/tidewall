@@ -40,7 +40,7 @@ def report(r):
     alt = end["alternative_plan_rev3"]
     nat = info["nature_expected_effects_per_run"]
     lines = [
-        "Tidewall solver, rules.md draft 3",
+        "Tidewall solver, rules.md draft 4",
         "",
         f"1. Inspection game, one open district (Chief counts crime damage: {insp['chief_counts_damage']})",
         f"   gang commits crime {d['crime']} ({pct(d['crime'])}), Chief inspects {d['inspect']} ({pct(d['inspect'])}); "
@@ -64,7 +64,7 @@ def report(r):
         "",
         "3. Bribery",
         f"   skipping inspection is worth {brib['skip_value']} a day to a gang",
-        f"   mark off: Chief takes if {brib['chief_accepts_if']}; corruption pays below a = {brib['audit_line']}; "
+        f"   mark off: Chief takes if {brib['chief_accepts_if']}; old line (mark off) a = {brib['audit_line']}; "
         f"at b = {brib['audit_game_at_max_bribe']['bribe']} Council audits {brib['audit_game_at_max_bribe']['audit']}, "
         f"Chief takes {brib['audit_game_at_max_bribe']['take']}",
         f"   mark on (default): Chief takes if {mark['chief_accepts_if']}; deal window: {mark['deal_window']}",

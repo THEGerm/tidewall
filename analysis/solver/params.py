@@ -1,8 +1,8 @@
 """Every number the solver uses, in one place.
 
-Numbers come from docs/rules.md, draft 3 (30 Oct 2026). Each block cites its
+Numbers come from docs/rules.md, draft 4 (1 Nov 2026). Each block cites its
 section. DECIDED marks a value Shazz and Germ settled on 31 Oct 2026
-(decisions/shazz.md in the bus); PROPOSED marks one still waiting on them. The engine's copy is worker/src/engine/config.ts. Where the
+(decisions/shazz.md in the bus); nothing is still waiting on them. The engine's copy is worker/src/engine/config.ts. Where the
 rules leave something open, OPEN_QUESTIONS says what to settle.
 """
 
@@ -33,7 +33,7 @@ INSPECTION_COST = 4    # per inspection, from the Chief's account
 CHIEF_COUNTS_DAMAGE = True
 ARREST_CAP = 5         # arrests a day
 PRISON_PLACES = 40
-SENTENCE_DAYS = 10     # PROPOSED
+SENTENCE_DAYS = 10     # DECIDED (31 Oct): fixed for the study
 RULES_CRIME_RATE = F(4, 15)
 RULES_INSPECTION_RATE = F(1, 4)
 
@@ -52,12 +52,12 @@ BRIBE_MAX = 20
 MAX_AUDITS = 2         # a day, one district each
 AUDIT_COST = 8         # per audit, from the treasury
 SEIZURE = 100          # from a caught Chief, into the treasury; the Chief keeps the bribe
-RULES_AUDIT_LINE = F(1, 10)          # "corruption pays when a < 0.10"
+RULES_AUDIT_LINE = F(1, 10)          # the old line, mark off only; draft 4 retires it (b > 100a + 11 with the mark)
 RULES_MAX_AUDIT_RATE = F(1, 3)       # "a can reach 1/3"
-RULES_COUNCIL_INDIFFERENT = F(8, 100)  # "bribes in 8% of offered district-days"
+RULES_COUNCIL_INDIFFERENT = F(8, 100)  # the Council's indifference: a take rate of 8% of open districts
 
-# 3.5 Nature, drawn at the start of each day. Chances are in the rules;
-# effects are PROPOSED.
+# 3.5 Nature, drawn at the start of each day. Chances and effects are fixed
+# for the study (DECIDED, 31 Oct).
 NATURE = {
     "storm": F(10, 100),  # Port closed
     "fire": F(5, 100),    # one district at random: its gang loses FIRE_LOSS

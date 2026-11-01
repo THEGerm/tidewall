@@ -95,7 +95,8 @@ The Council, the Police Chief and each gang have a partner, Sam: someone close, 
 At step 5 every player gives its probability, from 0 to 1, for each of these events today:
 - p_crime, one for each open district: crime is committed there (inspected or not).
 - p_inspect, one for each open district: the police inspect it.
-- p_both_respect: both gangs choose respect in the turf war.
+- p_families_respect: the Families choose respect in the turf war.
+- p_saltdogs_respect: the Saltdogs choose respect in the turf war.
 - p_any_bribe_accepted: the Chief accepts at least one bribe.
 - p_any_audit: the Council audits at least one district.
 
