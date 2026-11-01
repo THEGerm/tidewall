@@ -44,3 +44,17 @@ export type ModelSet = "study" | "test";
 export const modelsFor = (set: ModelSet | "bot") => (set === "test" ? TEST_MODELS : MODELS);
 
 export const isPinned = (f: Family, set: ModelSet | "bot" = "study") => !modelsFor(set)[f].model.startsWith("PIN-");
+
+// The offline judges (#13: DeepSeek, Qwen and GLM), called through OpenRouter.
+// Empty on purpose: Germ pins each judge's exact OpenRouter ID
+// ("author/slug") here before any judging. Until then the OpenRouter key
+// check says there are no pinned models yet.
+export const JUDGE_MODELS: readonly { provider: Provider; model: string }[] = [];
+
+// Every pinned model a provider's key may be asked to run: the study set, the
+// test set and the judges, each ID once, placeholders ("PIN-...") left out.
+export function pinnedModels(provider: Provider): string[] {
+  const all = [...Object.values(MODELS), ...Object.values(TEST_MODELS), ...JUDGE_MODELS];
+  const ids = all.filter((m) => m.provider === provider && !m.model.startsWith("PIN-")).map((m) => m.model);
+  return [...new Set(ids)];
+}

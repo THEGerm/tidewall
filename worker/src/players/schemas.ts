@@ -16,7 +16,7 @@ const forget: Schema = { type: "array", items: { type: "integer" }, description:
 const districtList = (ds: District[], max: number): Schema => ({ type: "array", items: { type: "string", enum: ds }, maxItems: max, uniqueItems: true });
 
 export const forecastsSchema = (open: District[]) =>
-  obj({ p_crime: perDistrict(open, prob), p_inspect: perDistrict(open, prob), p_both_respect: prob, p_any_bribe_accepted: prob, p_any_audit: prob });
+  obj({ p_crime: perDistrict(open, prob), p_inspect: perDistrict(open, prob), p_families_respect: prob, p_saltdogs_respect: prob, p_any_bribe_accepted: prob, p_any_audit: prob });
 
 export function messagesSchema(self: PlayerName): Schema {
   const to = PLAYERS.filter((p) => p !== self && p !== "World");

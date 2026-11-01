@@ -3,9 +3,29 @@ const PROVIDERS = [
   { id: "anthropic", name: "Anthropic (Claude)", console: "https://console.anthropic.com/settings/keys" },
   { id: "google", name: "Google (Gemini)", console: "https://aistudio.google.com/apikey" },
   { id: "openai", name: "OpenAI (GPT)", console: "https://platform.openai.com/api-keys" },
+  { id: "openrouter", name: "OpenRouter (judges)", console: "https://openrouter.ai/settings/keys" },
 ];
 
 const $ = (id) => document.getElementById(id);
+
+// "a", "a and b", "a, b and c"
+const list = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+
+// What Test found about each pinned model, in plain words. An older server
+// sends no models; then there is nothing to add.
+function modelWords(models) {
+  if (!Array.isArray(models)) return "";
+  if (models.length === 0) return "No pinned models for this provider yet.";
+  const why = (m) => `${m.model} (${m.status ? `${m.status}: ` : ""}${m.reason})`;
+  const ok = models.filter((m) => m.result === "usable").map((m) => m.model);
+  const no = models.filter((m) => m.result === "not_usable").map(why);
+  const unsure = models.filter((m) => m.result === "unknown").map(why);
+  const out = [];
+  if (ok.length) out.push(`Works with ${list(ok)}.`);
+  if (no.length) out.push(`Can't use ${list(no)}.`);
+  if (unsure.length) out.push(`Couldn't check ${list(unsure)}.`);
+  return out.join(" ");
+}
 const say = (text) => { $("msg").textContent = text; };
 
 async function api(path, options = {}) {
@@ -35,7 +55,8 @@ function render(keys) {
         <input type="password" autocomplete="off" spellcheck="false" placeholder="${k.saved ? "Paste a new key to replace it" : "Paste your key"}" aria-label="${p.name} key">
         <button type="submit">Save</button>
         ${k.saved ? '<button type="button" class="ghost test">Test</button><button type="button" class="ghost del">Delete</button>' : ""}
-      </form>`;
+      </form>
+      <p class="muted check" hidden></p>`;
     const form = row.querySelector("form");
     const input = row.querySelector("input");
     form.addEventListener("submit", async (e) => {
@@ -54,8 +75,11 @@ function render(keys) {
     if (test) test.addEventListener("click", async () => {
       say(`Testing your ${p.name} key...`);
       try {
-        const { check } = await api(`/api/me/keys/${p.id}/test`, { method: "POST" });
+        const { check, models } = await api(`/api/me/keys/${p.id}/test`, { method: "POST" });
         say(check.ok ? `${p.name}: works (${check.detail}).` : `${p.name}: failed (${check.detail}).`);
+        const out = row.querySelector("p.check");
+        out.textContent = check.ok ? modelWords(models) : "";
+        out.hidden = !out.textContent;
       } catch (err) { say(`Test didn't run: ${err.message}.`); }
     });
     const del = row.querySelector("button.del");

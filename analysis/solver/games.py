@@ -1,4 +1,4 @@
-"""The 4 games of docs/rules.md (draft 3), solved from the numbers in params.py."""
+"""The 4 games of docs/rules.md (draft 4), solved from the numbers in params.py."""
 
 import math
 from fractions import Fraction as F
@@ -298,7 +298,7 @@ def week0_bands(insp, brib, end):
 
 
 def plan_checks(insp, trf, brib, end):
-    """The numbers docs/rules.md (draft 3) quotes, each checked against the solver.
+    """The numbers docs/rules.md (draft 4) quotes, each checked against the solver.
 
     The key keeps its old name, plan_checks, so the JSON stays stable.
     """
@@ -330,7 +330,7 @@ def solve_all():
     brib = bribery(insp)
     end = end_rule()
     return {
-        "source": "docs/rules.md draft 3 (30 Oct 2026), numbers in analysis/solver/params.py",
+        "source": "docs/rules.md draft 4 (1 Nov 2026), numbers in analysis/solver/params.py",
         "plan_checks": plan_checks(insp, trf, brib, end),
         "inspection": insp,
         "turf": trf,
