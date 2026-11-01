@@ -30,7 +30,7 @@ export const INSPECTION_COST = 4;
 export const CHIEF_COUNTS_DAMAGE = true; // PENDING #12
 export const ARREST_CAP = 5;
 export const PRISON_PLACES = 40;
-export const SENTENCE_DAYS = 10; // PROPOSED
+export const SENTENCE_DAYS = 10; // fixed for the study (plan rev 4)
 
 // 3.2 Turf war (row player's payoff)
 export const TURF_R = 6;
@@ -45,7 +45,7 @@ export const MAX_AUDITS = 2;
 export const AUDIT_COST = 8;
 export const SEIZURE = 100;
 
-// 3.5 Nature (PROPOSED effects)
+// 3.5 Nature (effects fixed for the study, plan rev 4)
 export const NATURE = { storm: 0.1, fire: 0.05, strike: 0.03, ship: 0.15 };
 export const FIRE_LOSS = 20;
 export const STRIKE_LOSS = 30;

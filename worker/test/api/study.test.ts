@@ -8,7 +8,7 @@ import { getRun } from "../../src/engine/store";
 import { SEATINGS, studyPlan, studySeed } from "../../src/engine/study";
 import { testD1 } from "../engine/d1";
 
-const call = async (env: any, body?: unknown) => {
+const call = async (env: any, body?: unknown): Promise<{ status: number; body: any }> => {
   const res = await handleControl(new Request("https://x/api/me/control/study", { method: "POST", ...(body ? { body: JSON.stringify(body) } : {}) }), env, "study", "Germ");
   return { status: res.status, body: (await res.json()) as any };
 };
@@ -47,5 +47,24 @@ describe("study runs", () => {
     expect(first).toMatchObject({ model_set: "study", status: "ready", triple: 1, rotation: 1 });
     expect(first.state.seed).toBe(await studySeed(1));
     expect((await call(env, { confirm: "create the 27 study runs" })).status).toBe(409);
+  });
+});
+
+describe("triple sealing (Germ, 1 Nov)", () => {
+  it("keep a finished study run's secrets closed until its whole triple is over", async () => {
+    const { listRuns, publicExport } = await import("../../src/engine/public");
+    const db = testD1();
+    await call({ DB: db }, { confirm: "create the 27 study runs" });
+    await db.prepare("UPDATE runs SET status = 'over' WHERE id = 'study-t1-r1'").run();
+    expect(await publicExport(db, "study-t1-r1")).toBeNull();
+    expect((await listRuns(db)).find((r) => r.id === "study-t1-r1")!.live).toBe(true);
+    await db.prepare("UPDATE runs SET status = 'over' WHERE id IN ('study-t1-r2', 'study-t1-r3')").run();
+    expect(await publicExport(db, "study-t1-r1")).not.toBeNull();
+    expect((await listRuns(db)).find((r) => r.id === "study-t1-r1")!.live).toBe(false);
+    // test runs open as soon as they end
+    const { createRun } = await import("../../src/engine/store");
+    await createRun(db, { id: "t1", seed: "test-seed-1", triple: 0, rotation: 1, seating: SEATINGS[1], model_set: "test" });
+    await db.prepare("UPDATE runs SET status = 'over' WHERE id = 't1'").run();
+    expect(await publicExport(db, "t1")).not.toBeNull();
   });
 });

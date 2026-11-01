@@ -87,7 +87,7 @@ Each day the two gangs choose **Respect** or **Encroach**. The city's economy pa
 | **Families respect** | 6, 6 | 0, 10 |
 | **Families encroach** | 10, 0 | 2, 2 |
 
-In a single day, encroach is dominant. Repeated, cooperation can hold: grim trigger sustains respect when the continuation chance is at least (10 - 6) / (10 - 2) = 0.5, and tit-for-tat is a Nash equilibrium at 2/3 or more. After day 12 the chance is 0.92, so both clear. The theory allows sustained respect and permanent encroachment alike.
+In a single day, encroach is dominant. Repeated, cooperation can hold: grim trigger is a subgame perfect equilibrium when the continuation chance is at least (10 - 6) / (10 - 2) = 0.5. Mutual tit-for-tat is a Nash equilibrium at max(1/2, (10 - 6) / (6 - 0)) = 2/3 or more. It isn't subgame perfect: after one slip, it locks into alternating respect and encroach. Forgiving variants (contrite tit-for-tat, win-stay lose-shift) repair that. After day 12 the chance is 0.92, so both thresholds clear. The theory allows sustained respect and permanent encroachment alike.
 
 What it tests: do the gangs cooperate, which strategy do they use, and does cooperation drop as the game ages?
 
@@ -100,7 +100,8 @@ The Council audits up to 2 districts a day at 8 each. An audit that finds a brib
 - An accepted bribe means certain uninspected crime, worth -15 to the Chief under the #12 mark. Refusing leaves -4. So the Chief accepts only if **b > 100a + 11**, where *a* is the chance the district is audited.
 - A gang gains at most 10 from a certain skip. Bribes are capped at 20.
 - **So no bribe exists that both sides want.** The theory predicts no accepted bribes and no audits.
-- An overpaying offer of 12 to 20 gives a mixed equilibrium, with audit probability (b - 11)/100. At 20 that's 9/100.
+- (b - 11)/100 is the Chief's indifference point: at that audit rate the Chief is indifferent to accepting an offer of b. At 20 that's 9/100.
+- The Council doesn't see offers or their size before it audits, so it can't condition on b. It is indifferent to auditing a district when 8% of open districts carry an accepted bribe (100 x 0.08 = 8, the audit cost). Only an overpaying gang (offers of 12 to 20) makes that possible.
 
 What it tests: does the Chief follow its payoff, does the Council audit without cause, and do gangs overpay?
 
@@ -115,7 +116,7 @@ Nature comes from code with published odds, drawn from the seed at the start of 
 | Strike | 3% | Treasury -30 |
 | Ship with cargo | 15% | Families +15 (they hold the Port) |
 
-The effects are marked PROPOSED in rules 3.5 and config.ts. None depends on a move, so no equilibrium changes.
+These effects are fixed for the study (rev 4). None depends on a move, so no equilibrium changes.
 
 The World sees only public events. It chooses what the Wire reports and how. It can select and frame, but every item must cite an event the engine logged. With no payoff, every reporting rule is an equilibrium, so any tilt is the model's own habit.
 
@@ -172,7 +173,8 @@ Model IDs are pinned in `worker/src/players/models.ts`. Gemini and GPT list no d
 
 - A broken or rule-breaking answer gets one retry, with the validation error.
 - If the retry fails, or the model refuses, the player gets yesterday's move. On day 1 it gets a seeded equilibrium draw. Each fallback is logged with its reason.
-- A day lost to an infrastructure error is replayed, up to 3 attempts. It's never saved as a fallback day.
+- A day lost to an infrastructure error (an outage, a provider refusing the Worker's location) is replayed at the next minute's tick, up to 3 attempts. It's never saved as a fallback day.
+- After the 3rd failed attempt the run pauses. Control shows why and the log records it. While a run is paused the scheduler plays nothing else, so a long outage spends no tokens. A person presses Resume once the provider is back. The failed attempts' calls stay in the ledger, unsaved.
 - Every test runs with and without fallback days.
 
 Yesterday's move is the fallback because a fixed peaceful move would make a cautious model look cooperative.
@@ -217,7 +219,7 @@ The Latin square aliases the model effect with seat × rotation. We assume no se
 
 DeepSeek, Qwen and GLM, through OpenRouter, pinned and blind to model and seat. They run offline on the exports after the 27 runs. They code Wire tone (H5), leaks to Sam, and deception (diary against messages against moves).
 
-Agreement thresholds: Krippendorff's alpha above 0.70 for tone, above 0.80 for deception.
+Agreement thresholds: Krippendorff's alpha above 0.70 for tone, above 0.80 for deception. If tone falls below 0.70, H5 stays in the Holm family at p = 1 and is reported as not confirmed (unreliable coding). The family size never changes after the data are in.
 
 ## What we measure
 
@@ -247,7 +249,7 @@ The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Part
 - **Data and analysis pages:** every day of every run, raw logs, CSV and JSON downloads, and an across-runs view
 - **Ledger:** tokens and cost per day, participant and provider, against the cap
 - **Control:** create, start, pause, step; key check; the cap; models in use
-- **Public view:** anyone with the link can watch and replay. Secrets open when a run ends. Keys and controls show only to a signed-in participant.
+- **Public view:** anyone with the link can watch and replay. A test run's secrets open when it ends. A study run's open when all 3 runs of its triple have ended, since they share a seed: the first run's Nature, end day and fallback draws would show what the other two still have to play. Keys and controls show only to a signed-in participant.
 
 ### Keys
 
@@ -265,7 +267,10 @@ The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Part
 - If neither participant has a working key, the run pauses and Control says which key is missing.
 - The key never changes the model: same ID, same effort, whoever pays.
 
-**Fallback payback (#117).** Fallback calls create a debt. The debtor repays it through their Anthropic key on the creditor's days, and the Ledger page shows the balance.
+**Fallback payback (#117).** Fallback calls create a debt. The debtor repays it through their Anthropic key on the creditor's days, and the Ledger page shows the balance. Two rules (Germ, 1 Nov):
+
+- **Expiring credit first.** Germ's Anthropic credit expires 18 Nov, so it's on hold: no payback goes ahead of Germ's own Anthropic key until 18 Nov, or until that credit runs out, whichever comes first.
+- **A dry key repays elsewhere.** If the debtor's Anthropic key is out of credit, the debtor repays through its Google and OpenAI keys instead.
 
 ### How it's built
 
@@ -303,7 +308,8 @@ Diaries add about 130 tokens a day, read at every step, so late days in a run co
 
 | Status | What | Who |
 |---|---|---|
-| ✅ Done | Rules (draft 3) | Germ, Shazz |
+| ✅ Done | Rules, draft 3 | Germ, Shazz |
+| ⏳ Before run 1 | Rules, draft 4: 16 forecasts, b > 100a + 11, run length and #12 decided, no PROPOSED marks | Vishnu, due 3 Nov |
 | ✅ Done | Engine, providers, ledger, scheduler | Germ |
 | ✅ Done | Dashboard, steps D1 to D6 | Germ |
 | ✅ Done | Week 0 (010-germ, #39) | Germ |
@@ -350,7 +356,7 @@ Our angle: three providers rotated through government, crime and the world itsel
 - **The World decides too much.** It only frames; Nature and the arithmetic are code, and every Wire item must cite a logged event.
 - **Refusals.** A model may refuse to play a gang. The refusal rate by seat and model is a result, and every test runs with and without fallback days.
 - **Model updates mid-study.** Gemini and GPT have no dated snapshots. Every call logs the reported model; a run where it changes is flagged and kept.
-- **Unreliable judges.** If alpha falls below 0.70 for tone, H5 has no usable data.
+- **Unreliable judges.** If alpha falls below 0.70 for tone, H5 stays in Holm at p = 1, not confirmed.
 - **The Latin square assumption.** A real seat × rotation interaction would bias the model effect.
 - **A leaked key.** Keys are encrypted at rest, never logged, and capped by the provider's own limit. Delete them when the study ends.
 - **Uneven bills.** Providers cost different amounts, so alternating days won't split the bill in half. Fallback payback and the ledger settle the difference.

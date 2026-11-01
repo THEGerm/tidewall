@@ -12,6 +12,18 @@ import type { Scores } from "./types";
 
 export const isLive = (status: Status) => status !== "over" && status !== "truncated";
 
+// A study run's secrets stay closed until every run of its triple is over:
+// the 3 runs share a seed, so the first one's Nature, end day and fallback
+// draws would show what the other two still have to play (Germ, 1 Nov).
+// "live" in the public API means "secrets closed".
+const inTriple = (run: { model_set: string; triple: number }) => run.model_set === "study" && run.triple > 0;
+export async function sealed(db: D1Database, run: RunRow): Promise<boolean> {
+  if (isLive(run.status)) return true;
+  if (!inTriple(run)) return false;
+  const open = await db.prepare("SELECT 1 FROM runs WHERE model_set = 'study' AND triple = ? AND status NOT IN ('over', 'truncated') LIMIT 1").bind(run.triple).first();
+  return !!open;
+}
+
 const parse = (v: unknown) => (typeof v === "string" ? JSON.parse(v) : v);
 
 export async function listRuns(db: D1Database) {
@@ -23,7 +35,8 @@ export async function listRuns(db: D1Database) {
        FROM runs r ORDER BY r.id`, // by run name (#113)
     )
     .all<Record<string, any>>();
-  return results.map((r) => ({ ...r, seating: parse(r.seating), live: isLive(r.status), cost_usd: r.cost_usd ?? 0 }));
+  const openTriples = new Set(results.filter((r) => inTriple(r as any) && isLive(r.status)).map((r) => r.triple));
+  return results.map((r) => ({ ...r, seating: parse(r.seating), live: isLive(r.status) || (inTriple(r as any) && openTriples.has(r.triple)), cost_usd: r.cost_usd ?? 0 }));
 }
 
 // One row per played day: what the run page charts. All of it is public.
@@ -57,11 +70,10 @@ export async function runSummary(db: D1Database, id: string) {
     return { day: d.day, nature: parse(d.nature), delta, scores: { ...scores }, treasury, prison, prisonBy: { ...prisonBy }, turf };
   });
 
-  return { run: publicRun(run, days.length), days: series };
+  return { run: publicRun(run, days.length, await sealed(db, run)), days: series };
 }
 
-function publicRun(run: RunRow, played: number) {
-  const live = isLive(run.status);
+function publicRun(run: RunRow, played: number, live: boolean) {
   return {
     id: run.id,
     model_set: run.model_set,
@@ -83,7 +95,7 @@ export async function dayView(db: D1Database, id: string, day: number) {
   if (!run) return null;
   const d = await db.prepare("SELECT * FROM days WHERE run_id = ? AND day = ?").bind(id, day).first<Record<string, any>>();
   if (!d) return null;
-  const live = isLive(run.status);
+  const live = await sealed(db, run);
   const rows = async (sql: string) => (await db.prepare(sql).bind(id, day).all<Record<string, any>>()).results;
 
   const events = await rows(`SELECT * FROM events WHERE run_id = ? AND day = ? ${live ? "AND public = 1" : ""} ORDER BY rowid`);
@@ -135,6 +147,6 @@ export async function dayView(db: D1Database, id: string, day: number) {
 // The full export, for finished runs only.
 export async function publicExport(db: D1Database, id: string) {
   const run = await getRun(db, id);
-  if (!run || isLive(run.status)) return null;
+  if (!run || (await sealed(db, run))) return null;
   return exportRun(db, id);
 }
