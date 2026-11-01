@@ -6,7 +6,8 @@ The 27 study runs are 9 triples. The 3 runs of a triple share one seed and play 
 
 - **Source:** drand, a public randomness beacon (mainnet, default chain). Round **6601923**, published 2026-10-31 23:18:30 UTC. Randomness `c3fb557f04a5bed65d293f38fe29b2cb4740fdfb4770a800bad400f398bcc6e8`. Check it at https://api.drand.sh/public/6601923.
 - **Rule:** the seed of triple n is the first 16 hex digits of SHA-256 of `<randomness>:tidewall-triple-<n>`. `python3 scripts/seeds.py` prints them.
-- **One draw only.** This is the only round drawn for the study. No game was played on these seeds, and none will be before run 1, so no seed was chosen for how its game turns out.
+- **One draw only.** This is the only round drawn for the study. No game was played on these seeds before the study, so no seed was chosen for how its game turns out.
+- **Matched bot baselines.** After a triple's 3 study runs have ended, 2 bot runs play its seed: `bot-t<n>-eq` (the equilibrium bots) and `bot-t<n>-enc` (the gangs encroaching). They replay the triple's weather, end day and random draws, and serve as exploratory baselines (pre-registration, data handling). No bot plays a seed before its triple has ended.
 
 ## The seeds
 

@@ -400,6 +400,7 @@ Decided 30 to 31 Oct:
 | 1 Nov | A skipped or failed confirmatory test stays in Holm at p = 1 | Germ |
 | 1 Nov | Changes from six papers read before the freeze: valid-move floor and a beliefs-free baseline for lambda (arXiv 2603.10029); deception typology and an exploratory model x seat term (2607.05132); judged text marked as data, a second-template check (2506.09443); a human check on the judges (2603.18894); a recognition check on the prompts (2509.18052). Details in the pre-registration | Germ |
 | 1 Nov | Changes from six Scholar papers: a negative gang response to its forecast is a finding (Terada et al., AIES 2026); an outcome-sufficiency check on forecasts (arXiv 2609.07943); "seat" means role identity plus payoffs (2601.10102); an impersonation scan (2405.03862); a second recognition question and a diary scan for game-theory terms (2506.18600); collusion needs punishment, else "cartel-like" (2610.28787) | Germ |
+| 1 Nov | Matched bot baselines: after each triple ends, the equilibrium bots and the encroaching variant play its seed (bot-t<n>-eq, bot-t<n>-enc); exploratory | Germ |
 | 31 Oct | Fallback payback through the debtor's Anthropic key (#117), proposed by Vishnu | Germ |
 | 30 Oct | Workers Paid plan ($5 a month), which brings D1 Time Travel | Germ |
 
