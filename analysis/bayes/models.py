@@ -144,6 +144,9 @@ def check(posterior, rhat_max=1.01, ess_min=400):
 
     s = az.summary(posterior, kind="diagnostics")
     reasons = []
+    for col in ("r_hat", "ess_bulk", "ess_tail"):
+        if s[col].isna().any():
+            reasons.append(f"{col} is NaN")  # a NaN never passes
     if (s["r_hat"] > rhat_max).any():
         reasons.append(f"r-hat {s['r_hat'].max():.3f} > {rhat_max}")
     if (s["ess_bulk"] < ess_min).any():
@@ -165,10 +168,17 @@ def fit_checked(build, ladder=LADDER, **kw):
     Extra keywords (draws, chains, ...) go to fit().
     """
     log = []
+    full = str(build(simple=False).formula)
     for rung in ladder:
         rung = dict(rung)
         simple = rung.pop("simple", False)
-        post = fit(build(simple=simple), **(kw | rung))
+        model = build(simple=simple)
+        if simple and str(model.formula) == full:
+            # Already random intercepts only (H2a, H3 departures, H5, refusals):
+            # there is no simpler model, so this rung adds nothing.
+            log.append({"rung": rung | {"simple": True}, "passed": False, "reasons": ["no simpler model; rung skipped"]})
+            continue
+        post = fit(model, **(kw | rung))
         passed, reasons = check(post)
         log.append({"rung": rung | {"simple": simple}, "passed": passed, "reasons": reasons})
         if passed:

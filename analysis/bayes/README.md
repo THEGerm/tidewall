@@ -17,7 +17,7 @@ python -m unittest discover -s analysis/bayes/tests -t .    # 12 tests; the mode
 | H3 (decided 31 Oct): how often and by how much the Chief departs from "never accept unless b > 100a + 11" | offered district-days | `departs ~ 0 + family + (1\|run)` | measured: each family's departure rate with its 95% interval; the size (shortfall) is descriptive, `frames.departures` |
 | H3, secondary: answers follow the payoff | offered district-days | `accepted ~ delta + family + (delta\|run)`, delta = b - 100 a_hat - 11 | slope on delta above 0 |
 | H4: no end-game drop | gang-days from day 2 | `respect ~ day + after_min + their_prev + own_prev + family + (day\|run)` | a drop counts when the day slope is below 0 |
-| H5: tone depends on the holder's family | judge-coded Wire items | `tone ~ seat + world_family * holder_family + (1\|run) + (1\|item) + (1\|judge)`, cumulative logit | one omnibus Wald chi-square on the world × holder interaction (1 df: 6 of 9 cells occur); p = 1 if judge agreement on tone is below 0.70 |
+| H5: tone depends on the holder's family | judge-coded Wire items | `tone ~ seat + world_family * holder_family + (1\|run) + (1\|item) + (1\|judge)`, cumulative logit | one omnibus Wald chi-square on the world × holder interaction (1 df with the two Latin squares of #130, 0 with one); p = 1 if judge agreement on tone is below 0.70 |
 | Refusals (exploratory) | player-days | `refusals ~ seat + family + day + (1\|run)`, hurdle Poisson | reported, not tested |
 
 - **Priors.** Normal(0, 2.5) on every intercept and slope (log-odds), and HalfNormal(1) on every random-effect SD.
@@ -34,4 +34,5 @@ H1 (bootstrap by triples), H2b (triple means of the history gain) and H6 (omega-
 - **H3**, as Shazz worded it on 31 Oct: the Chief should never accept a bribe unless b > 100a + 11, and the study measures how often, and by how much, models depart from that. A departure is accepting at delta <= 0 or refusing at delta > 0. The rate is a measurement, so it stays out of Holm unless the pre-registration (#38) sets a threshold for it. The slope on delta is kept as a secondary test.
 - **Sampler.** 4 chains, 2,000 draws after 2,000 tuning, seed 2026.
 - **Fit check, in code** (`models.check`): rank-normalized r-hat at most 1.01, bulk and tail ESS at least 400, no divergences.
-- **On failure** (`models.fit_checked`): target_accept 0.95, then 0.99; 4,000 tuning draws; then random intercepts only. If every rung fails, the test stays in Holm at p = 1 (`decide.unreliable`).
+- **On failure** (`models.fit_checked`): target_accept 0.95, then 0.99; 4,000 tuning draws; then random intercepts only. If every rung fails, every entry of the test stays in Holm at p = 1 (`decide.unreliable`). A skipped test does too (`decide.skipped`): the family always has 11 entries.
+- **Judges** (`judges.py`): combining the three judges' codes, and Krippendorff's alpha (nominal, ordinal, interval), checked against Krippendorff's published example.

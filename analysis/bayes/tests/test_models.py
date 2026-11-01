@@ -85,26 +85,45 @@ class Recovery(unittest.TestCase):
 
 @unittest.skipUnless(HAVE, "needs bambi and pymc (analysis/bayes/requirements.txt)")
 class OtherModels(unittest.TestCase):
-    def test_h5_finds_tone_that_depends_on_the_holder(self):
-        from analysis.bayes import decide, models
-        rng = random.Random(5)
+    @staticmethod
+    def tone_items(two_squares, effect=-0.8, runs=30, seed=5):
+        """Judge rows for H5. One square: each (world, holder) pair always in the
+        same seat. Two squares (#130): even triples swap the two other seats."""
+        rng = random.Random(seed)
         fams = ("claude", "gemini", "gpt")
         items = []
-        for k in range(30):
+        for k in range(runs):
             world = fams[k % 3]
-            for seat, holder in zip(("Government", "Criminals"), [f for f in fams if f != world]):
+            others = [f for f in fams if f != world]
+            if two_squares and (k // 3) % 2 == 1:
+                others = others[::-1]
+            for seat, holder in zip(("Government", "Criminals"), others):
                 for i in range(6):
-                    # The claude World is harsh on gpt-held seats; everyone else is neutral.
-                    mean = -0.8 if (world == "claude" and holder == "gpt") else 0.0
+                    # The claude World is harsher on a gpt-held seat; no seat effect.
+                    mean = effect if (world == "claude" and holder == "gpt") else 0.0
                     for judge in ("j1", "j2"):
                         x = mean + rng.gauss(0, 0.6)
                         items.append({"tone": -1 if x < -0.5 else (1 if x > 0.5 else 0), "seat": seat, "world_family": world,
                                       "holder_family": holder, "run": f"r{k}", "item": f"r{k}-{seat}-{i}", "judge": judge})
-        post = models.fit(models.h5_tone(items), **QUICK)
-        d = decide.h5(post)
-        self.assertEqual(d["H5 omnibus"]["df"], 1)  # 6 occupied cells, additive model uses 5
+        return items
+
+    def test_h5_with_two_squares_has_one_df_and_finds_the_tilt(self):
+        from analysis.bayes import decide, models
+        items = self.tone_items(two_squares=True)
+        occupied = sorted({(r["world_family"], r["holder_family"], r["seat"]) for r in items})
+        self.assertEqual(len(occupied), 12)
+        d = decide.h5(models.fit(models.h5_tone(items), **QUICK), occupied)
+        self.assertEqual(d["H5 omnibus"]["df"], 1)  # rank 7 against 6 for seat + world + holder
         self.assertTrue(d["H5 omnibus"]["clears"], d["H5 omnibus"])
         self.assertTrue(all(v.get("measure") for k, v in d.items() if k != "H5 omnibus"))
+
+    def test_h5_with_one_square_has_no_df(self):
+        from analysis.bayes import decide, models
+        items = self.tone_items(two_squares=False)
+        occupied = sorted({(r["world_family"], r["holder_family"], r["seat"]) for r in items})
+        self.assertEqual(len(occupied), 6)
+        d = decide.h5(models.fit(models.h5_tone(items), **QUICK), occupied)["H5 omnibus"]
+        self.assertEqual((d["df"], d["p"], d["clears"]), (0, 1.0, False))  # the interaction is the seat effect
 
     def test_refusals_hurdle_model_fits(self):
         from analysis.bayes import models
@@ -137,8 +156,27 @@ class FitLadder(unittest.TestCase):
         self.assertIsNone(post)
         self.assertEqual([r["rung"]["simple"] for r in log], [False, True])
         self.assertTrue(any("ESS" in reason for r in log for reason in r["reasons"]))
-        u = decide.unreliable("H4 day", log)["H4 day"]
-        self.assertEqual((u["p"], u["clears"], u["note"]), (1.0, False, "not confirmed (fit unreliable)"))
+        u = decide.unreliable("H4", log)
+        self.assertEqual(sorted(u), ["H4 after day 12", "H4 day"])  # the family keeps both entries
+        self.assertEqual({(v["p"], v["clears"], v["note"]) for v in u.values()}, {(1.0, False, "not confirmed (fit unreliable)")})
+
+    def test_the_last_rung_is_skipped_when_there_is_no_simpler_model(self):
+        import functools
+        from analysis.bayes import models
+        tiny = ({"target_accept": 0.95, "draws": 30, "tune": 30}, {"target_accept": 0.95, "draws": 30, "tune": 30, "simple": True})
+        post, log = models.fit_checked(functools.partial(models.h2a_inspection, sim_runs()), ladder=tiny, chains=2)
+        self.assertEqual(log[-1]["reasons"], ["no simpler model; rung skipped"])
+
+    def test_check_fails_on_nan(self):
+        from unittest import mock
+        import pandas as pd
+        from analysis.bayes import models
+        fake = pd.DataFrame({"r_hat": [1.0, float("nan")], "ess_bulk": [900.0, 900.0], "ess_tail": [900.0, 900.0]})
+        post = {"sample_stats": {"diverging": mock.Mock(values=__import__("numpy").zeros((2, 10)))}}
+        with mock.patch("arviz.summary", return_value=fake):
+            passed, reasons = models.check(post)
+        self.assertFalse(passed)
+        self.assertIn("r_hat is NaN", reasons)
 
 
 @unittest.skipUnless(HAVE, "needs numpy")
@@ -156,10 +194,14 @@ class Rules(unittest.TestCase):
         both = decide.confirm({"a": up, "b": none})
         self.assertTrue(both["a"]["holm_reject"])
         self.assertFalse(both["b"]["holm_reject"])
-        # An unreliable fit and judges below 0.70 stay in Holm at p = 1.
-        fam = decide.confirm({"a": up, **decide.unreliable("u"), **decide.h5_unreliable_judges(0.62)})
-        self.assertEqual(len([k for k, v in fam.items() if "holm" in v]), 3)
-        self.assertEqual(fam["H5 omnibus"]["p"], 1.0)
+        # An unreliable fit, a skipped test and judges below 0.70 all stay in
+        # Holm at p = 1, with every entry; measurements never enter it.
+        fam = decide.confirm({"a": up, **decide.unreliable("H2a"), **decide.skipped("H3", "no offers"),
+                              **decide.h5_unreliable_judges(0.62), **decide.unreliable("H3 departures")})
+        self.assertEqual(len([k for k, v in fam.items() if "holm" in v]), 1 + 3 + 1 + 1)
+        self.assertEqual(fam["H5 omnibus"]["note"], "not confirmed (judge agreement too low)")
+        self.assertTrue(all("holm" not in v for k, v in fam.items() if k.startswith("H3 departures")))
+        self.assertEqual(decide.holm_size(), 11)
 
 
 if __name__ == "__main__":

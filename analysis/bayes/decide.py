@@ -84,102 +84,157 @@ def h4(posterior):
 
 
 FAMILIES = ("claude", "gemini", "gpt")
+SEATS = ("Criminals", "Government")  # the two seats a model holds besides the World
 
 
-def _cells(posterior, families=FAMILIES):
-    """Linear predictor of tone at each occupied (world, holder) cell, per draw.
+def _cells(posterior, occupied=None, families=FAMILIES):
+    """Linear predictor of tone at each occupied (world, holder, seat) cell, per draw.
 
-    The World's family never holds another seat in a run, so 6 of the 9
-    cells occur. Cell values are taken at the reference seat; the seat term
-    cancels in every contrast below, and so does the reference coding.
+    The World's family never holds another seat in its own run, so 6 of the
+    9 (world, holder) pairs occur. Two Latin squares (odd triples play
+    rotations 1 to 3, even triples the mirror square 4 to 6; Germ, 1 Nov,
+    #130) put every pair in both seats: 12 cells. occupied lists the cells
+    the data has; None means all 12.
     """
     w_lab, h_lab = labels(posterior, "world_family"), labels(posterior, "holder_family")
-    allf = sorted(families)  # treatment coding leaves the first level out of the labels
-    w, h = draws(posterior, "world_family"), draws(posterior, "holder_family")
-    inter = draws(posterior, "world_family:holder_family")
+    s_lab = labels(posterior, "seat")
     i_lab = labels(posterior, "world_family:holder_family")
+    w, h = draws(posterior, "world_family"), draws(posterior, "holder_family")
+    st, inter = draws(posterior, "seat"), draws(posterior, "world_family:holder_family")
+    allf = sorted(families)  # treatment coding leaves the first level out of the labels
+    if occupied is None:
+        occupied = [(wf, hf, seat) for wf in allf for hf in allf if wf != hf for seat in SEATS]
     cells, cols = [], []
-    for wf in allf:
-        for hf in allf:
-            if wf == hf:
-                continue
-            eta = np.zeros(w.shape[0])
-            if wf in w_lab:
-                eta = eta + w[:, w_lab.index(wf)]
-            if hf in h_lab:
-                eta = eta + h[:, h_lab.index(hf)]
-            key = f"{wf}, {hf}"
-            if key in i_lab:
-                eta = eta + inter[:, i_lab.index(key)]
-            cells.append((wf, hf))
-            cols.append(eta)
+    for wf, hf, seat in sorted(occupied):
+        eta = np.zeros(w.shape[0])
+        if wf in w_lab:
+            eta = eta + w[:, w_lab.index(wf)]
+        if hf in h_lab:
+            eta = eta + h[:, h_lab.index(hf)]
+        if seat in s_lab:
+            eta = eta + st.reshape(st.shape[0], -1)[:, s_lab.index(seat)]
+        key = f"{wf}, {hf}"
+        if key in i_lab:
+            eta = eta + inter[:, i_lab.index(key)]
+        cells.append((wf, hf, seat))
+        cols.append(eta)
     return cells, np.column_stack(cols)
 
 
 def _wald(contrast, draws_):
-    """Wald chi-square of C mu = 0 from the posterior mean and covariance."""
+    """Wald chi-square of C mu = 0 from the posterior mean and covariance.
+    Degrees of freedom are the rank of C's posterior covariance, so contrasts
+    the model can't move (exactly 0 in every draw) add no df."""
     from scipy.stats import chi2
 
     m = contrast @ draws_.mean(axis=0)
     cov = contrast @ np.cov(draws_, rowvar=False) @ contrast.T
-    stat = float(m @ np.linalg.pinv(cov) @ m)
-    df = int(np.linalg.matrix_rank(cov))
-    return stat, df, float(chi2.sf(stat, df)) if df else 1.0
+    sv = np.linalg.svd(cov, compute_uv=False) if cov.size else np.array([])
+    df = int((sv > 1e-9 * max(sv.max(initial=0.0), 1e-300)).sum()) if sv.size else 0
+    if df == 0:
+        return 0.0, 0, 1.0
+    stat = float(m @ np.linalg.pinv(cov, rcond=1e-9) @ m)
+    return stat, df, float(chi2.sf(stat, df))
 
 
-def h5(posterior, families=FAMILIES):
+def h5(posterior, occupied=None, families=FAMILIES):
     """H5, one omnibus test (decision A, 31 Oct): a Wald chi-square on the
     world x holder interaction, from the posterior mean and covariance; its p
-    enters Holm. The test is on the contrasts of the occupied cell means
-    that the additive model (world + holder) can't explain, so it doesn't
-    depend on the reference coding.
+    enters Holm. It tests the contrasts of the occupied cell means that the
+    additive model (seat + world + holder) can't explain, so it doesn't depend
+    on the reference coding.
 
-    With 6 occupied cells, the interaction has 6 - 5 = 1 degree of freedom.
-    Bambi's 4 interaction terms include 2 for cells that never occur, which
-    only their priors inform; the cell contrasts leave those out.
+    With both Latin squares, the cells span rank 7 against 6 for the additive
+    model, so the interaction has 1 identifiable df. With one square only,
+    each (world, holder) pair always falls in the same seat, the interaction
+    is the seat effect, and the test has 0 df: p = 1.
 
-    Also returned, descriptive only: the holder-within-world contrasts (does
-    each World's tone differ between the two families it can see?) and each
-    cell's posterior median.
+    Also returned, descriptive only: the holder-within-world contrasts
+    and each cell's posterior median.
     """
-    cells, eta = _cells(posterior, families)
-    fams = sorted({c[0] for c in cells})
-    # Additive design over the occupied cells: intercept, world and holder dummies.
-    add = np.array([[1.0] + [float(c[0] == f) for f in fams[1:]] + [float(c[1] == f) for f in fams[1:]] for c in cells])
+    cells, eta = _cells(posterior, occupied, families)
+    fams = sorted(families)
+    add = np.array([[1.0, float(c[2] == SEATS[1])] + [float(c[0] == f) for f in fams[1:]] + [float(c[1] == f) for f in fams[1:]]
+                    for c in cells])
     u, sv, _ = np.linalg.svd(add)
     rank = int((sv > 1e-9).sum())
     contrast = u[:, rank:].T  # the space orthogonal to the additive model
-    stat, df, p = _wald(contrast, eta)
-    out = {"H5 omnibus": {"estimate": stat, "df": df, "p": p, "clears": p < 0.05, "test": "Wald chi-square, world x holder"}}
-    within = np.array([[1.0 if c == (wf, a) else -1.0 if c == (wf, b) else 0.0 for c in cells]
-                       for wf in fams for a, b in [sorted(f for f in fams if f != wf)]])
-    s2, d2, p2 = _wald(within, eta)
-    out["H5 holder within world (descriptive)"] = {"estimate": s2, "df": d2, "p_descriptive": p2, "measure": True,
-                                                    "low": float("nan"), "high": float("nan")}
+    stat, df, p = _wald(contrast, eta) if contrast.size else (0.0, 0, 1.0)
+    out = {"H5 omnibus": {"estimate": stat, "df": df, "p": p, "clears": p < 0.05, "test": "Wald chi-square, world x holder",
+                          **({"note": "not confirmed (interaction not identified in these runs)"} if df == 0 else {})}}
+    pairs = sorted({(c[0], c[1]) for c in cells})
+    within = []
+    for wf in fams:
+        mine = sorted(hf for (w_, hf) in pairs if w_ == wf)
+        if len(mine) == 2:
+            row = [(1.0 if (c[0], c[1]) == (wf, mine[0]) else -1.0 if (c[0], c[1]) == (wf, mine[1]) else 0.0) for c in cells]
+            within.append(row)
+    if within:
+        s2, d2, p2 = _wald(np.array(within), eta)
+        out["H5 holder within world (descriptive)"] = {"estimate": s2, "df": d2, "p_descriptive": p2, "measure": True,
+                                                        "low": float("nan"), "high": float("nan")}
     for k, c in enumerate(cells):
         x = eta[:, k]
-        out[f"H5 cell {c[0]} on {c[1]} (descriptive)"] = {"estimate": float(np.median(x)), "low": float(np.quantile(x, 0.025)),
-                                                           "high": float(np.quantile(x, 0.975)), "measure": True}
+        out[f"H5 cell {c[0]} on {c[1]}, {c[2]} (descriptive)"] = {"estimate": float(np.median(x)), "low": float(np.quantile(x, 0.025)),
+                                                                   "high": float(np.quantile(x, 0.975)), "measure": True}
     return out
+
+
+# The Holm entries each confirmatory test contributes. A test that can't be
+# decided (fit unreliable, skipped, judges below the alpha line) still
+# contributes all of them, at p = 1, so the family size never depends on the
+# data (Germ, 1 Nov). Measurements (H3 departures, cell means) never enter Holm.
+ENTRIES = {
+    "H1": ["H1"],
+    "H2a": [f"H2a {f}" for f in FAMILIES],
+    "H2b": ["H2b"],
+    "H3": ["H3 delta"],
+    "H4": ["H4 day", "H4 after day 12"],
+    "H5": ["H5 omnibus"],
+    "H6 Brier skill": ["H6 Brier skill"],
+    "H6 lambda": ["H6 lambda"],
+}
+MEASUREMENTS = {"H3 departures"}
+
+
+def holm_size():
+    """The confirmatory family size: 11 entries (H2a 3, H4 2, H6 2, the rest 1)."""
+    return sum(len(v) for v in ENTRIES.values())
+
+
+def not_decided(test, note, log=None):
+    """Every Holm entry of `test` at p = 1, with `note` as the verdict.
+    A measurement returns its entries marked as measurements, outside Holm."""
+    if test in MEASUREMENTS:
+        return {f"{test} {f}": {"estimate": float("nan"), "low": float("nan"), "high": float("nan"), "measure": True, "note": note}
+                for f in FAMILIES}
+    return {k: {"estimate": float("nan"), "low": float("nan"), "high": float("nan"), "p": 1.0, "clears": False,
+                "note": note, **({"fit_log": log} if log else {})} for k in ENTRIES[test]}
+
+
+def unreliable(test, log=None):
+    """Decision B: a test whose fit fails every rung stays in Holm at p = 1,
+    with all its entries, reported "not confirmed (fit unreliable)"."""
+    return not_decided(test, "not confirmed (fit unreliable)", log)
 
 
 def h5_unreliable_judges(alpha_tone):
     """Germ, 31 Oct: if the judges' agreement on tone (Krippendorff's alpha)
     is below 0.70, H5 stays in Holm with p = 1."""
-    return {"H5 omnibus": {"estimate": float("nan"), "p": 1.0, "clears": False,
-                           "note": f"not confirmed (judge agreement on tone {alpha_tone:.2f} < 0.70)"}}
+    out = not_decided("H5", "not confirmed (judge agreement too low)")
+    out["H5 omnibus"]["alpha_tone"] = alpha_tone
+    return out
 
 
-def unreliable(name, log=None):
-    """Decision B: a test whose fit fails every rung stays in Holm at p = 1,
-    reported "not confirmed (fit unreliable)". It is never dropped."""
-    return {name: {"estimate": float("nan"), "low": float("nan"), "high": float("nan"), "p": 1.0, "clears": False,
-                   "note": "not confirmed (fit unreliable)", "fit_log": log or []}}
+def skipped(test, reason):
+    """Germ, 1 Nov: a test the data can't run (no offers, too few triples, no
+    judge codes) enters Holm at p = 1 with all its entries; it is never dropped."""
+    return not_decided(test, f"not confirmed (skipped: {reason})")
 
 
 def confirm(results, alpha=0.05):
     """Holm across the confirmatory decisions, on p = 1 - p_d. Measurements
     (no threshold) pass through untouched."""
-    tests = {k: v for k, v in results.items() if "p" in v}
+    tests = {k: v for k, v in results.items() if "p" in v and not v.get("measure")}
     adj = holm({k: v["p"] for k, v in tests.items()}, alpha) if tests else {}
     return {k: (v | {"holm": adj[k]["adjusted"], "holm_reject": adj[k]["reject"]}) if k in adj else v for k, v in results.items()}
