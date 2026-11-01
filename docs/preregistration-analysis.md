@@ -80,8 +80,7 @@ We measure how often, and by how much, models depart from that rule.
 - **Variable:** tone -1, 0 or 1 toward Government or Criminals, one row per Wire item per judge, so the judge term in the model has data. Section 6 says which items count.
 - **Model:** `tone ~ seat + world_family * holder_family + (1|run) + (1|item) + (1|judge)`, cumulative logit.
 - **Test (decision A, Germ, 31 Oct):** one omnibus Wald chi-square of the whole world × holder interaction, from the posterior mean and covariance. Its p enters Holm. Individual terms are descriptive only.
-  - The test runs on the contrasts of the occupied cell means that an additive model (world + holder) can't explain, so it doesn't depend on the reference coding.
-  - The test runs on the contrasts of the occupied (world, holder, seat) cell means that an additive model (seat + world + holder) can't explain. Its degrees of freedom are the rank of their posterior covariance.
+  - The test runs on the contrasts of the occupied (world, holder, seat) cell means that an additive model (seat + world + holder) can't explain. Its degrees of freedom are the rank of their posterior covariance, and it doesn't depend on the reference coding.
   - The World's family never holds another seat in its own run, so 6 of the 9 (world, holder) pairs occur.
     - In one cyclic Latin square, each pair always falls in the same seat. The interaction is then the seat effect, with **0 identifiable df** (rank 6 with and without it).
     - With the two squares, every pair falls in both seats: 12 cells, rank 7 against 6 for the additive model, so the interaction has **1 identifiable df**.
