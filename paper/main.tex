@@ -1,0 +1,43 @@
+% Tidewall: the arXiv preprint (GERM-DEV-0022). Skeleton, 1 Nov 2026.
+% Build: latexmk -pdf main.tex (or tectonic main.tex). Sources for each
+% section are named in a comment at its top; nothing here is final.
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+\title{Tidewall: frontier language models in a city of solved games\\\large\todo{working title}}
+\author{\todo{authors and order: open decision (Germ, Shazz, Richard?)}}
+\date{\todo{date}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{sections/00-abstract}
+\end{abstract}
+
+\input{sections/01-introduction}
+\input{sections/02-related-work}
+\input{sections/03-game}
+\input{sections/04-design}
+\input{sections/05-analysis}
+\input{sections/06-results}
+\input{sections/07-discussion}
+\input{sections/08-statements}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\input{sections/A-appendix}
+
+\end{document}

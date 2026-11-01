@@ -51,7 +51,7 @@
         <li><strong>Pause</strong> and <strong>Resume</strong> stop and restart the schedule for that run. Nothing is lost: it carries on from the next day.</li>
         <li><strong>Check</strong> answers "can the next day play?": it looks for a missing key, an unpinned model or the spending cap, without spending anything.</li>
         <li><strong>Ledger</strong> opens the ledger page on this run: every model call, its tokens, cost and who paid.</li>
-        <li><strong>End</strong> finishes the run for good. It moves to the archive on the home page, its secrets open, and its data is saved to the repo within the hour.</li>
+        <li><strong>End</strong> finishes the run for good. It moves to the archive on the home page, its secrets open (a study run's once its whole triple has ended), and its data is saved to the repo within the hour.</li>
         <li>A run that can't play pauses itself and says why in the log.</li>
       </ul>
       <div class="table-wrap">
@@ -71,7 +71,7 @@
 
     <section aria-labelledby="h-new">
       <h2 id="h-new">New run</h2>
-      <p class="muted">Test runs use the cheap models and stay out of the analysis. The 27 study runs will come from a script with the published seeds.</p>
+      <p class="muted">Test runs use the cheap models and stay out of the analysis. The 27 study runs come from the button below.</p>
       <form id="new-form" class="grid-form">
         <label>Run ID <input name="id" required pattern="[a-z0-9-]{1,40}" placeholder="test-1"></label>
         <label>Seed <input name="seed" minlength="8" autocomplete="off" placeholder="leave blank for a random one"><span class="help">Fixes the dice: weather, fires and the day the game ends. Two runs with the same seed get the same events. Leave blank for tests.</span></label>
@@ -81,6 +81,13 @@
         <button type="submit">Create</button>
       </form>
       <p id="new-msg" class="msg" role="status"></p>
+    </section>
+
+    <section aria-labelledby="h-study">
+      <h2 id="h-study">The study</h2>
+      <p class="muted">Creates all 27 study runs: 9 triples, each playing rotations 1, 2 and 3 on its published seed (<a href="https://github.com/THEGerm/tidewall/blob/main/docs/seeds.md">seeds.md</a>). They are created ready. With the schedule on, they play one after another, from study-t1-r1 to study-t9-r3. Do this once, after the freeze tag and with the cap set.</p>
+      <button type="button" id="study-btn">Create the 27 study runs</button>
+      <p id="study-msg" class="msg" role="status"></p>
     </section>
 
     <section aria-labelledby="h-models">
