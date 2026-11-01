@@ -118,12 +118,16 @@ export function checkWorldAct(a: unknown, open: District[]): string[] {
   return checkForecasts(a.forecasts, open);
 }
 
+// A day with a single public event asks for one item, not two (#124).
+export const wireMin = (events: number) => Math.max(1, Math.min(WIRE_MIN, events));
+
 export function checkWire(a: unknown, publicEvents: Event[], kept: number[] = []): string[] {
   if (!isObj(a) || !Array.isArray(a.wire)) return ["answer must be {wire: [...]}"];
   const ids = new Set(publicEvents.map((ev) => ev.id));
   const e: string[] = [];
   const items = (a as WireAnswer).wire;
-  if (items.length < WIRE_MIN || items.length > WIRE_MAX) e.push(`write ${WIRE_MIN} to ${WIRE_MAX} items`);
+  const min = wireMin(publicEvents.length);
+  if (items.length < min || items.length > WIRE_MAX) e.push(`write ${min} to ${WIRE_MAX} items`);
   items.forEach((it, i) => {
     if (!isObj(it) || typeof it.headline !== "string" || typeof it.text !== "string") { e.push(`item ${i + 1} needs headline and text`); return; }
     if (words(it.text) > 60) e.push(`item ${i + 1} is over 60 words`);

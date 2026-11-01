@@ -103,6 +103,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
       : player === "World" ? {}
       : { [player]: state.balances[player as Gang] },
     publicYesterday, wireYesterday, inbox: [],
+    prison: { Families: state.prison.filter((x) => x.gang === "Families").length, Saltdogs: state.prison.filter((x) => x.gang === "Saltdogs").length },
     ...(privateYesterday[player]?.length ? { privateYesterday: privateYesterday[player] } : {}),
     // Memory: the player's own kept diary, and its own score so far.
     notebook: notebooks[player] ?? [],
@@ -152,7 +153,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
   }
 
   await confide("after", (p) =>
-    p === "Chief" ? { acceptedToday: accepted } : p === "Families" || p === "Saltdogs" ? { ownOffersAccepted: accepted.filter((d) => TURF[d] === p) } : {});
+    p === "Chief" ? { acceptedToday: accepted } : p === "Families" || p === "Saltdogs" ? { ownOffers: offers[p as Gang], ownOffersAccepted: accepted.filter((d) => TURF[d] === p) } : {});
 
   // Step 5: forecasts, moves, diaries
   const prev = state.previous;
@@ -172,7 +173,7 @@ export async function playDay({ state, players, publicYesterday, wireYesterday, 
     ...GANGS.map(async (g) => {
       const mine = ownOpen(g, open);
       const a = await ask<GangAct>(records, g, "act",
-        (errs) => players[g].act({ ...base(g), inbox: inbox(g), ...own(g), ownOffersAccepted: accepted.filter((d) => TURF[d] === g), retryErrors: errs } as View),
+        (errs) => players[g].act({ ...base(g), inbox: inbox(g), ...own(g), ownOffers: offers[g], ownOffersAccepted: accepted.filter((d) => TURF[d] === g), retryErrors: errs } as View),
         (x) => checkGangAct(x, g, open, kept(g)), dropDiary);
       keep(g, a);
       Object.assign(crime, a ? Object.fromEntries(mine.map((d) => [d, a.moves.crime[d]])) : fallbackCrime(seed, day, g, open, prev));

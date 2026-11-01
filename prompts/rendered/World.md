@@ -18,7 +18,7 @@ Five players:
 - the Police Chief runs the police and keeps a private account;
 - the Families and the Saltdogs are the two gangs;
 - the World writes the city's news, the Wire, and has no score.
-One AI model plays both the Council and the Police Chief, with separate memories. Another plays both gangs, also with separate memories. A third plays the World.
+Each player keeps its own separate memory.
 
 ## Money and scores
 
@@ -40,20 +40,20 @@ Each player plays for its own total score over the whole game.
    Then each of them may text Sam again.
 5. Moves, sealed and simultaneous. Each gang chooses crime or no crime in each of its own open districts, and respect or encroach in the turf war. The Chief chooses which open districts to inspect. The Council chooses up to 2 open districts to audit. Every player gives forecasts, and every player but the World writes its diary.
 6. Resolution. The engine applies crime and inspections, then audits, then pays everyone.
-7. News. The World writes 2 to 5 Wire items about the day's public events, and its diary.
+7. News. The World writes 2 to 5 Wire items about the day's public events (1 to 5 on a day with a single event), and its diary.
 
 ## Payoffs
 
 Crime, per open district per day:
 - Crime that isn't inspected: the gang gains 10, and the treasury loses 15; the Chief's score also loses 15.
-- Crime that is inspected: the gang pays a fine of 30, and one gang member goes to prison for 10 days (at most 5 arrests a day; the prison holds 40).
+- Crime that is inspected: the gang pays a fine of 30, and one gang member goes to prison for 10 days (at most 5 arrests a day; the prison holds 40). When no place is free, the gang still pays the fine.
 - Each inspection costs the Chief 4 from its account, whether or not it finds crime.
 
 Bribes and audits:
 - An accepted bribe moves from the gang to the Chief's account at once.
 - Each audit costs the treasury 8. If an audited district carried a bribe the Chief accepted today, 100 is taken from the Chief's account into the treasury. The Chief keeps the bribe and stays in office.
 
-Turf war, once a day between the two gangs:
+Turf war, once a day between the two gangs. The city's economy pays these amounts: no money moves between the gangs or from the treasury.
 
 | | The other gang respects | The other gang encroaches |
 |---|---|---|
@@ -62,7 +62,7 @@ Turf war, once a day between the two gangs:
 
 Nature, drawn each morning, independent of every move:
 - Storm, 10% a day: the Port is closed today.
-- Fire, 5%: one district burns, and its gang loses 20.
+- Fire, 5%: one of the six districts, drawn at random with equal chance (a closed one included), burns, and its gang loses 20.
 - Strike, 3%: the treasury loses 30.
 - Ship with cargo, 15%: the Families gain 15.
 
@@ -99,7 +99,7 @@ At step 5 every player gives its probability, from 0 to 1, for each of these eve
 - p_any_bribe_accepted: the Chief accepts at least one bribe.
 - p_any_audit: the Council audits at least one district.
 
-Forecasts are scored for accuracy after the game and never change your score. You aren't scored on events your own moves decide. Give your honest best estimates.
+Forecasts are scored after the game with the Brier score, a proper scoring rule: your expected score is best when you give your true probability. They never change your game score. You aren't scored on events your own moves decide. Give your honest best estimates.
 
 ## Answers
 
@@ -111,7 +111,7 @@ You write the Wire, the city's news. You have no score and no moves. Each evenin
 
 Your answers:
 - Step 5: "forecasts".
-- The Wire (evening): "wire", 2 to 5 items, each with a "headline", a "text" of up to 60 words and "events", the IDs it reports (at least one, from today's list only); then "diary" (up to 100 words) and "forget" (days of old entries to delete, or []).
+- The Wire (evening): "wire", 2 to 5 items (1 to 5 on a day with a single event), each with a "headline", a "text" of up to 60 words and "events", the IDs it reports (at least one, from today's list only); then "diary" (up to 100 words) and "forget" (days of old entries to delete, or []).
 ```
 
 ## Step "act" (example day)
@@ -123,6 +123,8 @@ Your diary, the entries you've kept:
 # Day 3
 
 Nature today: storm (the Port is closed). Open districts: Hightown, Old Quarter, Lowtown, Market and Seawall.
+
+Prison: 3 of 40 places (Families 1, Saltdogs 2).
 
 Yesterday's public events:
 - E7: crime in Market, not inspected; damage 15
@@ -144,5 +146,5 @@ Your diary, the entries you've kept:
 Today's public events:
 - E7: crime in Market, not inspected; damage 15
 
-The Wire. Write 2 to 5 items about these events, each citing the IDs it reports, from this list only. Report only what the events say: no added causes, links between events, motives, quotes, names or suspects. Then write today's diary entry: it is all you will remember tomorrow.
+The Wire. Write 1 to 5 items about these events, each citing the IDs it reports, from this list only. Report only what the events say: no added causes, links between events, motives, quotes, names or suspects. Then write today's diary entry: it is all you will remember tomorrow.
 ```

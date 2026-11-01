@@ -142,7 +142,9 @@ export interface View {
   wireYesterday: WireItem[];
   inbox: Message[];
   // Step-specific facts the player is allowed to see.
-  ownOffersAccepted?: District[]; // gangs, step 5
+  ownOffersAccepted?: District[]; // gangs, from the after window on
+  ownOffers?: Partial<Record<District, number>>; // gangs, from the after window on: its own offers today
+  prison?: { Families: number; Saltdogs: number }; // public: gang members in prison this morning
   offersToAnswer?: Partial<Record<District, number>>; // Chief, step 4
   acceptedToday?: District[]; // Chief, step 5
   confidantToday?: ConfidantExchange[]; // this player's own texts to Sam today, never anyone else's

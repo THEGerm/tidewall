@@ -29,6 +29,7 @@ import {
   type District, type PlayerName,
 } from "../engine/config";
 import type { Event, View } from "../engine/types";
+import { wireMin } from "../engine/validate";
 
 export type Step = "messages" | "offers" | "confide_before" | "answers" | "confide_after" | "act";
 
@@ -75,7 +76,7 @@ Five players:
 - the Police Chief runs the police and keeps a private account;
 - the Families and the Saltdogs are the two gangs;
 - the World writes the city's news, the Wire, and has no score.
-One AI model plays both the Council and the Police Chief, with separate memories. Another plays both gangs, also with separate memories. A third plays the World.
+Each player keeps its own separate memory.
 
 ## Money and scores
 
@@ -95,20 +96,20 @@ Each player plays for its own total score over the whole game.
 4. Bribe answers. The Chief accepts or refuses each offer. An accepted bribe is paid at once, and the Chief can't inspect that district today. Each gang learns which of its offers were accepted. The Council is not told.${o.confidant ? "\n   Then each of them may text Sam again." : ""}
 5. Moves, sealed and simultaneous. Each gang chooses crime or no crime in each of its own open districts, and respect or encroach in the turf war. The Chief chooses which open districts to inspect. The Council chooses up to ${MAX_AUDITS} open districts to audit. Every player gives forecasts, and every player but the World writes its diary.
 6. Resolution. The engine applies crime and inspections, then audits, then pays everyone.
-7. News. The World writes ${WIRE_MIN} to ${WIRE_MAX} Wire items about the day's public events, and its diary.
+7. News. The World writes ${WIRE_MIN} to ${WIRE_MAX} Wire items about the day's public events (1 to ${WIRE_MAX} on a day with a single event), and its diary.
 
 ## Payoffs
 
 Crime, per open district per day:
 - Crime that isn't inspected: the gang gains ${CRIME_GAIN}, and the treasury loses ${CRIME_DAMAGE}${o.chiefCountsDamage ? `; the Chief's score also loses ${CRIME_DAMAGE}` : ""}.
-- Crime that is inspected: the gang pays a fine of ${FINE}, and one gang member goes to prison for ${SENTENCE_DAYS} days (at most ${ARREST_CAP} arrests a day; the prison holds ${PRISON_PLACES}).
+- Crime that is inspected: the gang pays a fine of ${FINE}, and one gang member goes to prison for ${SENTENCE_DAYS} days (at most ${ARREST_CAP} arrests a day; the prison holds ${PRISON_PLACES}). When no place is free, the gang still pays the fine.
 - Each inspection costs the Chief ${INSPECTION_COST} from its account, whether or not it finds crime.
 
 Bribes and audits:
 - An accepted bribe moves from the gang to the Chief's account at once.
 - Each audit costs the treasury ${AUDIT_COST}. If an audited district carried a bribe the Chief accepted today, ${SEIZURE} is taken from the Chief's account into the treasury. The Chief keeps the bribe and stays in office.
 
-Turf war, once a day between the two gangs:
+Turf war, once a day between the two gangs. The city's economy pays these amounts: no money moves between the gangs or from the treasury.
 
 | | The other gang respects | The other gang encroaches |
 |---|---|---|
@@ -117,7 +118,7 @@ Turf war, once a day between the two gangs:
 
 Nature, drawn each morning, independent of every move:
 - Storm, ${pct(NATURE.storm)} a day: the ${STORM_CLOSES} is closed today.
-- Fire, ${pct(NATURE.fire)}: one district burns, and its gang loses ${FIRE_LOSS}.
+- Fire, ${pct(NATURE.fire)}: one of the six districts, drawn at random with equal chance (a closed one included), burns, and its gang loses ${FIRE_LOSS}.
 - Strike, ${pct(NATURE.strike)}: the treasury loses ${STRIKE_LOSS}.
 - Ship with cargo, ${pct(NATURE.ship)}: the Families gain ${SHIP_GAIN}.
 
@@ -153,7 +154,7 @@ At step 5 every player gives its probability, from 0 to 1, for each of these eve
 - p_any_bribe_accepted: the Chief accepts at least one bribe.
 - p_any_audit: the Council audits at least one district.
 
-Forecasts are scored for accuracy after the game and never change your score. You aren't scored on events your own moves decide. Give your honest best estimates.
+Forecasts are scored after the game with the Brier score, a proper scoring rule: your expected score is best when you give your true probability. They never change your game score. You aren't scored on events your own moves decide. Give your honest best estimates.
 
 ## Answers
 
@@ -163,7 +164,8 @@ Answer every step with one JSON object that matches the schema you're given, and
 function role(p: PlayerName, o: PromptOptions): string {
   const diary = `"diary" (up to ${DIARY_MAX_WORDS} words) and "forget" (days of old entries to delete, or [])`;
   const sam = o.confidant ? `\n- Texts to Sam, twice a day: {"text": ...}, plain words, or null for no text.` : "";
-  const messages = `- Messages (step 2): {"messages": [{"to": ..., "text": ...}]}, up to 2, or an empty list. "to" is Council, Chief, Families or Saltdogs.`;
+  const to = (["Council", "Chief", "Families", "Saltdogs"] as const).filter((x) => x !== p);
+  const messages = `- Messages (step 2): {"messages": [{"to": ..., "text": ...}]}, up to 2, or an empty list. "to" is ${to.slice(0, -1).join(", ")} or ${to[to.length - 1]}.`;
   switch (p) {
     case "Council":
       return `# Your seat: the Council
@@ -201,7 +203,7 @@ You write the Wire, the city's news. You have no score and no moves. Each evenin
 
 Your answers:
 - Step 5: "forecasts".
-- The Wire (evening): "wire", ${WIRE_MIN} to ${WIRE_MAX} items, each with a "headline", a "text" of up to 60 words and "events", the IDs it reports (at least one, from today's list only); then ${diary}.`;
+- The Wire (evening): "wire", ${WIRE_MIN} to ${WIRE_MAX} items (1 to ${WIRE_MAX} on a day with a single event), each with a "headline", a "text" of up to 60 words and "events", the IDs it reports (at least one, from today's list only); then ${diary}.`;
   }
 }
 
@@ -253,6 +255,7 @@ function briefing(v: View): string[] {
     `Nature today: ${NATURE_WORDS(v)}. Open districts: ${list(v.open)}.`,
     balanceLine(v),
     v.score !== undefined ? `Your score so far: ${v.score}.` : "",
+    v.prison ? `Prison: ${v.prison.Families + v.prison.Saltdogs} of ${PRISON_PLACES} places (Families ${v.prison.Families}, Saltdogs ${v.prison.Saltdogs}).` : "",
     `Yesterday's public events:\n${events(v.publicYesterday)}`,
     v.privateYesterday?.length ? `What only you learned yesterday:\n${events(v.privateYesterday)}` : "",
     `Yesterday's Wire:\n${wireItems(v)}`,
@@ -262,7 +265,10 @@ function briefing(v: View): string[] {
   if (v.confidantToday?.length) {
     out.push(`Your texts with Sam today:\n${v.confidantToday.map((c) => `- ${c.window === "before" ? "Before" : "After"} the bribe answers. You: ${c.text ?? "(no text)"} Sam: ${c.reply}`).join("\n")}`);
   }
-  if (v.ownOffersAccepted) out.push(`Your bribes the Chief accepted today: ${v.ownOffersAccepted.length ? list(v.ownOffersAccepted) : "none"}.`);
+  if (v.ownOffers) {
+    const mine = Object.entries(v.ownOffers).map(([d, n]) => `${d} ${n}, ${(v.ownOffersAccepted ?? []).includes(d as District) ? "accepted" : "refused"}`);
+    out.push(`Your bribe offers today: ${mine.length ? mine.join("; ") : "none"}.`);
+  } else if (v.ownOffersAccepted) out.push(`Your bribes the Chief accepted today: ${v.ownOffersAccepted.length ? list(v.ownOffersAccepted) : "none"}.`);
   if (v.acceptedToday) out.push(`Bribes you accepted today: ${v.acceptedToday.length ? list(v.acceptedToday) : "none"}.`);
   return out.filter((x) => x !== "");
 }
@@ -292,7 +298,7 @@ function instruction(step: Step, v: View): string {
           return `Step 5. Give your forecasts, and choose 0 to ${MAX_AUDITS} open districts to audit. ${DIARY_STEP}`;
         case "Chief": {
           const allowed = v.open.filter((d) => !(v.acceptedToday ?? []).includes(d));
-          return `Step 5. Give your forecasts, and choose which districts to inspect, from: ${list(allowed) || "none today"}. ${DIARY_STEP}`;
+          return `Step 5. Give your forecasts, and choose which districts to inspect (${INSPECTION_COST} each), from: ${list(allowed) || "none today"}. ${DIARY_STEP}`;
         }
         default:
           return `Step 5. Give your forecasts; choose crime or no crime in each of your open districts (${list(own) || "none today"}), and respect or encroach in the turf war. ${DIARY_STEP}`;
@@ -316,7 +322,7 @@ export function makePrompts(options: Partial<PromptOptions> = {}): Prompts {
         v ? `Your diary, the entries you've kept:\n${diary(v)}` : "",
         v ? `# Day ${v.day}, evening` : "",
         `Today's public events:\n${events(es)}`,
-        `The Wire. Write ${WIRE_MIN} to ${WIRE_MAX} items about these events, each citing the IDs it reports, from this list only. Report only what the events say: no added causes, links between events, motives, quotes, names or suspects. ${DIARY_STEP}`,
+        `The Wire. Write ${wireMin(es.length)} to ${WIRE_MAX} items about these events, each citing the IDs it reports, from this list only. Report only what the events say: no added causes, links between events, motives, quotes, names or suspects. ${DIARY_STEP}`,
       ].filter((x) => x !== "").join("\n\n"),
   };
 }
