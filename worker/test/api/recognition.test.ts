@@ -41,4 +41,14 @@ describe("recognition check", () => {
     expect((callModel as any).mock.calls.at(-1)[2].maxOutputTokens).toBe(4000);
     expect((await db.prepare("SELECT value FROM meta WHERE key = 'recognition_check'").first<{ value: string }>())!.value).toBe('{"first":true}');
   });
+
+  it("a rerun carries on the ledger seqs instead of colliding with the first run (1 Nov)", async () => {
+    const db = testD1();
+    await db.prepare("INSERT INTO participants (email, name, turn_order) VALUES ('g@x', 'Germ', 1), ('s@x', 'Shazz', 2)").run();
+    for (const p of ["anthropic", "google", "openai"] as const) await saveKey(db, SECRET, "g@x", p, `test-key-${p}-0000000000000000`);
+    await recognitionCheck(db, SECRET);
+    const again = await recognitionCheck(db, SECRET, ["claude"]);
+    expect(again.every((a) => a.text && !a.error)).toBe(true);
+    expect((await db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE run_id = 'recognition-check'").first<{ n: number }>())!.n).toBe(40);
+  });
 });
