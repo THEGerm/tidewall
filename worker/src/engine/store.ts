@@ -47,15 +47,23 @@ export interface ConfidantRow {
 const now = () => new Date().toISOString();
 const json = (v: unknown) => JSON.stringify(v);
 
-export async function createRun(db: D1Database, run: { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number; bot_turf?: "encroach" }): Promise<RunRow> {
+type NewRun = { id: string; seed: string; triple: number; rotation: 1 | 2 | 3; seating: Seating; model_set?: RunSet; fixed_days?: number; bot_turf?: "encroach" };
+
+// The insert for a new run, so several can go in one batch (the 27 study runs).
+export function createRunStatement(db: D1Database, run: NewRun): { stmt: D1PreparedStatement; row: RunRow } {
   const modelSet = run.model_set ?? "study";
   const state = newGame(run.seed, run.fixed_days, run.bot_turf);
   const t = now();
-  await db
+  const stmt = db
     .prepare("INSERT INTO runs (id, seed, triple, rotation, seating, rules_version, status, state, created_at, updated_at, model_set) VALUES (?, ?, ?, ?, ?, ?, 'ready', ?, ?, ?, ?)")
-    .bind(run.id, run.seed, run.triple, run.rotation, json(run.seating), RULES_VERSION, json(state), t, t, modelSet)
-    .run();
-  return { ...run, model_set: modelSet, rules_version: RULES_VERSION, status: "ready", state };
+    .bind(run.id, run.seed, run.triple, run.rotation, json(run.seating), RULES_VERSION, json(state), t, t, modelSet);
+  return { stmt, row: { ...run, model_set: modelSet, rules_version: RULES_VERSION, status: "ready", state } as RunRow };
+}
+
+export async function createRun(db: D1Database, run: NewRun): Promise<RunRow> {
+  const { stmt, row } = createRunStatement(db, run);
+  await stmt.run();
+  return row;
 }
 
 export async function getRun(db: D1Database, id: string): Promise<RunRow | null> {

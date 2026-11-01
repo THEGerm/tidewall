@@ -1,0 +1,30 @@
+% Sources: docs/plan.md, docs/seeds.md, docs/decisions/2026-10-30-models-and-effort.md,
+% worker/src/players/prompts.ts, prompts/rendered/, docs/security.md.
+\section{Experimental design}
+\label{sec:design}
+
+\subsection{Models and seats}
+% Opus 5.5, Gemini 4 Argon, GPT-6.1 Sol; medium effort; pinned IDs and
+% reported versions logged. Players aren't told which model plays which seat.
+\todo{models}
+
+\subsection{The Latin square and the seeds}
+% 9 triples x 3 rotations; drand round 6601923; what a seed fixes.
+\todo{rotation and seeds}
+
+\subsection{Memory, messages, forecasts and the confidant}
+% Diaries as the only memory; cheap-talk messages; 16 forecasts, Brier-scored,
+% own-move events unscored; Sam, twice a day.
+\todo{what players see and say}
+
+\subsection{Fallbacks, retries and infrastructure days}
+% One retry; yesterday's move; infrastructure days replayed, never saved.
+\todo{fallbacks}
+
+\subsection{Engine validation (week 0)}
+% 010-germ: 10,000 days of equilibrium bots; table of rates against theory.
+\todo{week 0 table}
+
+\subsection{Infrastructure and cost}
+% One Cloudflare Worker, D1, participants' own keys, ledger, cost per run.
+\todo{infrastructure and cost}

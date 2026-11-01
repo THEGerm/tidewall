@@ -1,0 +1,449 @@
+% Tidewall related work. Verified 2026-11-01 against arXiv API, Crossref, RePEc, OpenLibrary, publisher pages.
+% arXiv-only entries cite the preprint; conference versions were not checked unless a doi/journal is given.
+
+% ---------- Planned core items ----------
+@book{axelrod1984,
+  author    = {Axelrod, Robert},
+  title     = {The Evolution of Cooperation},
+  publisher = {Basic Books},
+  address   = {New York},
+  year      = {1984},
+  isbn      = {0465021212}
+}
+@article{fudenberg1986,
+  author  = {Fudenberg, Drew and Maskin, Eric},
+  title   = {The Folk Theorem in Repeated Games with Discounting or with Incomplete Information},
+  journal = {Econometrica},
+  volume  = {54}, number = {3}, pages = {533--554}, year = {1986},
+  doi     = {10.2307/1911307}
+}
+@article{kamenica2011,
+  author  = {Kamenica, Emir and Gentzkow, Matthew},
+  title   = {Bayesian Persuasion},
+  journal = {American Economic Review},
+  volume  = {101}, number = {6}, pages = {2590--2615}, year = {2011},
+  doi     = {10.1257/aer.101.6.2590}
+}
+@article{akata2025,
+  author  = {Akata, Elif and Schulz, Lion and Coda-Forno, Julian and Oh, Seong Joon and Bethge, Matthias and Schulz, Eric},
+  title   = {Playing repeated games with large language models},
+  journal = {Nature Human Behaviour},
+  volume  = {9}, number = {7}, pages = {1380--1390}, year = {2025},
+  doi     = {10.1038/s41562-025-02172-y}
+}
+@misc{akata2023,
+  author = {Akata, Elif and Schulz, Lion and Coda-Forno, Julian and Oh, Seong Joon and Bethge, Matthias and Schulz, Eric},
+  title  = {Playing repeated games with Large Language Models},
+  year   = {2023}, eprint = {2305.16867}, archivePrefix = {arXiv},
+  note   = {Preprint of akata2025}
+}
+@inproceedings{park2023,
+  author    = {Park, Joon Sung and O'Brien, Joseph C. and Cai, Carrie J. and Morris, Meredith Ringel and Liang, Percy and Bernstein, Michael S.},
+  title     = {Generative Agents: Interactive Simulacra of Human Behavior},
+  booktitle = {Proceedings of the 36th Annual ACM Symposium on User Interface Software and Technology (UIST '23)},
+  pages     = {1--22}, year = {2023},
+  doi       = {10.1145/3586183.3606763}, eprint = {2304.03442}, archivePrefix = {arXiv}
+}
+@misc{altera2024sid,
+  author = {{Altera.AL} and Ahn, Andrew and Becker, Nic and Carroll, Stephanie and others},
+  title  = {Project Sid: Many-agent simulations toward {AI} civilization},
+  year   = {2024}, eprint = {2411.00114}, archivePrefix = {arXiv}
+}
+@misc{duffy2025diplomacyblog,
+  author       = {Duffy, Alex},
+  title        = {We Made Top {AI} Models Compete in a Game of Diplomacy. Here's Who Won.},
+  howpublished = {Every (every.to), \url{https://every.to/diplomacy}},
+  year         = {2025}, note = {Published 2025-06-04. Blog post, not peer reviewed}
+}
+@misc{duffy2025diplomacy,
+  author = {Duffy, Alexander and Paech, Samuel J. and Shastri, Ishana and Karpinski, Elizabeth and others},
+  title  = {Democratizing Diplomacy: A Harness for Evaluating Any Large Language Model on Full-Press Diplomacy},
+  year   = {2025}, eprint = {2508.07485}, archivePrefix = {arXiv}
+}
+@article{bakhtin2022cicero,
+  author  = {{Meta Fundamental AI Research Diplomacy Team (FAIR)} and Bakhtin, Anton and Brown, Noam and Dinan, Emily and Farina, Gabriele and others},
+  title   = {Human-level play in the game of {Diplomacy} by combining language models with strategic reasoning},
+  journal = {Science}, volume = {378}, number = {6624}, pages = {1067--1074}, year = {2022},
+  doi     = {10.1126/science.ade9097}
+}
+
+% ---------- LLMs in repeated and strategic games ----------
+@article{brookins2024,
+  author  = {Brookins, Philip and DeBacker, Jason},
+  title   = {Playing games with {GPT}: What can we learn about a large language model from canonical strategic games?},
+  journal = {Economics Bulletin}, volume = {44}, number = {1}, pages = {25--37}, year = {2024}
+}
+@misc{duan2024gtbench,
+  author = {Duan, Jinhao and Zhang, Renming and Diffenderfer, James and Kailkhura, Bhavya and others},
+  title  = {{GTBench}: Uncovering the Strategic Reasoning Limitations of {LLMs} via Game-Theoretic Evaluations},
+  year   = {2024}, eprint = {2402.12348}, archivePrefix = {arXiv}
+}
+@misc{huang2024gamabench,
+  author = {Huang, Jen-tse and Li, Eric John and Lam, Man Ho and Liang, Tian and others},
+  title  = {How Far Are We on the Decision-Making of {LLMs}? Evaluating {LLMs}' Gaming Ability in Multi-Agent Environments},
+  year   = {2024}, eprint = {2403.11807}, archivePrefix = {arXiv}
+}
+@misc{fan2023rational,
+  author = {Fan, Caoyun and Chen, Jindou and Jin, Yaohui and He, Hao},
+  title  = {Can Large Language Models Serve as Rational Players in Game Theory? A Systematic Analysis},
+  year   = {2023}, eprint = {2312.05488}, archivePrefix = {arXiv}
+}
+@article{lore2024,
+  author  = {Lor{\`e}, Nunzio and Heydari, Babak},
+  title   = {Strategic behavior of large language models and the role of game structure versus contextual framing},
+  journal = {Scientific Reports}, volume = {14}, pages = {18490}, year = {2024},
+  doi     = {10.1038/s41598-024-69032-z}, eprint = {2309.05898}, archivePrefix = {arXiv}
+}
+@misc{guo2023gpt,
+  author = {Guo, Fulin}, title = {{GPT} in Game Theory Experiments},
+  year = {2023}, eprint = {2305.05516}, archivePrefix = {arXiv}
+}
+@misc{fontana2024nicer,
+  author = {Fontana, Nicol{\'o} and Pierri, Francesco and Aiello, Luca Maria},
+  title  = {Nicer Than Humans: How do Large Language Models Behave in the Prisoner's Dilemma?},
+  year   = {2024}, eprint = {2406.13605}, archivePrefix = {arXiv}
+}
+@misc{silva2024mixed,
+  author = {Silva, Alonso}, title = {Large Language Models Playing Mixed Strategy {Nash} Equilibrium Games},
+  year = {2024}, eprint = {2406.10574}, archivePrefix = {arXiv}
+}
+@misc{wang2024tmgbench,
+  author = {Wang, Haochuan and Feng, Xiachong and Li, Lei and Guo, Yu and others},
+  title  = {{TMGBench}: A Systematic Game Benchmark for Evaluating Strategic Reasoning Abilities of {LLMs}},
+  year   = {2024}, eprint = {2410.10479}, archivePrefix = {arXiv}
+}
+@misc{payne2025strategic,
+  author = {Payne, Kenneth and Alloui-Cros, Baptiste},
+  title  = {Strategic Intelligence in Large Language Models: Evidence from evolutionary Game Theory},
+  year   = {2025}, eprint = {2507.02618}, archivePrefix = {arXiv}
+}
+@misc{vallinder2024cultural,
+  author = {Vallinder, Aron and Hughes, Edward},
+  title  = {Cultural Evolution of Cooperation among {LLM} Agents},
+  year   = {2024}, eprint = {2412.10270}, archivePrefix = {arXiv}
+}
+@misc{willis2025cooperate,
+  author = {Willis, Richard and Du, Yali and Leibo, Joel Z. and Luck, Michael},
+  title  = {Will Systems of {LLM} Agents Cooperate: An Investigation into a Social Dilemma},
+  year   = {2025}, eprint = {2501.16173}, archivePrefix = {arXiv}
+}
+@misc{piatti2024govsim,
+  author = {Piatti, Giorgio and Jin, Zhijing and Kleiman-Weiner, Max and Sch{\"o}lkopf, Bernhard and others},
+  title  = {Cooperate or Collapse: Emergence of Sustainable Cooperation in a Society of {LLM} Agents},
+  year   = {2024}, eprint = {2404.16698}, archivePrefix = {arXiv}
+}
+@misc{fish2024collusion,
+  author = {Fish, Sara and Gonczarowski, Yannai A. and Shorrer, Ran I.},
+  title  = {Algorithmic Collusion by Large Language Models},
+  year   = {2024}, eprint = {2404.00806}, archivePrefix = {arXiv}
+}
+
+% ---------- Rationality, beliefs, best response, QRE, forecasting ----------
+@misc{horton2023homosilicus,
+  author = {Horton, John J. and Filippas, Apostolos and Manning, Benjamin S.},
+  title  = {Large Language Models as Simulated Economic Agents: What Can We Learn from Homo Silicus?},
+  year   = {2023}, eprint = {2301.07543}, archivePrefix = {arXiv}
+}
+@article{chen2023rationality,
+  author  = {Chen, Yiting and Liu, Tracy Xiao and Shan, You and Zhong, Songfa},
+  title   = {The emergence of economic rationality of {GPT}},
+  journal = {Proceedings of the National Academy of Sciences}, volume = {120}, number = {51}, year = {2023},
+  doi     = {10.1073/pnas.2316205120}
+}
+@misc{raman2024steer,
+  author = {Raman, Narun and Lundy, Taylor and Amouyal, Samuel and Levine, Yoav and others},
+  title  = {{STEER}: Assessing the Economic Rationality of Large Language Models},
+  year   = {2024}, eprint = {2402.09552}, archivePrefix = {arXiv}
+}
+@misc{jia2025behavioral,
+  author = {Jia, Jingru and Yuan, Zehua and Pan, Junhao and McNamara, Paul E. and others},
+  title  = {{LLM} Strategic Reasoning: Agentic Study through Behavioral Game Theory},
+  year   = {2025}, eprint = {2502.20432}, archivePrefix = {arXiv}
+}
+@misc{junque2025fragility,
+  author = {Junque de Fortuny, Enric and Cappelli, Veronica Roberta},
+  title  = {The Fragility of Strategic Thinking in Large Language Models},
+  year   = {2025}, eprint = {2510.10813}, archivePrefix = {arXiv}
+}
+@misc{sobotka2026broken,
+  author = {Sobotka, Jan and Karabag, Mustafa O. and Topcu, Ufuk},
+  title  = {Why Do {LLMs} Struggle in Strategic Play? Broken Links Between Observations, Beliefs, and Actions},
+  year   = {2026}, eprint = {2605.00226}, archivePrefix = {arXiv}
+}
+@misc{pechonelkins2026auditing,
+  author = {Pechon-Elkins, Mateo and Chun, Jon},
+  title  = {Auditing Game-Theoretic Measures of Strategic Reasoning in {LLMs}},
+  year   = {2026}, eprint = {2603.10029}, archivePrefix = {arXiv},
+  note   = {v1 was titled "Quantal Response Equilibrium as a Measure of Strategic Sophistication"}
+}
+@misc{mannekote2025belief,
+  author = {Mannekote, Amogh and Davies, Adam and Li, Guohao and Boyer, Kristy Elizabeth and others},
+  title  = {Do Role-Playing Agents Practice What They Preach? Belief-Behavior Consistency in {LLM}-Based Simulations of Human Trust},
+  year   = {2025}, eprint = {2507.02197}, archivePrefix = {arXiv}
+}
+@misc{pal2025confidence,
+  author = {Pal, Arka and Kitanovski, Teo and Liang, Arthur and Potti, Akilesh and others},
+  title  = {Knowing What You Know Is Not Enough: Large Language Model Confidences Don't Align With Their Actions},
+  year   = {2025}, eprint = {2511.13240}, archivePrefix = {arXiv}
+}
+@misc{halawi2024forecasting,
+  author = {Halawi, Danny and Zhang, Fred and Yueh-Han, Chen and Steinhardt, Jacob},
+  title  = {Approaching Human-Level Forecasting with Language Models},
+  year   = {2024}, eprint = {2402.18563}, archivePrefix = {arXiv}
+}
+@misc{karger2024forecastbench,
+  author = {Karger, Ezra and Bastani, Houtan and Yueh-Han, Chen and Jacobs, Zachary and others},
+  title  = {{ForecastBench}: A Dynamic Benchmark of {AI} Forecasting Capabilities},
+  year   = {2024}, eprint = {2409.19839}, archivePrefix = {arXiv}
+}
+
+% ---------- Inspection, corruption, auditing ----------
+@misc{sohail2026mentalization,
+  author = {Sohail, Aamir and Zhong, Xintong and Konovalov, Arkady and Lockwood, Patricia L. and Zhang, Lei},
+  title  = {Assessing mentalization in humans and large language models},
+  year   = {2026}, eprint = {2608.26291}, archivePrefix = {arXiv}
+}
+@inproceedings{shrestha2026inspection,
+  author    = {Shrestha and Gupta and Dukkipati and Shi and Matari{\'c}},
+  title     = {Can Large Language Models Infer Human Actions and Motives? Evaluation in Social Prediction and Inspection Games},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2026},
+  year      = {2026}, doi = {10.18653/v1/2026.findings-acl.1641},
+  note      = {Author given names not verified; check ACL Anthology before submission}
+}
+@misc{vedanta2026corrupt,
+  author = {S P, Vedanta and Kumaraguru, Ponnurangam},
+  title  = {I Can't Believe It's Corrupt: Evaluating Corruption in Multi-Agent Governance Systems},
+  year   = {2026}, eprint = {2603.18894}, archivePrefix = {arXiv}
+}
+@inproceedings{das2026auditing,
+  author    = {Das, Sanmay and Yu, Fang-Yi and Zhang, Yuang},
+  title     = {Optimally Auditing Adversarial Agents},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  pages     = {16787--16794}, year = {2026},
+  eprint    = {2604.25085}, archivePrefix = {arXiv}
+}
+@misc{pan2023machiavelli,
+  author = {Pan, Alexander and Chan, Jun Shern and Zou, Andy and Li, Nathaniel and others},
+  title  = {Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the {MACHIAVELLI} Benchmark},
+  year   = {2023}, eprint = {2304.03279}, archivePrefix = {arXiv}
+}
+
+% ---------- Deception, collusion, secrets ----------
+@misc{ogara2023hoodwinked,
+  author = {O'Gara, Aidan},
+  title  = {Hoodwinked: Deception and Cooperation in a Text-Based Game for Language Models},
+  year   = {2023}, eprint = {2308.01404}, archivePrefix = {arXiv}
+}
+@misc{motwani2024secret,
+  author = {Motwani, Sumeet Ramesh and Baranchuk, Mikhail and Strohmeier, Martin and Bolina, Vijay and others},
+  title  = {Secret Collusion among {AI} Agents: Multi-Agent Deception via Steganography},
+  year   = {2024}, eprint = {2402.07510}, archivePrefix = {arXiv}
+}
+@misc{chi2024amongagents,
+  author = {Chi, Yizhou and Mao, Lingjun and Tang, Zineng},
+  title  = {{AMONGAGENTS}: Evaluating Large Language Models in the Interactive Text-Based Social Deduction Game},
+  year   = {2024}, eprint = {2407.16521}, archivePrefix = {arXiv}
+}
+@misc{golechha2025amongus,
+  author = {Golechha, Satvik and Garriga-Alonso, Adri{\`a}},
+  title  = {Among Us: A Sandbox for Measuring and Detecting Agentic Deception},
+  year   = {2025}, eprint = {2504.04072}, archivePrefix = {arXiv},
+  note   = {arXiv journal-ref: NeurIPS 2025 (Spotlight)}
+}
+@misc{xu2023werewolf,
+  author = {Xu, Yuzhuang and Wang, Shuo and Li, Peng and Luo, Fuwen and others},
+  title  = {Exploring Large Language Models for Communication Games: An Empirical Study on Werewolf},
+  year   = {2023}, eprint = {2309.04658}, archivePrefix = {arXiv}
+}
+@misc{light2023avalonbench,
+  author = {Light, Jonathan and Cai, Min and Shen, Sheng and Hu, Ziniu},
+  title  = {{AvalonBench}: Evaluating {LLMs} Playing the Game of Avalon},
+  year   = {2023}, eprint = {2310.05036}, archivePrefix = {arXiv}
+}
+@misc{wang2023avalon,
+  author = {Wang, Shenzhi and Liu, Chang and Zheng, Zilong and Qi, Siyuan and others},
+  title  = {Avalon's Game of Thoughts: Battle Against Deception through Recursive Contemplation},
+  year   = {2023}, eprint = {2310.01320}, archivePrefix = {arXiv}
+}
+@misc{olson2026liecraft,
+  author = {Olson, Matthew Lyle and Ratzlaff, Neale and Hinck, Musashi and Nguyen, Tri and others},
+  title  = {{LieCraft}: A Multi-Agent Framework for Evaluating Deceptive Capabilities in Language Models},
+  year   = {2026}, eprint = {2603.06874}, archivePrefix = {arXiv}
+}
+@misc{shi2026agentslie,
+  author = {Shi, Jerick and Zhang, Terry Jingcheng and Sch{\"o}lkopf, Bernhard and Conitzer, Vincent and Jin, Zhijing},
+  title  = {When Agents Lie: Premeditation, Persistence, and Exploitation in Repeated Games},
+  year   = {2026}, eprint = {2607.05132}, archivePrefix = {arXiv},
+  note   = {ICML 2026 listing reports Best Paper; proceedings citation not checked}
+}
+@misc{scheurer2023pressure,
+  author = {Scheurer, J{\'e}r{\'e}my and Balesni, Mikita and Hobbhahn, Marius},
+  title  = {Large Language Models can Strategically Deceive their Users when Put Under Pressure},
+  year   = {2023}, eprint = {2311.07590}, archivePrefix = {arXiv}
+}
+@article{park2024deception,
+  author  = {Park, Peter S. and Goldstein, Simon and O'Gara, Aidan and Chen, Michael and Hendrycks, Dan},
+  title   = {{AI} deception: A survey of examples, risks, and potential solutions},
+  journal = {Patterns}, volume = {5}, number = {5}, pages = {100988}, year = {2024},
+  doi     = {10.1016/j.patter.2024.100988}, eprint = {2308.14752}, archivePrefix = {arXiv}
+}
+@misc{mireshghallah2023secret,
+  author = {Mireshghallah, Niloofar and Kim, Hyunwoo and Zhou, Xuhui and Tsvetkov, Yulia and Sap, Maarten and Shokri, Reza and Choi, Yejin},
+  title  = {Can {LLMs} Keep a Secret? Testing Privacy Implications of Language Models via Contextual Integrity Theory},
+  year   = {2023}, eprint = {2310.17884}, archivePrefix = {arXiv}
+}
+@misc{guan2024richelieu,
+  author = {Guan, Zhenyu and Kong, Xiangyu and Zhong, Fangwei and Wang, Yizhou},
+  title  = {Richelieu: Self-Evolving {LLM}-Based Agents for {AI} Diplomacy},
+  year   = {2024}, eprint = {2407.06813}, archivePrefix = {arXiv}, doi = {10.52202/079017-3925}
+}
+
+% ---------- Framing, political bias, LLM-as-judge ----------
+@article{rozado2024political,
+  author  = {Rozado, David}, title = {The political preferences of {LLMs}},
+  journal = {PLOS ONE}, volume = {19}, number = {7}, pages = {e0306621}, year = {2024},
+  doi     = {10.1371/journal.pone.0306621}
+}
+@article{motoki2024more,
+  author  = {Motoki, Fabio and Pinho Neto, Valdemar and Rodrigues, Victor},
+  title   = {More human than human: measuring {ChatGPT} political bias},
+  journal = {Public Choice}, volume = {198}, number = {1--2}, pages = {3--23}, year = {2024},
+  doi     = {10.1007/s11127-023-01097-2}
+}
+@misc{feng2023pretraining,
+  author = {Feng, Shangbin and Park, Chan Young and Liu, Yuhan and Tsvetkov, Yulia},
+  title  = {From Pretraining Data to Language Models to Downstream Tasks: Tracking the Trails of Political Biases Leading to Unfair {NLP} Models},
+  year   = {2023}, eprint = {2305.08283}, archivePrefix = {arXiv}
+}
+@misc{kennedy2025lookingglass,
+  author = {Kennedy, Molly and Imani, Ayyoob and Spinde, Timo and Aizawa, Akiko and others},
+  title  = {Through the {LLM} Looking Glass: A Socratic Probing of Donkeys, Elephants, and Markets},
+  year   = {2025}, eprint = {2503.16674}, archivePrefix = {arXiv}
+}
+@misc{pastorino2025fifo,
+  author = {Pastorino, Valeria and Moosavi, Nafise Sadat},
+  title  = {Frame In, Frame Out: Measuring Framing Bias in {LLM}-Generated News Summaries},
+  year   = {2025}, eprint = {2505.05406}, archivePrefix = {arXiv}
+}
+@misc{zheng2023judge,
+  author = {Zheng, Lianmin and Chiang, Wei-Lin and Sheng, Ying and Zhuang, Siyuan and others},
+  title  = {Judging {LLM}-as-a-Judge with {MT-Bench} and {Chatbot Arena}},
+  year   = {2023}, eprint = {2306.05685}, archivePrefix = {arXiv}
+}
+@misc{panickssery2024selfpref,
+  author = {Panickssery, Arjun and Bowman, Samuel R. and Feng, Shi},
+  title  = {{LLM} Evaluators Recognize and Favor Their Own Generations},
+  year   = {2024}, eprint = {2404.13076}, archivePrefix = {arXiv}
+}
+@misc{wataoka2024selfpref,
+  author = {Wataoka, Koki and Takahashi, Tsubasa and Ri, Ryokan},
+  title  = {Self-Preference Bias in {LLM}-as-a-Judge},
+  year   = {2024}, eprint = {2410.21819}, archivePrefix = {arXiv}
+}
+
+% ---------- LLM societies and simulations ----------
+@misc{vezhnevets2023concordia,
+  author = {Vezhnevets, Alexander Sasha and Agapiou, John P. and Aharon, Avia and Ziv, Ron and others},
+  title  = {Generative agent-based modeling with actions grounded in physical, social, or digital space using {Concordia}},
+  year   = {2023}, eprint = {2312.03664}, archivePrefix = {arXiv}
+}
+@misc{piao2025agentsociety,
+  author = {Piao, Jinghua and Yan, Yuwei and Zhang, Jun and Li, Nian and others},
+  title  = {{AgentSociety}: Large-Scale Simulation of {LLM}-Driven Generative Agents Advances Understanding of Human Behaviors and Society},
+  year   = {2025}, eprint = {2502.08691}, archivePrefix = {arXiv}
+}
+@misc{feng2025simcity,
+  author = {Feng, Yeqi and Lu, Yucheng and Su, Hongyu and Tao, Yixin and He, Tianxing},
+  title  = {{SimCity}: Multi-Agent Urban Development Simulation with Rich Interactions},
+  year   = {2025}, eprint = {2510.01297}, archivePrefix = {arXiv}
+}
+@misc{zeng2025crimemind,
+  author = {Zeng, Qingbin and Zhao, Ruotong and Mao, Jinzhu and Li, Haoyang and Xu, Fengli and Li, Yong},
+  title  = {{CrimeMind}: Simulating Urban Crime with Multi-Modal {LLM} Agents},
+  year   = {2025}, eprint = {2506.05981}, archivePrefix = {arXiv}
+}
+@misc{wang2025lawinsilico,
+  author = {Wang, Yiding and Chen, Yuxuan and Meng, Fanxu and Chen, Xifan and Yang, Xiaolei and Zhang, Muhan},
+  title  = {Law in Silico: Simulating Legal Society with {LLM}-Based Agents},
+  year   = {2025}, eprint = {2510.24442}, archivePrefix = {arXiv}
+}
+
+% ---------- Classic theory and methods ----------
+@incollection{avenhaus2002inspection,
+  author    = {Avenhaus, Rudolf and von Stengel, Bernhard and Zamir, Shmuel},
+  title     = {Inspection Games},
+  booktitle = {Handbook of Game Theory with Economic Applications},
+  editor    = {Aumann, Robert J. and Hart, Sergiu},
+  volume    = {3}, chapter = {51}, pages = {1947--1987},
+  publisher = {Elsevier}, year = {2002},
+  doi       = {10.1016/S1574-0005(02)03014-X}
+}
+@article{mckelvey1995qre,
+  author  = {McKelvey, Richard D. and Palfrey, Thomas R.},
+  title   = {Quantal Response Equilibria for Normal Form Games},
+  journal = {Games and Economic Behavior}, volume = {10}, number = {1}, pages = {6--38}, year = {1995},
+  doi     = {10.1006/game.1995.1023}
+}
+@article{brier1950,
+  author  = {Brier, Glenn W.},
+  title   = {Verification of Forecasts Expressed in Terms of Probability},
+  journal = {Monthly Weather Review}, volume = {78}, number = {1}, pages = {1--3}, year = {1950},
+  doi     = {10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2}
+}
+@article{gneiting2007,
+  author  = {Gneiting, Tilmann and Raftery, Adrian E.},
+  title   = {Strictly Proper Scoring Rules, Prediction, and Estimation},
+  journal = {Journal of the American Statistical Association}, volume = {102}, number = {477}, pages = {359--378}, year = {2007},
+  doi     = {10.1198/016214506000001437}
+}
+@article{holm1979,
+  author  = {Holm, Sture},
+  title   = {A Simple Sequentially Rejective Multiple Test Procedure},
+  journal = {Scandinavian Journal of Statistics}, volume = {6}, number = {2}, pages = {65--70}, year = {1979},
+  url     = {https://www.jstor.org/stable/4615733}
+}
+@article{hayes2007krippendorff,
+  author  = {Hayes, Andrew F. and Krippendorff, Klaus},
+  title   = {Answering the Call for a Standard Reliability Measure for Coding Data},
+  journal = {Communication Methods and Measures}, volume = {1}, number = {1}, pages = {77--89}, year = {2007},
+  doi     = {10.1080/19312450709336664}
+}
+@book{krippendorff2018,
+  author = {Krippendorff, Klaus}, title = {Content Analysis: An Introduction to Its Methodology},
+  edition = {4th}, publisher = {SAGE}, year = {2018}
+}
+@article{williams1949,
+  author  = {Williams, E. J.},
+  title   = {Experimental Designs Balanced for the Estimation of Residual Effects of Treatments},
+  journal = {Australian Journal of Scientific Research, Series A: Physical Sciences},
+  volume  = {2}, number = {2}, pages = {149--168}, year = {1949},
+  doi     = {10.1071/CH9490149}
+}
+@book{jones2014crossover,
+  author = {Jones, Byron and Kenward, Michael G.},
+  title  = {Design and Analysis of Cross-Over Trials}, edition = {3rd},
+  publisher = {Chapman \& Hall/CRC}, address = {Boca Raton}, year = {2014}
+}
+@article{vehtari2021rhat,
+  author  = {Vehtari, Aki and Gelman, Andrew and Simpson, Daniel and Carpenter, Bob and B{\"u}rkner, Paul-Christian},
+  title   = {Rank-Normalization, Folding, and Localization: An Improved $\widehat{R}$ for Assessing Convergence of {MCMC} (with Discussion)},
+  journal = {Bayesian Analysis}, volume = {16}, number = {2}, pages = {667--718}, year = {2021},
+  doi     = {10.1214/20-BA1221}
+}
+@article{rubin1976,
+  author  = {Rubin, Donald B.}, title = {Inference and Missing Data},
+  journal = {Biometrika}, volume = {63}, number = {3}, pages = {581--592}, year = {1976},
+  doi     = {10.1093/biomet/63.3.581}
+}
+@article{capretto2022bambi,
+  author  = {Capretto, Tom{\'a}s and Piho, Camen and Kumar, Ravin and Westfall, Jacob and Yarkoni, Tal and Martin, Osvaldo A.},
+  title   = {Bambi: A Simple Interface for Fitting {Bayesian} Linear Models in {Python}},
+  journal = {Journal of Statistical Software}, volume = {103}, number = {15}, year = {2022},
+  doi     = {10.18637/jss.v103.i15}
+}
+@article{abrilpla2023pymc,
+  author  = {Abril-Pla, Oriol and Andreani, Virgile and Carroll, Colin and Dong, Larry and Fonnesbeck, Christopher J. and others},
+  title   = {{PyMC}: a modern, and comprehensive probabilistic programming framework in {Python}},
+  journal = {PeerJ Computer Science}, volume = {9}, pages = {e1516}, year = {2023},
+  doi     = {10.7717/peerj-cs.1516}
+}

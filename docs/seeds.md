@@ -1,6 +1,6 @@
 # Study seeds (#38)
 
-The 27 study runs are 9 triples. The 3 runs of a triple share one seed and play rotations 1, 2 and 3. A seed fixes Nature, the end draw and every fallback draw. Control refuses a study run whose seed differs from its triple's (#110).
+The 27 study runs are 9 triples. The 3 runs of a triple share one seed and play rotations 1, 2 and 3. A seed fixes Nature, the end draw and every fallback draw. Control refuses a study run whose seed differs from its triple's (#110). The Create the 27 study runs button on Control derives these seeds in the Worker (`worker/src/engine/study.ts`), and a test checks them against the table below.
 
 ## How the seeds were made
 
