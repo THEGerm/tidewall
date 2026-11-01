@@ -57,10 +57,10 @@ describe("triple sealing (Germ, 1 Nov)", () => {
     await call({ DB: db }, { confirm: "create the 27 study runs" });
     await db.prepare("UPDATE runs SET status = 'over' WHERE id = 'study-t1-r1'").run();
     expect(await publicExport(db, "study-t1-r1")).toBeNull();
-    expect((await listRuns(db)).find((r) => r.id === "study-t1-r1")!.live).toBe(true);
+    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")!.live).toBe(true);
     await db.prepare("UPDATE runs SET status = 'over' WHERE id IN ('study-t1-r2', 'study-t1-r3')").run();
     expect(await publicExport(db, "study-t1-r1")).not.toBeNull();
-    expect((await listRuns(db)).find((r) => r.id === "study-t1-r1")!.live).toBe(false);
+    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")!.live).toBe(false);
     // test runs open as soon as they end
     const { createRun } = await import("../../src/engine/store");
     await createRun(db, { id: "t1", seed: "test-seed-1", triple: 0, rotation: 1, seating: SEATINGS[1], model_set: "test" });
