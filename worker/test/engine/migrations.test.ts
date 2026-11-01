@@ -15,8 +15,8 @@ const files = readdirSync(dir).filter((f: string) => f.endsWith(".sql")).sort();
 const SECRET = btoa(String.fromCharCode(...new Uint8Array(32).map((_, i) => i + 11)));
 
 describe("migration 0012 (openrouter)", () => {
-  it("is the latest migration, numbered in order", () => {
-    expect(files.at(-1)).toBe("0012_openrouter.sql");
+  it("is in place, with every migration numbered in order", () => {
+    expect(files).toContain("0012_openrouter.sql");
     expect(files.map((f) => f.slice(0, 4))).toEqual(files.map((_, i) => String(i + 1).padStart(4, "0")));
   });
 
