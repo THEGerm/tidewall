@@ -182,7 +182,7 @@ The whole project runs from one web app. Participants don't touch code to play.
 
 ### Keys
 
-- Each participant opens **My keys** and pastes their key for Anthropic, Google and OpenAI. Any of the 3 can be left blank. (Added 1 Nov: a fourth, OpenRouter, for the offline judges.)
+- Each participant opens **My keys** and pastes their key for Anthropic, Google and OpenAI. Any of the 3 can be left blank.
 - A key goes once, over HTTPS, to the server and is stored encrypted. Nobody, the other participant included, can read it back; the page only shows "Anthropic key saved, ends in ...4f2a".
 - Keys never reach the other participant's browser, the logs or this public repo.
 - A participant can replace or delete a key at any time.
