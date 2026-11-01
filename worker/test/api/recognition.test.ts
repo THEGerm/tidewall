@@ -10,21 +10,22 @@ vi.mock("../../src/providers", () => ({
 }));
 
 import { saveKey } from "../../src/keys/store";
-import { RECOGNITION_QUESTION, recognitionCheck } from "../../src/engine/recognition";
+import { QUESTIONS, recognitionCheck } from "../../src/engine/recognition";
 import { testD1 } from "../engine/d1";
 
 const SECRET = btoa(String.fromCharCode(...new Uint8Array(32).map((_, i) => i + 7)));
 
 describe("recognition check", () => {
-  it("asks each study model about each seat once and saves the answers", async () => {
+  it("asks each study model both questions for each seat and saves the answers", async () => {
     const db = testD1();
     await db.prepare("INSERT INTO participants (email, name, turn_order) VALUES ('g@x', 'Germ', 1), ('s@x', 'Shazz', 2)").run();
     for (const p of ["anthropic", "google", "openai"] as const) await saveKey(db, SECRET, "g@x", p, `test-key-${p}-0000000000000000`);
     const answers = await recognitionCheck(db, SECRET);
-    expect(answers).toHaveLength(15);
+    expect(answers).toHaveLength(30);
+    expect(answers.filter((a) => a.question === "play")).toHaveLength(15);
     expect(answers.every((a) => a.text && !a.error)).toBe(true);
     const saved = JSON.parse((await db.prepare("SELECT value FROM meta WHERE key = 'recognition_check'").first<{ value: string }>())!.value);
-    expect(saved.question).toBe(RECOGNITION_QUESTION);
-    expect((await db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE run_id = 'recognition-check'").first<{ n: number }>())!.n).toBe(15);
+    expect(saved.questions).toEqual(QUESTIONS);
+    expect((await db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE run_id = 'recognition-check'").first<{ n: number }>())!.n).toBe(30);
   });
 });
