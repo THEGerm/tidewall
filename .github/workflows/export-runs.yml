@@ -3,7 +3,8 @@ name: Export finished runs
 # Once an hour, saves every finished run that isn't in data/runs/ yet, from the
 # public export (GET /api/runs/:id/export, unsealed runs only: a study run
 # opens when its whole triple has ended). Study runs go to
-# data/runs/study/, test runs to data/runs/test/. Payer names only, no emails.
+# data/runs/study/, test runs (and study-model runs outside triples 1 to 9,
+# such as a smoke test) to data/runs/test/. Payer names only, no emails.
 # Bot runs are skipped: their seed replays them exactly, and a 10,000-day one
 # is too big for the repo.
 
@@ -30,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsS "$SITE/api/runs" \
-            | jq -r '.runs[] | select(.sealed == false and .model_set != "bot") | "\(.model_set) \(.id)"' \
+            | jq -r '.runs[] | select(.sealed == false and .model_set != "bot") | "\(if .model_set == "study" and (.triple // 0) == 0 then "test" else .model_set end) \(.id)"' \
             | while read -r set id; do
                 f="data/runs/$set/$id.json"
                 [ -f "$f" ] && continue

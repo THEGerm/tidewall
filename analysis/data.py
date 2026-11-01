@@ -291,5 +291,11 @@ def load(source):
     return run
 
 
+def is_study_run(run):
+    """A run of the study proper: study models, triple 1 to 9. A smoke test on
+    the study models has triple 0 and is not one."""
+    return run.info.get("model_set") == "study" and 1 <= int(run.info.get("triple") or 0) <= 9
+
+
 def load_all(sources):
     return [load(s) for s in sources]
