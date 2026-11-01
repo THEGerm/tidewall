@@ -2,7 +2,7 @@
 // Every answer comes from engine/public.ts, which makes the public cut.
 
 import type { Env } from "../index";
-import { dayView, isLive, listRuns, publicExport, runSummary } from "../engine/public";
+import { dayView, listRuns, publicExport, runSummary, sealed } from "../engine/public";
 import { runLedger } from "../ledger/ledger";
 import { getRun } from "../engine/store";
 
@@ -23,15 +23,16 @@ export async function handlePublic(request: Request, env: Env, url: URL): Promis
 
   if (!sub) {
     const s = await runSummary(env.DB, id);
-    return s ? json({ ok: true, ...s }, 200, !s.run.live) : missing("run");
+    return s ? json({ ok: true, ...s }, 200, !s.run.sealed) : missing("run");
   }
   if (day) {
     const v = await dayView(env.DB, id, Number(day));
-    return v ? json({ ok: true, ...v }, 200, !v.run.live) : missing("day");
+    return v ? json({ ok: true, ...v }, 200, !v.run.sealed) : missing("day");
   }
   if (sub === "ledger") {
     const run = await getRun(env.DB, id);
-    return run ? json({ ok: true, ledger: await runLedger(env.DB, id) }, 200, !isLive(run.status)) : missing("run");
+    if (!run) return missing("run");
+    return json({ ok: true, ledger: await runLedger(env.DB, id) }, 200, !(await sealed(env.DB, run)));
   }
   const out = await publicExport(env.DB, id);
   return out ? json(out, 200, true) : json({ ok: false, error: "the export opens when the run ends" }, 404);

@@ -1120,7 +1120,7 @@
     const gx = wide ? 22 : 230, gy = wide ? 92 : 26, gw = wide ? 256 : 286;
     tx("TIDEWALL", 22, 32, 12, LINE, { align: "left" });
     tx("Day " + (st.day || 0), 22, wide ? 70 : 76, 34, [0.05, 0.85, 0.25, 0], { align: "left", italic: true });
-    tx(st.live ? "Live: public facts only" : "After the run: secrets shown", 22, wide ? 226 : 104, 10, LINE, { align: "left", italic: true });
+    tx(st.live ? "Live: public facts only" : st.sealed ? "Finished: secrets open when its triple ends" : "After the run: secrets shown", 22, wide ? 226 : 104, 10, LINE, { align: "left", italic: true });
     // the gangs and their inks
     const ly = wide ? 206 : 136;
     for (const [lx, g, ink] of [[22, "Families", K.fam], [wide ? 140 : 120, "Saltdogs", K.salt]]) {

@@ -99,10 +99,10 @@ let root, runs, chosen, ticket = 0, csvUrl = null;
 export function show(el, all) {
   if (root) return;
   root = el;
-  runs = all.filter((r) => !r.live);
+  runs = all.filter((r) => !r.sealed);
   const study = runs.filter((r) => !isTest(r) && !isBot(r));
   chosen = new Set((study.length ? study : runs.filter(isTest)).map((r) => r.id));
-  const live = all.filter((r) => r.live).length;
+  const live = all.filter((r) => r.sealed).length;
   root.replaceChildren(
     h("section", { "aria-label": "Which runs" },
       h("p", { class: "callout" },
