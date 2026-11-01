@@ -17,7 +17,8 @@ import type { Event, Forecasts, Player, View } from "../engine/types";
 const flat = (open: District[]): Forecasts => ({
   p_crime: Object.fromEntries(open.map((d) => [d, EQ_CRIME])),
   p_inspect: Object.fromEntries(open.map((d) => [d, EQ_INSPECT])),
-  p_both_respect: 0.5,
+  p_families_respect: 0.5,
+  p_saltdogs_respect: 0.5,
   p_any_bribe_accepted: 0.1,
   p_any_audit: 0.3,
 });

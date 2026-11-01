@@ -49,7 +49,7 @@ class Flatten(unittest.TestCase):
 
     def test_scoring_rule(self):
         f = {(r["day"], r["player"], r["event"], r["district"]): r for r in self.run.forecasts}
-        # Families: own crime district and both-respect left out.
+        # A draft-3 export. Families: own crime district and both-respect left out.
         self.assertFalse(f[(1, "Families", "p_crime", "Port")]["scored"])
         self.assertTrue(f[(1, "Families", "p_crime", "Port")]["own_move"])
         self.assertTrue(f[(1, "Families", "p_crime", "Lowtown")]["scored"])
@@ -67,7 +67,45 @@ class Flatten(unittest.TestCase):
         self.assertTrue(f[(2, "Council", "p_both_respect", None)]["scored"])
         self.assertFalse(f[(2, "Council", "p_both_respect", None)]["outcome"])
 
+    def test_scoring_rule_split_turf(self):
+        # Rules draft 4: one respect forecast per gang. Each gang is scored on
+        # its rival's, not its own; everyone else on both.
+        ex = fixtures.small()
+        ex["forecasts"] = [
+            {"day": 2, "player": p, "forecasts": {"p_families_respect": 0.3, "p_saltdogs_respect": 0.8}}
+            for p in ("Council", "Chief", "Families", "Saltdogs", "World")]
+        run = data.load(ex)
+        f = {(r["player"], r["event"]): r for r in run.forecasts}
+        self.assertEqual(len(f), 10)
+        self.assertFalse(f[("Families", "p_families_respect")]["scored"])
+        self.assertEqual(f[("Families", "p_families_respect")]["why_not"], "own move")
+        self.assertTrue(f[("Families", "p_saltdogs_respect")]["scored"])
+        self.assertTrue(f[("Saltdogs", "p_families_respect")]["scored"])
+        self.assertFalse(f[("Saltdogs", "p_saltdogs_respect")]["scored"])
+        for p in ("Council", "Chief", "World"):
+            self.assertTrue(f[(p, "p_families_respect")]["scored"])
+            self.assertTrue(f[(p, "p_saltdogs_respect")]["scored"])
+        # Day 2: the Families encroach, the Saltdogs respect.
+        self.assertFalse(f[("Council", "p_families_respect")]["outcome"])
+        self.assertTrue(f[("Council", "p_saltdogs_respect")]["outcome"])
+        # No forecast uses the old joint event, so it gets no outcome rows.
+        self.assertFalse([o for o in run.outcomes if o["event"] == "p_both_respect"])
+        self.assertEqual(len([o for o in run.outcomes if o["event"] == "p_families_respect"]), 3)
+
+    def test_old_exports_keep_the_joint_event(self):
+        # small() is a draft-3 export: p_both_respect is read and scored as before.
+        self.assertEqual(len([o for o in self.run.outcomes if o["event"] == "p_both_respect"]), 3)
+        root = Path(__file__).resolve().parents[2] / "data" / "runs" / "test"
+        for path in sorted(root.glob("*.json")):
+            run = data.load(path)
+            gangs = [f for f in run.forecasts if f["event"] == "p_both_respect" and f["player"] in data.GANGS]
+            self.assertFalse(any(f["scored"] for f in gangs), path.name)
+
     def test_decides(self):
+        self.assertTrue(data.decides("Families", "p_families_respect"))
+        self.assertFalse(data.decides("Families", "p_saltdogs_respect"))
+        self.assertTrue(data.decides("Saltdogs", "p_saltdogs_respect"))
+        self.assertFalse(data.decides("Council", "p_saltdogs_respect"))
         self.assertTrue(data.decides("Saltdogs", "p_crime", "Market"))
         self.assertFalse(data.decides("Saltdogs", "p_crime", "Port"))
         self.assertTrue(data.decides("Chief", "p_inspect", "Port"))

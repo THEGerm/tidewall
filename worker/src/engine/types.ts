@@ -14,7 +14,8 @@ export interface Nature {
 export interface Forecasts {
   p_crime: Partial<Record<District, number>>;
   p_inspect: Partial<Record<District, number>>;
-  p_both_respect: number;
+  p_families_respect: number;
+  p_saltdogs_respect: number;
   p_any_bribe_accepted: number;
   p_any_audit: number;
 }

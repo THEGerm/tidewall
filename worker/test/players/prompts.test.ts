@@ -25,6 +25,9 @@ describe("system prompts", () => {
       expect(s).toContain("| You encroach | you 10, they 0 | you 2, they 2 |");
       expect(s).toContain(`# Your seat: ${{ Council: "the Council", Chief: "the Police Chief", Families: "the Families", Saltdogs: "the Saltdogs", World: "the World" }[p]}`);
       expect(s).toContain("p_any_audit");
+      expect(s).toContain("- p_families_respect: the Families choose respect in the turf war.");
+      expect(s).toContain("- p_saltdogs_respect: the Saltdogs choose respect in the turf war.");
+      expect(s).not.toContain("p_both_respect");
     }
     expect(P.system("Families")).toContain("Your turf is Port, Hightown and Old Quarter.");
     expect(P.system("Saltdogs")).toContain("Your turf is Lowtown, Market and Seawall.");

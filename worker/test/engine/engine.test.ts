@@ -6,7 +6,7 @@ import { fallbackAudit, fallbackCrime, fallbackInspect } from "../../src/engine/
 import { drawNature, openDistricts } from "../../src/engine/nature";
 import { newGame, resolveDay } from "../../src/engine/resolve";
 import type { DayMoves, Event, GameState, WireItem } from "../../src/engine/types";
-import { checkChiefAct, checkCouncilAct, checkGangAct, checkOffers, checkWire } from "../../src/engine/validate";
+import { checkChiefAct, checkCouncilAct, checkGangAct, checkOffers, checkWire, checkWorldAct } from "../../src/engine/validate";
 import { equilibriumPlayers, refusingPlayer } from "./bots";
 
 const calm = { storm: false, fire: null, strike: false, ship: false };
@@ -72,10 +72,18 @@ describe("validation (rules 5)", () => {
     expect(checkOffers({ bribe_offers: { Hightown: 8 } }, "Families", open)).toHaveLength(0);
   });
   it("rejects inspecting a bribed district and a third audit", () => {
-    const f = { p_crime: Object.fromEntries(open.map((d) => [d, 0.3])), p_inspect: Object.fromEntries(open.map((d) => [d, 0.3])), p_both_respect: 0.5, p_any_bribe_accepted: 0.1, p_any_audit: 0.5 };
+    const f = { p_crime: Object.fromEntries(open.map((d) => [d, 0.3])), p_inspect: Object.fromEntries(open.map((d) => [d, 0.3])), p_families_respect: 0.5, p_saltdogs_respect: 0.5, p_any_bribe_accepted: 0.1, p_any_audit: 0.5 };
     expect(checkChiefAct({ forecasts: f, moves: { inspect: ["Market"] }, diary: "" }, open, ["Market"])).not.toHaveLength(0);
     expect(checkCouncilAct({ forecasts: f, moves: { audit: ["Market", "Lowtown", "Seawall"] }, diary: "" }, open)).not.toHaveLength(0);
     expect(checkGangAct({ forecasts: f, moves: { crime: { Hightown: true, "Old Quarter": false }, turf: "respect" }, diary: "" }, "Families", open)).toHaveLength(0);
+  });
+  it("asks for each gang's respect forecast, not the old joint one", () => {
+    const f = { p_crime: Object.fromEntries(open.map((d) => [d, 0.3])), p_inspect: Object.fromEntries(open.map((d) => [d, 0.3])), p_both_respect: 0.5, p_any_bribe_accepted: 0.1, p_any_audit: 0.5 };
+    expect(checkWorldAct({ forecasts: f }, open)).toEqual([
+      "forecasts.p_families_respect must be a probability from 0 to 1",
+      "forecasts.p_saltdogs_respect must be a probability from 0 to 1",
+    ]);
+    expect(checkWorldAct({ forecasts: { ...f, p_families_respect: 0.6, p_saltdogs_respect: 0.4 } }, open)).toHaveLength(0);
   });
   it("rejects a Wire item citing a secret or unknown event", () => {
     const pub: Event[] = [{ id: "D1-E1", kind: "turf", public: true }, { id: "D1-E2", kind: "crime", public: true }];
