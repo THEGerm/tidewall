@@ -9,7 +9,7 @@
 // under run "recognition-check".
 
 import { PLAYERS, type PlayerName } from "./config";
-import { ledgerRow } from "../ledger/ledger";
+import { ledgerRow, nextSeq } from "../ledger/ledger";
 import { participants, keyChain } from "../players/keys";
 import { EFFORT, MODELS, type Family } from "../players/models";
 import { studyPrompts } from "../players/prompts";
@@ -32,17 +32,27 @@ export async function recognitionCheck(db: D1Database, secret: string, only?: Fa
   const families = (Object.keys(MODELS) as Family[]).filter((f) => !only?.length || only.includes(f));
   const jobs = families.flatMap((family) => PLAYERS.flatMap((player) =>
     (Object.keys(QUESTIONS) as (keyof typeof QUESTIONS)[]).map((question) => ({ family, player, question }))));
-  const answers = await Promise.all(jobs.map(async ({ family, player, question }, seq): Promise<RecognitionAnswer> => {
+  // Ledger seqs carry on from earlier checks: the rerun of 1 Nov restarted at 0
+  // and every row hit the (run_id, day, seq) key of the first run.
+  const base = await nextSeq(db, "recognition-check", 0);
+  const answers = await Promise.all(jobs.map(async ({ family, player, question }, i): Promise<RecognitionAnswer> => {
+    const seq = base + i;
     const m = MODELS[family];
     const keys = await keyChain(db, secret, m.provider, 1);
     if (!keys.length) return { family, model: m.model, player, question, text: null, error: `no ${m.provider} key` };
     const req = { model: m.model, system: studyPrompts.system(player), messages: [{ role: "user" as const, text: QUESTIONS[question] }], maxOutputTokens: RECOGNITION_MAX_TOKENS, effort: EFFORT };
+    let r;
     try {
-      const r = await callModel(m.provider, keys[0].key, req);
+      r = await callModel(m.provider, keys[0].key, req);
+    } catch (e) {
+      return { family, model: m.model, player, question, text: null, error: e instanceof Error ? e.message : String(e) };
+    }
+    // A ledger failure keeps the answer, which was paid for.
+    try {
       await ledgerRow(db, "recognition-check", 0, seq, { player, step: `recognition_${question}`, day: 0, provider: m.provider, model: m.model, modelReported: r.modelReported, payer: keys[0].email, fallbackKey: false, ok: true, stop: r.stop, usage: r.usage, error: null, latencyMs: r.latencyMs, requestId: r.requestId, stopDetail: r.stopDetail }, names).run();
       return { family, model: m.model, player, question, text: r.text, error: null };
     } catch (e) {
-      return { family, model: m.model, player, question, text: null, error: e instanceof Error ? e.message : String(e) };
+      return { family, model: m.model, player, question, text: r.text, error: `ledger: ${e instanceof Error ? e.message : String(e)}` };
     }
   }));
   // Each run keeps its own record (recognition_check:<time>), so a rerun never
