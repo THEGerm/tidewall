@@ -13,7 +13,7 @@ const PAGE = 100; // rows drawn at a time, so a 60-day run stays quick on a phon
 const PLAYERS = ["Council", "Chief", "Families", "Saltdogs", "World"];
 const FAMILY = { claude: "Claude", gemini: "Gemini", gpt: "GPT" };
 const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI", openrouter: "OpenRouter" };
-const STATUS = { ready: "Ready to start", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (stopped at the cap)" };
+const STATUS = { ready: "Ready to start", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (stopped at the cap)", sealed: "Finished, sealed until its triple ends" };
 const EVENT_NAME = { p_crime: "crime", p_inspect: "inspection", p_both_respect: "both gangs respect", p_any_bribe_accepted: "any bribe taken", p_any_audit: "any audit" };
 
 const params = new URLSearchParams(location.search);
@@ -48,7 +48,7 @@ const isBot = (r) => r.model_set === "bot";
 // ---- The run selector ----
 
 function optionLabel(r) {
-  const st = r.live ? `${STATUS[r.status] || r.status}, public data only` : STATUS[r.status] || r.status;
+  const st = r.sealed ? `${STATUS[r.status] || r.status}, public data only` : STATUS[r.status] || r.status;
   return `${r.id}: ${r.days} ${r.days === 1 ? "day" : "days"}, ${st}`;
 }
 
@@ -63,7 +63,7 @@ function fillPicker(selected) {
 // run, else the latest of any.
 function defaultRun() {
   const newest = (rs) => [...rs].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))[0];
-  return (newest(runs.filter((r) => !r.live && !isTest(r) && !isBot(r))) || newest(runs.filter((r) => !r.live)) || newest(runs))?.id;
+  return (newest(runs.filter((r) => !r.sealed && !isTest(r) && !isBot(r))) || newest(runs.filter((r) => !r.sealed)) || newest(runs))?.id;
 }
 
 // ---- The logs: one table per tab, built once per run ----
@@ -72,7 +72,7 @@ const col = (k, label, cls) => ({ k, label, cls });
 
 function buildLogs(d) {
   const { run, x, views, ledger } = d;
-  const secret = !run.live;
+  const secret = !run.sealed;
   const closed = "Secret until the run ends.";
   const logs = {};
 
@@ -217,7 +217,7 @@ function renderLog() {
   const thead = h("thead", {}, h("tr", {}, log.cols.map((c) => h("th", {}, c.label))));
   const tbody = h("tbody", {}, shown.length
     ? shown.map((r) => h("tr", { class: r.seen === "secret" ? "secret" : r.ok === "no" ? "failed" : null }, log.cols.map((c) => h("td", { class: c.cls }, r[c.k] ?? ""))))
-    : h("tr", {}, h("td", { colspan: String(log.cols.length) }, log.rows.length ? "No rows match these filters." : current.run.live && !log.rows.length ? "Nothing public yet." : "No rows.")));
+    : h("tr", {}, h("td", { colspan: String(log.cols.length) }, log.rows.length ? "No rows match these filters." : current.run.sealed && !log.rows.length ? "Nothing public yet." : "No rows.")));
   $("log").replaceChildren(thead, tbody);
 
   $("pager").replaceChildren(...(rows.length > PAGE ? [
@@ -244,10 +244,10 @@ function renderRun() {
   }
   $("facts").replaceChildren(
     fact("Seating", h("span", { class: "seats" }, ["Government", "Criminals", "World"].map((s) => h("span", {}, `${s}: `, h("strong", {}, FAMILY[run.seating?.[s]] || run.seating?.[s] || "?")))), isBot(run) ? "Bot run: equilibrium bots, no models" : isTest(run) ? "Test run" : `Study run, triple ${run.triple}, rotation ${run.rotation}`),
-    fact("Status", STATUS[run.status] || run.status, run.live ? "Public data only until it ends" : run.seed ? `Seed ${run.seed}` : null),
+    fact("Status", STATUS[run.status] || run.status, run.sealed ? "Public data only until it ends" : run.seed ? `Seed ${run.seed}` : null),
     fact("Days", String(days), run.rules_version ? `Rules ${run.rules_version}` : null),
     fact("Cost", money(cost), days ? `${money(cost / days)} a day` : null),
-    fact("Fallbacks", run.live ? "When it ends" : `${fb} of ${answers.length}`, run.live ? "Answers are secret while live" : `answers; ${retries} more came on the retry`),
+    fact("Fallbacks", run.sealed ? "When it ends" : `${fb} of ${answers.length}`, run.sealed ? "Answers are secret while live" : `answers; ${retries} more came on the retry`),
   );
   const enc = encodeURIComponent(run.id);
   const link = (href, text, download) => h("a", { class: "button ghost small", href, download }, text);
@@ -255,13 +255,13 @@ function renderRun() {
     link(`/run/?id=${enc}`, "Watch the run"),
     link(`/run/theory/?id=${enc}`, "Game theory page"),
     link(`/run/data/?id=${enc}`, "Data and downloads"),
-    ...(run.live ? [] : [link(`/api/runs/${enc}/export`, "Full export (JSON)", `${run.id}.json`)]),
+    ...(run.sealed ? [] : [link(`/api/runs/${enc}/export`, "Full export (JSON)", `${run.id}.json`)]),
   );
   $("run-link").href = `/run/?id=${enc}`;
   $("theory-link").href = `/run/theory/?id=${enc}`;
   $("data-link").href = `/run/data/?id=${enc}`;
 
-  $("results-note").textContent = run.live
+  $("results-note").textContent = run.sealed
     ? "While a run is live these use public data only: crime and turf. Inspections, audits, bribes, forecasts and fallbacks open when it ends."
     : "The run against the game's equilibrium, from the full export. The same figures as the game theory page.";
   $("panel").innerHTML = SECTIONS;

@@ -40,7 +40,7 @@ async function load() {
     [summary, ledger] = await Promise.all([get(`/api/runs/${id}`), get(`/api/runs/${id}/ledger`)]);
   } catch (e) { $("note").textContent = `Couldn't load ${id}: ${e.message}`; return; }
   const { run, days } = summary;
-  const finished = !run.live;
+  const finished = !run.sealed;
   $("title").textContent = `Data: ${run.id}`;
   $("note").textContent = finished
     ? `${days.length} days, finished. Everything is open, secrets included.`
