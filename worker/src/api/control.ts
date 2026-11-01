@@ -5,6 +5,7 @@ import type { Env } from "../index";
 import { createRun, createRunStatement, getRun, setStatus, type Seating } from "../engine/store";
 import { blocker } from "../engine/runner";
 import { DRAND_ROUND, studyPlan } from "../engine/study";
+import { recognitionCheck } from "../engine/recognition";
 import { log, recentLog } from "../engine/log";
 import { runLedger, studySpend } from "../ledger/ledger";
 import { EFFORT, MODELS, TEST_MODELS } from "../players/models";
@@ -86,6 +87,14 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   // created ready; with the schedule on, the scheduler plays them one after
   // another in triple and rotation order. Refused if any study run exists, and
   // only with the typed confirmation, so a stray click can't start the study.
+  // The recognition check before the freeze (pre-registration; Zhou, Huang
+  // et al. 2025, arXiv 2509.18052): each study model, each seat's prompt.
+  if (path === "recognition" && request.method === "POST") {
+    const answers = await recognitionCheck(env.DB, env.KEY_ENC_SECRET);
+    await log(env.DB, `${who} ran the recognition check: ${answers.filter((a) => a.text).length} of ${answers.length} answers.`);
+    return json({ ok: true, answers });
+  }
+
   if (path === "study" && request.method === "POST") {
     const b = (await request.json().catch(() => null)) as { confirm?: string } | null;
     if (b?.confirm !== "create the 27 study runs") return json({ ok: false, error: 'type "create the 27 study runs" to confirm' }, 400);

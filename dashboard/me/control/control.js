@@ -209,6 +209,17 @@ $("new-form").onsubmit = async (e) => {
   } catch (err) { $("new-msg").textContent = err.message; }
 };
 
+// The recognition check before the freeze (Zhou, Huang et al. 2025).
+$("recog-btn").onclick = async () => {
+  $("recog-msg").textContent = "Asking the study models... this takes a minute.";
+  try {
+    const out = await api("recognition", { method: "POST" });
+    const ok = out.answers.filter((a) => a.text).length;
+    const failed = out.answers.filter((a) => a.error).map((a) => `${a.model} as ${a.player}: ${a.error}`);
+    $("recog-msg").textContent = `${ok} of ${out.answers.length} answers saved for coding.${failed.length ? ` Failed: ${failed.join("; ")}` : ""}`;
+  } catch (err) { $("recog-msg").textContent = err.message; }
+};
+
 // The 27 study runs (#38). The server refuses without the typed phrase and if
 // any study run exists, so this can only happen once.
 $("study-btn").onclick = async () => {

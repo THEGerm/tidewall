@@ -86,6 +86,9 @@
     <section aria-labelledby="h-study">
       <h2 id="h-study">The study</h2>
       <p class="muted">Creates all 27 study runs: 9 triples on their published seeds, odd triples playing rotations 1 to 3 and even triples rotations 4 to 6 (<a href="https://github.com/THEGerm/tidewall/blob/main/docs/seeds.md">seeds.md</a>). They are created ready. With the schedule on, they play one after another, from study-t1-r1 to study-t9-r3. Do this once, after the freeze tag and with the cap set.</p>
+      <p class="muted">Before the freeze: the recognition check asks each study model, for each seat's prompt, what study or game it thinks this is (pre-registration; Zhou, Huang et al. 2025). About 15 short calls on day 1's keys; the answers are saved for coding.</p>
+      <button type="button" id="recog-btn" class="ghost">Run the recognition check</button>
+      <p id="recog-msg" class="msg" role="status"></p>
       <button type="button" id="study-btn">Create the 27 study runs</button>
       <p id="study-msg" class="msg" role="status"></p>
     </section>
