@@ -22,15 +22,21 @@ export const QUESTIONS = { recognition: RECOGNITION_QUESTION, play: PLAY_QUESTIO
 
 export interface RecognitionAnswer { family: Family; model: string; player: PlayerName; question: keyof typeof QUESTIONS; text: string | null; error: string | null }
 
-export async function recognitionCheck(db: D1Database, secret: string): Promise<RecognitionAnswer[]> {
+// Room for a model that thinks before it answers: the first run's 800 tokens
+// left Claude Opus's play answers empty (stop max_tokens, 1 Nov). Same as a
+// study call.
+export const RECOGNITION_MAX_TOKENS = 4000;
+
+export async function recognitionCheck(db: D1Database, secret: string, only?: Family[]): Promise<RecognitionAnswer[]> {
   const names = Object.fromEntries((await participants(db)).map((p) => [p.email, p.name]));
-  const jobs = (Object.keys(MODELS) as Family[]).flatMap((family) => PLAYERS.flatMap((player) =>
+  const families = (Object.keys(MODELS) as Family[]).filter((f) => !only?.length || only.includes(f));
+  const jobs = families.flatMap((family) => PLAYERS.flatMap((player) =>
     (Object.keys(QUESTIONS) as (keyof typeof QUESTIONS)[]).map((question) => ({ family, player, question }))));
   const answers = await Promise.all(jobs.map(async ({ family, player, question }, seq): Promise<RecognitionAnswer> => {
     const m = MODELS[family];
     const keys = await keyChain(db, secret, m.provider, 1);
     if (!keys.length) return { family, model: m.model, player, question, text: null, error: `no ${m.provider} key` };
-    const req = { model: m.model, system: studyPrompts.system(player), messages: [{ role: "user" as const, text: QUESTIONS[question] }], maxOutputTokens: 800, effort: EFFORT };
+    const req = { model: m.model, system: studyPrompts.system(player), messages: [{ role: "user" as const, text: QUESTIONS[question] }], maxOutputTokens: RECOGNITION_MAX_TOKENS, effort: EFFORT };
     try {
       const r = await callModel(m.provider, keys[0].key, req);
       await ledgerRow(db, "recognition-check", 0, seq, { player, step: `recognition_${question}`, day: 0, provider: m.provider, model: m.model, modelReported: r.modelReported, payer: keys[0].email, fallbackKey: false, ok: true, stop: r.stop, usage: r.usage, error: null, latencyMs: r.latencyMs, requestId: r.requestId, stopDetail: r.stopDetail }, names).run();
@@ -39,7 +45,10 @@ export async function recognitionCheck(db: D1Database, secret: string): Promise<
       return { family, model: m.model, player, question, text: null, error: e instanceof Error ? e.message : String(e) };
     }
   }));
-  await db.prepare("INSERT INTO meta (key, value) VALUES ('recognition_check', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
-    .bind(JSON.stringify({ at: new Date().toISOString(), questions: QUESTIONS, answers })).run();
+  // Each run keeps its own record (recognition_check:<time>), so a rerun never
+  // overwrites an earlier one. The first run, of 1 Nov, is under recognition_check.
+  const at = new Date().toISOString();
+  await db.prepare("INSERT INTO meta (key, value) VALUES (?, ?)")
+    .bind(`recognition_check:${at}`, JSON.stringify({ at, families, questions: QUESTIONS, maxOutputTokens: RECOGNITION_MAX_TOKENS, answers })).run();
   return answers;
 }
