@@ -12,7 +12,7 @@ const SCORERS = [
   { key: "Families", cls: "fam", dash: "" },
   { key: "Saltdogs", cls: "salt", dash: "" },
 ];
-const STATUS = { ready: "Ready to start", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (stopped at the cap)" };
+const STATUS = { ready: "Ready to start", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (stopped at the cap)", sealed: "Finished, sealed until its triple ends" };
 
 const params = new URLSearchParams(location.search);
 const id = params.get("id") || "";

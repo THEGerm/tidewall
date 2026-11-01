@@ -7,7 +7,7 @@ const SEATINGS = {
   2: { Government: "gemini", Criminals: "gpt", World: "claude" },
   3: { Government: "gpt", Criminals: "claude", World: "gemini" },
 };
-const STATUS = { ready: "Ready", running: "Running", paused: "Paused", over: "Finished", truncated: "Finished (cap)" };
+const STATUS = { ready: "Ready", running: "Running", paused: "Paused", over: "Finished", truncated: "Finished (cap)", sealed: "Finished, sealed until its triple ends" };
 
 const $ = (id) => document.getElementById(id);
 let state = null;

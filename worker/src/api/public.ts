@@ -2,7 +2,7 @@
 // Every answer comes from engine/public.ts, which makes the public cut.
 
 import type { Env } from "../index";
-import { dayView, listRuns, publicExport, runSummary, sealed } from "../engine/public";
+import { dayView, listRuns, publicExport, runSummary, sealed, withheld } from "../engine/public";
 import { runLedger } from "../ledger/ledger";
 import { getRun } from "../engine/store";
 
@@ -31,7 +31,10 @@ export async function handlePublic(request: Request, env: Env, url: URL): Promis
   }
   if (sub === "ledger") {
     const run = await getRun(env.DB, id);
-    return run ? json({ ok: true, ledger: await runLedger(env.DB, id) }, 200, !(await sealed(env.DB, run))) : missing("run");
+    if (!run) return missing("run");
+    // A withheld run's ledger would show how many days it lasted.
+    if (await withheld(env.DB, run)) return json({ ok: true, ledger: [] }, 200, false);
+    return json({ ok: true, ledger: await runLedger(env.DB, id) }, 200, !(await sealed(env.DB, run)));
   }
   const out = await publicExport(env.DB, id);
   return out ? json(out, 200, true) : json({ ok: false, error: "the export opens when the run ends" }, 404);

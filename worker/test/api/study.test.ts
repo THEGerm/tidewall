@@ -58,6 +58,11 @@ describe("triple sealing (Germ, 1 Nov)", () => {
     await db.prepare("UPDATE runs SET status = 'over' WHERE id = 'study-t1-r1'").run();
     expect(await publicExport(db, "study-t1-r1")).toBeNull();
     expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")!.live).toBe(true);
+    // withheld whole: no days, no Nature, no end day, no ledger rows
+    const { runSummary, dayView } = await import("../../src/engine/public");
+    expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")).toMatchObject({ status: "sealed", days: 0 });
+    expect(await runSummary(db, "study-t1-r1")).toMatchObject({ run: { status: "sealed", days: 0 }, days: [] });
+    expect(await dayView(db, "study-t1-r1", 1)).toBeNull();
     await db.prepare("UPDATE runs SET status = 'over' WHERE id IN ('study-t1-r2', 'study-t1-r3')").run();
     expect(await publicExport(db, "study-t1-r1")).not.toBeNull();
     expect((await listRuns(db) as any[]).find((r) => r.id === "study-t1-r1")!.live).toBe(false);
@@ -66,5 +71,15 @@ describe("triple sealing (Germ, 1 Nov)", () => {
     await createRun(db, { id: "t1", seed: "test-seed-1", triple: 0, rotation: 1, seating: SEATINGS[1], model_set: "test" });
     await db.prepare("UPDATE runs SET status = 'over' WHERE id = 't1'").run();
     expect(await publicExport(db, "t1")).not.toBeNull();
+  });
+});
+
+describe("study creation is atomic (Vishnu's review)", () => {
+  it("creates none of the 27 if one insert fails", async () => {
+    const { createRun } = await import("../../src/engine/store");
+    const db = testD1();
+    await createRun(db, { id: "study-t5-r2", seed: "clash-seed-1", triple: 0, rotation: 1, seating: SEATINGS[1], model_set: "test" });
+    await expect(call({ DB: db }, { confirm: "create the 27 study runs" })).rejects.toThrow();
+    expect(await db.prepare("SELECT COUNT(*) AS n FROM runs WHERE model_set = 'study'").first<{ n: number }>()).toEqual({ n: 0 });
   });
 });

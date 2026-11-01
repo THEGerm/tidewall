@@ -13,7 +13,7 @@ const PAGE = 100; // rows drawn at a time, so a 60-day run stays quick on a phon
 const PLAYERS = ["Council", "Chief", "Families", "Saltdogs", "World"];
 const FAMILY = { claude: "Claude", gemini: "Gemini", gpt: "GPT" };
 const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI" };
-const STATUS = { ready: "Ready to start", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (stopped at the cap)" };
+const STATUS = { ready: "Ready to start", running: "Live", paused: "Paused", over: "Finished", truncated: "Finished (stopped at the cap)", sealed: "Finished, sealed until its triple ends" };
 const EVENT_NAME = { p_crime: "crime", p_inspect: "inspection", p_both_respect: "both gangs respect", p_any_bribe_accepted: "any bribe taken", p_any_audit: "any audit" };
 
 const params = new URLSearchParams(location.search);

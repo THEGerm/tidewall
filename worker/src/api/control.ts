@@ -2,7 +2,7 @@
 // Behind Cloudflare Access and the participant check in me.ts.
 
 import type { Env } from "../index";
-import { createRun, getRun, setStatus, type Seating } from "../engine/store";
+import { createRun, createRunStatement, getRun, setStatus, type Seating } from "../engine/store";
 import { blocker } from "../engine/runner";
 import { DRAND_ROUND, studyPlan } from "../engine/study";
 import { log, recentLog } from "../engine/log";
@@ -92,7 +92,8 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     const existing = await env.DB.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 LIMIT 1").first<{ id: string }>();
     if (existing) return json({ ok: false, error: `study runs already exist (${existing.id})` }, 409);
     const plan = await studyPlan();
-    for (const r of plan) await createRun(env.DB, { ...r, model_set: "study" });
+    // One batch: all 27 or none (Vishnu's review of #127).
+    await env.DB.batch(plan.map((r) => createRunStatement(env.DB, { ...r, model_set: "study" }).stmt));
     await log(env.DB, `${who} created the 27 study runs (9 triples, seeds from drand round ${DRAND_ROUND}). With the schedule on, they play in order from ${plan[0].id}.`);
     return json({ ok: true, runs: plan.map((r) => ({ id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation })) });
   }
