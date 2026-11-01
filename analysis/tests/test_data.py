@@ -127,3 +127,13 @@ class Flatten(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StudyRuns(unittest.TestCase):
+    def test_only_triples_1_to_9_on_the_study_models_count(self):
+        from analysis.data import Run, is_study_run
+        mk = lambda **i: Run(i)
+        self.assertTrue(is_study_run(mk(id="study-t1-r1", model_set="study", triple=1)))
+        self.assertFalse(is_study_run(mk(id="012-smoke-test", model_set="study", triple=0)))
+        self.assertFalse(is_study_run(mk(id="011-germ", model_set="test", triple=0)))
+        self.assertFalse(is_study_run(mk(id="bot-t1-eq", model_set="bot", triple=1)))

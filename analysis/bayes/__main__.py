@@ -32,6 +32,12 @@ def main(argv):
     ap.add_argument("--tones", help="the judges' tone codes, one per judge per Wire item (JSON list), for H5")
     a = ap.parse_args(argv)
     runs = data.load_all(a.exports)
+    # Only the 27 study runs count: study models in triples 1 to 9. A smoke
+    # test or a test run passed in by mistake is left out and named.
+    dropped = [r.id for r in runs if not data.is_study_run(r)]
+    runs = [r for r in runs if data.is_study_run(r)] if any(data.is_study_run(r) for r in runs) else runs
+    if dropped and any(data.is_study_run(r) for r in runs):
+        print("left out (not a study run in triples 1 to 9): " + ", ".join(dropped))
     keep = not a.without_fallbacks
     kw = {"draws": 500, "tune": 500, "chains": 2} if a.quick else {}
     results, skipped = {}, []
