@@ -57,6 +57,9 @@ export function scoredOn(player, key, district) {
   if (player === "Families" || player === "Saltdogs") {
     if (key === "p_crime" && TURF[district] === player) return false;
     if (key === "p_both_respect") return false;
+    // A gang that offers nothing settles "any bribe accepted", so it isn't
+    // scored on it (#66, confirmed 31 Oct; analysis/data.py decides()).
+    if (key === "p_any_bribe_accepted") return false;
   }
   if (player === "Families" && key === "p_families_respect") return false;
   if (player === "Saltdogs" && key === "p_saltdogs_respect") return false;
