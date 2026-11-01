@@ -147,5 +147,44 @@ class H6(unittest.TestCase):
         self.assertEqual(rl.respect_shares([run], with_fallbacks=False)[0]["share"], 0.0)
 
 
+    def test_too_few_valid_moves_leave_the_lambda_test(self):
+        # Pechon-Elkins and Chun 2026 (arXiv 2603.10029)
+        rows = square(model_fx={"claude": 0.3, "gemini": 0, "gpt": -0.3})
+        rows[1]["too_few_valid"] = True
+        r = rl.h6(rows, resamples=200)
+        self.assertEqual(sum(r["too_few_valid_left_out"].values()), 1)
+        self.assertEqual(r["rows"], len(rows) - 1)
+
+    def test_lambda_rows_carry_validity_scale_and_baseline(self):
+        run = data.load(RUNS / "004-germ.json")
+        for r in rl.lambda_rows([run]):
+            self.assertTrue(0 <= r["valid_share"] <= 1)
+            self.assertEqual(r["too_few_valid"], r["valid_share"] < rl.MIN_VALID_SHARE)
+            # Can be negative: the logit has no intercept (50/50 at delta 0), so
+            # play that ignores beliefs can lose to the base-rate baseline.
+            self.assertTrue(r["ll_gain"] == r["ll_gain"])
+            self.assertTrue(r["lambda_norm"] == r["lambda_norm"])
+
+    def test_without_fallbacks_drops_the_whole_day_for_both_seats(self):
+        run = data.load(RUNS / "004-germ.json")  # day 21: every Government step fell back
+        fell = {r["day"] for r in run.district_days if r["gang_fallback"] or r["chief_fallback"]}
+        self.assertTrue(fell)
+        with_ = {r["seat"]: r for r in rl.lambda_rows([run])}
+        without = {r["seat"]: r for r in rl.lambda_rows([run], with_fallbacks=False)}
+        self.assertEqual(without["Criminals"]["valid_share"], 1.0)  # gang rows on fallback days are gone too
+        self.assertEqual(without["Government"]["valid_share"], 1.0)
+
+    def test_model_x_seat_interaction_is_reported(self):
+        # Shi et al. 2026 (arXiv 2607.05132)
+        flat = rl.omega_squared_interaction(square())
+        rows = square()
+        for r in rows:
+            if r["model"] == "claude" and r["seat"] == "Government":
+                r["value"] += 1.0
+        self.assertLess(flat, 0.05)
+        self.assertGreater(rl.omega_squared_interaction(rows), 0.3)
+        self.assertIn("omega2_model_x_seat", rl.h6(rows, resamples=100))
+
+
 if __name__ == "__main__":
     unittest.main()

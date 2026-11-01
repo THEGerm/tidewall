@@ -12,6 +12,7 @@ Every row builder takes with_fallbacks: False leaves out what a fallback
 decided (rules 7), the same way in every test.
 """
 
+import math
 import random
 from collections import Counter, defaultdict
 
@@ -164,27 +165,66 @@ def lambda_rows(runs, with_fallbacks=True):
 
     Each row carries `separated`: every move was a best response, so lambda
     runs away. h6 leaves those rows out and counts them (separated_by_model).
+
+    From Pechon-Elkins and Chun 2026 (arXiv 2603.10029), where silent parser
+    defaults faked up to 30% of one game's rows:
+    - `valid_share`: the share of the seat-run's decisions the player made
+      itself, not a fallback. A seat-run under MIN_VALID_SHARE is marked
+      `too_few_valid`; h6 leaves it out and counts it by model.
+    - Without fallbacks, a day where any of the Chief or the gangs fell back
+      is dropped for both seats, so one side's default can't shape the other
+      side's rows.
+    - `lambda_norm` is lambda times the standard deviation of delta in the
+      seat-run, so it has no payoff units, and `ll_gain` is the log-likelihood
+      gain of the logit fit over a fixed-propensity baseline (the seat-run's
+      own action rate, ignoring beliefs).
     """
     out = []
     for run in runs:
         fc = {(f["day"], f["player"], f["event"], f["district"]): f["p"] for f in run.forecasts if f["p"] is not None}
+        fell_back = {r["day"] for r in run.district_days if r["gang_fallback"] or r["chief_fallback"]}
         crim, gov = [], []
+        own = {"Criminals": [0, 0], "Government": [0, 0]}  # [made by the player, all]
         for r in run.district_days:
             if not r["open"]:
                 continue
+            if not with_fallbacks and r["day"] in fell_back:
+                continue
             p = fc.get((r["day"], r["gang"], "p_inspect", r["district"]))
-            if p is not None and (with_fallbacks or not r["gang_fallback"]):
+            if p is not None:
+                own["Criminals"][1] += 1
+                own["Criminals"][0] += 0 if r["gang_fallback"] else 1
                 crim.append((choice.gang_delta(p), r["crime"]))
             q = fc.get((r["day"], "Chief", "p_crime", r["district"]))
-            if q is not None and r["inspectable"] and (with_fallbacks or not r["chief_fallback"]):
+            if q is not None and r["inspectable"]:
+                own["Government"][1] += 1
+                own["Government"][0] += 0 if r["chief_fallback"] else 1
                 gov.append((choice.police_delta(q), r["inspected"]))
         for seat, pairs in (("Criminals", crim), ("Government", gov)):
             if len(pairs) < 10:
                 continue
             fit = choice.fit_lambda(pairs)
+            share = own[seat][0] / own[seat][1]
+            deltas = [d for d, _ in pairs]
+            mean_d = sum(deltas) / len(deltas)
+            sd = (sum((d - mean_d) ** 2 for d in deltas) / len(deltas)) ** 0.5
+            rate = sum(1 for _, a in pairs if a) / len(pairs)
+            ll0 = 0.0 if rate in (0.0, 1.0) else len(pairs) * (rate * math.log(rate) + (1 - rate) * math.log(1 - rate))
             out.append({"run": run.id, "triple": run.info.get("triple"), "seat": seat,
-                        "model": _seat_family(run, seat), "value": fit["lambda"], "separated": fit["separated"]})
+                        "model": _seat_family(run, seat), "value": fit["lambda"], "separated": fit["separated"],
+                        "valid_share": share, "too_few_valid": share < MIN_VALID_SHARE,
+                        "lambda_norm": fit["lambda"] * sd, "ll_gain": fit["loglik"] - ll0})
     return out
+
+
+# A seat-run whose own moves are fewer than half its decisions leaves the
+# lambda test (Pechon-Elkins and Chun 2026, arXiv 2603.10029, used 50%).
+MIN_VALID_SHARE = 0.5
+
+
+def too_few_valid_by_model(rows):
+    """How many seat-runs h6 leaves out for too few valid moves, by model."""
+    return dict(Counter(r["model"] for r in rows if r.get("too_few_valid")))
 
 
 def separated_by_model(rows):
@@ -228,6 +268,26 @@ def omega_squared(rows):
     return {"model": w(ss_m, df_m), "seat": w(ss_s, df_s)}
 
 
+def omega_squared_interaction(rows):
+    """Exploratory: omega-squared of the model x seat interaction, the
+    variation left after both main effects that the 9 (model, seat) cells
+    explain (Type II: what the cell means add over the additive fit). From
+    Shi et al. 2026 (arXiv 2607.05132), where mixed-model groups kept fixed
+    payoff gaps: does a model do better in some seats than others?"""
+    cells = [dict(r, cell=f'{r["model"]}|{r["seat"]}') for r in rows]
+    n = len(rows)
+    grand = sum(r["value"] for r in rows) / n
+    ss_total = sum((r["value"] - grand) ** 2 for r in rows)
+    rss_add, k_add = _rss(rows, ["model", "seat"])
+    rss_cell, k_cell = _rss(cells, ["cell"])
+    df_i, df_e = k_cell - k_add, n - k_cell
+    if df_i <= 0 or df_e <= 0:
+        return float("nan")
+    ms_e = rss_cell / df_e
+    ss_i = max(rss_add - rss_cell, 0.0)
+    return (ss_i - df_i * ms_e) / (ss_total + ms_e) if ss_total + ms_e > 0 else 0.0
+
+
 def h6(rows, resamples=RESAMPLES, seed=SEED):
     """H6: does the model explain more than the seat? The difference
     omega2(model) - omega2(seat), with a 95% interval from the triple
@@ -235,7 +295,8 @@ def h6(rows, resamples=RESAMPLES, seed=SEED):
     explains more. p is two-sided. Rows whose lambda fit separated are left
     out and counted by model."""
     left_out = separated_by_model(rows)
-    rows = [r for r in rows if not r.get("separated")]
+    too_few = too_few_valid_by_model(rows)
+    rows = [r for r in rows if not r.get("separated") and not r.get("too_few_valid")]
     triples = _triples(rows)
     if len(triples) < 2:
         raise ValueError("need at least 2 triples to resample")
@@ -251,4 +312,5 @@ def h6(rows, resamples=RESAMPLES, seed=SEED):
     return {"omega2_model": w["model"], "omega2_seat": w["seat"], "estimate": w["model"] - w["seat"],
             "difference": w["model"] - w["seat"], "low": low, "high": high, "clears": low > 0 or high < 0,
             "p": min(1.0, 2 * min(above, 1 - above)), "rows": len(rows), "triples": len(triples),
-            "separated_left_out": left_out}
+            "separated_left_out": left_out, "too_few_valid_left_out": too_few,
+            "omega2_model_x_seat": omega_squared_interaction(rows)}  # exploratory, not in Holm

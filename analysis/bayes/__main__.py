@@ -94,6 +94,12 @@ def main(argv):
     sep = run_level.separated_by_model(lam)
     print("Seat-runs left out of H6 lambda because the fit separated: "
           + (", ".join(f"{m} {n}" for m, n in sorted(sep.items())) if sep else "none"))
+    few = run_level.too_few_valid_by_model(lam)
+    print(f"Seat-runs left out of H6 lambda with under {run_level.MIN_VALID_SHARE:.0%} of moves their own: "
+          + (", ".join(f"{m} {n}" for m, n in sorted(few.items())) if few else "none"))
+    for r in lam:  # Pechon-Elkins and Chun 2026: lambda without units, and against a beliefs-free baseline
+        print(f"lambda {r['run']:<20}{r['seat']:<11}{r['model']:<7}lambda {r['value']:.3f}  "
+              f"normalized {r['lambda_norm']:.3f}  gain over base rate {r['ll_gain']:.1f}  own moves {r['valid_share']:.0%}")
     for s in skipped:
         print(f"skipped (in Holm at p = 1)  {s}")
     if not results:
