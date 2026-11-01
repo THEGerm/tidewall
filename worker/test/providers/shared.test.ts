@@ -4,10 +4,10 @@
 import { describe, expect, it } from "vitest";
 import { ProviderError, scrub } from "../../src/providers/errors";
 import { callModel, withRetry } from "../../src/providers/index";
-import type { Provider } from "../../src/providers/types";
+import type { ChatProvider } from "../../src/providers/types";
 import { FAKE_KEY, fakeFetch, request, throwingFetch } from "./helpers";
 
-const PROVIDERS: Provider[] = ["anthropic", "google", "openai"];
+const PROVIDERS: ChatProvider[] = ["anthropic", "google", "openai"];
 
 describe.each(PROVIDERS)("%s, shared behaviour", (provider) => {
   it("turns a failed fetch into a network error", async () => {
@@ -53,7 +53,7 @@ describe.each(PROVIDERS)("%s, shared behaviour", (provider) => {
   });
 
   it("reports latency and the requested model", async () => {
-    const answers: Record<Provider, unknown> = {
+    const answers: Record<ChatProvider, unknown> = {
       anthropic: { model: "m", content: [{ type: "text", text: "hi" }], stop_reason: "end_turn", usage: {} },
       google: { candidates: [{ content: { parts: [{ text: "hi" }] }, finishReason: "STOP" }], usageMetadata: {} },
       openai: { status: "completed", model: "m", output: [{ type: "message", content: [{ type: "output_text", text: "hi" }] }], usage: {} },

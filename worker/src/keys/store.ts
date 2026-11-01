@@ -3,7 +3,9 @@
 
 import { decrypt, encrypt } from "./crypto";
 
-export const PROVIDERS = ["anthropic", "google", "openai"] as const;
+// OpenRouter carries the offline judges (DeepSeek, Qwen, GLM); the players
+// never call it. Its keys are stored, tested and rotated like the others.
+export const PROVIDERS = ["anthropic", "google", "openai", "openrouter"] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 export const isProvider = (p: string): p is Provider => (PROVIDERS as readonly string[]).includes(p);

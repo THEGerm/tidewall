@@ -17,7 +17,8 @@
   <main>
     <section>
       <p>Each key is encrypted as soon as it reaches the server. Nobody can read it back, the other participant included: this page only shows the last 4 characters. On your game days, your keys pay; if you have no key for a provider, the other participant's covers it.</p>
-      <p class="muted">Use a key made just for Tidewall, with a monthly spending limit set in the provider's console. <strong>Test</strong> asks the provider to list its models: free, and it proves the key works, though it can't show how much credit is left.</p>
+      <p class="muted">Use a key made just for Tidewall, with a monthly spending limit set in the provider's console. <strong>Test</strong> asks the provider to list its models: free, and it proves the key works, though it can't show how much credit is left. It then asks about each model Tidewall has pinned for that provider and says which ones the key can use. A provider can still block a model at call time (an OpenAI project setting, say), so the ledger stays the final word.</p>
+      <p class="muted">OpenRouter keys are for the offline judges (DeepSeek, Qwen, GLM) that code the transcripts later; the players never use them.</p>
       <div id="keys" class="keys" hidden></div>
       <p id="msg" class="msg" role="status"></p>
     </section>

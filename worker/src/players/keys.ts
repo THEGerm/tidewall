@@ -91,6 +91,9 @@ export async function held(db: D1Database, provider: Provider, creditor: string,
   return !!h && !(await outOfCredit(db, creditor, provider));
 }
 
+// Works the same for every provider in PROVIDERS, OpenRouter included. Payback runs
+// through Anthropic first, and through the other providers once the debtor's
+// Anthropic key is dry.
 export async function keyChain(db: D1Database, secret: string, provider: Provider, day: number): Promise<KeyCandidate[]> {
   const people = await participants(db);
   const order = payingOrder(people, day);

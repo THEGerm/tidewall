@@ -3,7 +3,7 @@
 import type { Env } from "../index";
 import { accessEmail } from "../access";
 import { deleteKey, isProvider, keyStatus, readKey, saveKey } from "../keys/store";
-import { checkKey } from "../providers/check";
+import { testKey } from "../providers/check";
 import { handleControl } from "./control";
 import { fullLedger } from "../ledger/ledger";
 
@@ -42,7 +42,10 @@ export async function handleMe(request: Request, env: Env, url: URL): Promise<Re
     if (request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
     const key = await readKey(env.DB, env.KEY_ENC_SECRET, email, test[1]);
     if (!key) return json({ ok: false, error: "no key saved" }, 404);
-    return json({ ok: true, check: await checkKey(test[1], key) });
+    // check: is the key valid (the old shape, kept). models: each pinned model,
+    // usable / not_usable / unknown. pinned: false when none is pinned yet.
+    const { check, models } = await testKey(test[1], key);
+    return json({ ok: true, check, models, pinned: models.length > 0 });
   }
 
   const match = url.pathname.match(/^\/api\/me\/keys\/([a-z]+)$/);
