@@ -416,7 +416,7 @@ function forecastTable(v) {
 
 // Who paid: the run's ledger summed by payer and provider (step D3).
 async function renderPaid() {
-  const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI" };
+  const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI", openrouter: "OpenRouter" };
   let rows = [];
   try { rows = (await getJSON(`/api/runs/${id}/ledger`)).ledger; } catch { return; }
   const by = new Map();

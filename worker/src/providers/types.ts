@@ -1,10 +1,14 @@
-// One interface for all three providers. The engine sends a ChatRequest and
+// One interface for the three chat providers. The engine sends a ChatRequest and
 // gets back a ChatResult: the text, why it stopped, and token usage in one
 // shape, so the ledger never needs to know which provider answered.
 
 import type { Provider } from "../keys/store";
 
 export type { Provider };
+
+// Providers with a chat adapter (the players). OpenRouter keys are stored and
+// checked, but its chat calls come with the judges, later.
+export type ChatProvider = Exclude<Provider, "openrouter">;
 
 // Injected so tests can answer with canned responses and never call out.
 export type FetchLike = (request: Request) => Promise<Response>;

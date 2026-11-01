@@ -2,7 +2,7 @@
 // every model call summed by run, day, provider, model and payer name.
 
 const $ = (id) => document.getElementById(id);
-const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI" };
+const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI", openrouter: "OpenRouter" };
 const usd = (x) => (x == null ? "unpriced" : `$${Number(x).toFixed(2)}`);
 const mtok = (x) => (x == null ? "" : (Number(x) / 1e6).toFixed(2));
 let data = null;

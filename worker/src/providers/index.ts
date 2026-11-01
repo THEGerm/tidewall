@@ -8,15 +8,19 @@ import { ProviderError } from "./errors";
 import { google } from "./google";
 import { call, type Adapter } from "./http";
 import { openai } from "./openai";
-import type { CallOptions, ChatRequest, ChatResult, Provider } from "./types";
+import type { CallOptions, ChatProvider, ChatRequest, ChatResult, Provider } from "./types";
 
 export { ProviderError } from "./errors";
 export type { ErrorKind } from "./errors";
 export type * from "./types";
 
-const ADAPTERS: Record<Provider, Adapter> = { anthropic, google, openai };
+const ADAPTERS: Record<ChatProvider, Adapter> = { anthropic, google, openai };
 
 export function callModel(provider: Provider, key: string, req: ChatRequest, opts?: CallOptions): Promise<ChatResult> {
+  if (provider === "openrouter") {
+    // No OpenRouter chat adapter yet (it comes with the judges).
+    return Promise.reject(new ProviderError(provider, "bad_request", 0, "no chat adapter for this provider yet"));
+  }
   return call(ADAPTERS[provider], key, req, opts);
 }
 

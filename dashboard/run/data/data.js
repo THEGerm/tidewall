@@ -4,7 +4,7 @@
 
 const $ = (id) => document.getElementById(id);
 const id = new URLSearchParams(location.search).get("id") || "";
-const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI" };
+const PROVIDER = { anthropic: "Anthropic", google: "Google", openai: "OpenAI", openrouter: "OpenRouter" };
 
 async function get(url) {
   const r = await fetch(url);

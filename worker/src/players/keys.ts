@@ -69,6 +69,8 @@ export async function debts(db: D1Database, people?: { email: string }[]): Promi
   return out.sort((x, y) => y.usd - x.usd);
 }
 
+// Works the same for every provider in PROVIDERS, OpenRouter included (the
+// judges will draw on it); only the payback step is Anthropic-only.
 export async function keyChain(db: D1Database, secret: string, provider: Provider, day: number): Promise<KeyCandidate[]> {
   const people = await participants(db);
   const order = payingOrder(people, day);
