@@ -18,6 +18,7 @@ const num1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : "");
 const money = (x) => (Number.isFinite(x) ? `$${x.toFixed(x < 0.1 && x > 0 ? 3 : 2)}` : "");
 const isBot = (r) => r.model_set === "bot";
 const isTest = (r) => r.model_set === "test";
+const isStudy2 = (r) => r.model_set === "study2"; // Study 2, cheap models: never pooled with the study
 
 // What each seat's family is compared on. Welfare is the whole city's, shown
 // under every seat by the family that held it; fallbacks and cost are the
@@ -100,7 +101,7 @@ export function show(el, all) {
   if (root) return;
   root = el;
   runs = all.filter((r) => !r.sealed);
-  const study = runs.filter((r) => !isTest(r) && !isBot(r));
+  const study = runs.filter((r) => r.model_set === "study");
   chosen = new Set((study.length ? study : runs.filter(isTest)).map((r) => r.id));
   const live = all.filter((r) => r.sealed).length;
   root.replaceChildren(
@@ -120,7 +121,8 @@ export function show(el, all) {
 
 function renderPicker() {
   const groups = [
-    ["Study runs", runs.filter((r) => !isTest(r) && !isBot(r)), null],
+    ["Study runs", runs.filter((r) => r.model_set === "study"), null],
+    ["Study 2 runs (cheap models)", runs.filter(isStudy2), null],
     ["Test runs", runs.filter(isTest), null],
     ["Bot runs", runs.filter(isBot), "The equilibrium baseline: bots, no models. Loaded only when ticked."],
   ].filter(([, rs]) => rs.length);

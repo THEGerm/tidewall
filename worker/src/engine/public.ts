@@ -17,11 +17,12 @@ export const isLive = (status: Status) => status !== "over" && status !== "trunc
 // draws would show what the other two still have to play (Germ, 1 Nov).
 // In the public API, "live" means the run hasn't finished, and "sealed" means
 // its secrets are still closed (live, or finished in an open triple).
-const inTriple = (run: { model_set: string; triple: number }) => run.model_set === "study" && run.triple > 0;
+// Study 2 runs are sealed per triple too, each set's triples apart.
+const inTriple = (run: { model_set: string; triple: number }) => (run.model_set === "study" || run.model_set === "study2") && run.triple > 0;
 export async function sealed(db: D1Database, run: RunRow): Promise<boolean> {
   if (isLive(run.status)) return true;
   if (!inTriple(run)) return false;
-  const open = await db.prepare("SELECT 1 FROM runs WHERE model_set = 'study' AND triple = ? AND status NOT IN ('over', 'truncated') LIMIT 1").bind(run.triple).first();
+  const open = await db.prepare("SELECT 1 FROM runs WHERE model_set = ? AND triple = ? AND status NOT IN ('over', 'truncated') LIMIT 1").bind(run.model_set, run.triple).first();
   return !!open;
 }
 
@@ -40,10 +41,11 @@ export async function listRuns(db: D1Database) {
        FROM runs r ORDER BY r.id`, // by run name (#113)
     )
     .all<Record<string, any>>();
-  const openTriples = new Set(results.filter((r) => inTriple(r as any) && isLive(r.status)).map((r) => r.triple));
+  const key = (r: Record<string, any>) => `${r.model_set}:${r.triple}`;
+  const openTriples = new Set(results.filter((r) => inTriple(r as any) && isLive(r.status)).map(key));
   return results.map((r) => ({
     ...r, seating: parse(r.seating), live: isLive(r.status),
-    sealed: isLive(r.status) || (inTriple(r as any) && openTriples.has(r.triple)), cost_usd: r.cost_usd ?? 0,
+    sealed: isLive(r.status) || (inTriple(r as any) && openTriples.has(key(r))), cost_usd: r.cost_usd ?? 0,
   }));
 }
 

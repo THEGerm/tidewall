@@ -149,7 +149,7 @@ function runRow(r) {
       render();
     } catch (e) { $("run-msg").textContent = `End ${r.id}: ${e.message}`; ev.currentTarget.disabled = false; }
   }));
-  tr.append(first, cell(r.model_set === "test" ? "Test" : r.model_set === "bot" ? "Bots" : "Study"), cell(["Government", "Criminals", "World"].map((s) => FAMILY[seating[s]]).join(", ")), status, cell(done ? "" : r.day), actionsCell);
+  tr.append(first, cell(r.model_set === "test" ? "Test" : r.model_set === "bot" ? "Bots" : r.model_set === "study2" ? "Study 2" : "Study"), cell(["Government", "Criminals", "World"].map((s) => FAMILY[seating[s]]).join(", ")), status, cell(done ? "" : r.day), actionsCell);
   // Labels for the stacked layout on phones (style.css, table.stack).
   ["Run", "Models", "Seats", "Status", "Next day", ""].forEach((label, i) => tr.children[i].setAttribute("data-label", label));
   return tr;
@@ -233,6 +233,20 @@ $("study-btn").onclick = async () => {
     state = await api("status");
     render();
   } catch (err) { $("study-msg").textContent = err.message; }
+};
+
+// Study 2 (Germ, 2 Nov): the same 27 runs on the cheap models. The server
+// refuses while any study run is unfinished, and if Study 2 runs exist.
+$("study2-btn").onclick = async () => {
+  const phrase = "create the 27 study 2 runs";
+  const typed = prompt(`This creates the 27 Study 2 runs: the study's seeds and seatings, played by Claude Haiku 5.5, Gemini 3.1 Flash-Lite and GPT-6 Luna. With the schedule on, they start.\n\nType "${phrase}" to go ahead.`);
+  if (typed === null) return;
+  try {
+    const out = await api("study2", { method: "POST", body: JSON.stringify({ confirm: typed.trim().toLowerCase() }) });
+    $("study2-msg").textContent = `Created ${out.runs.length} Study 2 runs, ${out.runs[0].id} to ${out.runs.at(-1).id}. Set the cap, then turn the schedule on.`;
+    state = await api("status");
+    render();
+  } catch (err) { $("study2-msg").textContent = err.message; }
 };
 
 // "20:31" in the reader's own time zone.

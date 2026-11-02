@@ -297,5 +297,11 @@ def is_study_run(run):
     return run.info.get("model_set") == "study" and 1 <= int(run.info.get("triple") or 0) <= 9
 
 
+def is_study2_run(run):
+    """A run of Study 2 (Germ, 2 Nov): the same design on the cheap models,
+    model_set study2. Never pooled with the study; analysed on its own."""
+    return run.info.get("model_set") == "study2" and 1 <= int(run.info.get("triple") or 0) <= 9
+
+
 def load_all(sources):
     return [load(s) for s in sources]

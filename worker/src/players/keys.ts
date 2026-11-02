@@ -47,7 +47,8 @@ export interface RunRef { model_set: string; triple: number; rotation: number }
 // run. The scheduler plays triples in order and each triple's 3 rotations in
 // order (odd triples 1 to 3, even triples 4 to 6).
 export function studyPosition(run?: RunRef | null): number | null {
-  if (!run || run.model_set !== "study" || !(run.triple > 0)) return null;
+  // Study 2 runs alternate owners the same way (Germ, 2 Nov).
+  if (!run || (run.model_set !== "study" && run.model_set !== "study2") || !(run.triple > 0)) return null;
   return (run.triple - 1) * 3 + ((run.rotation - 1) % 3);
 }
 
