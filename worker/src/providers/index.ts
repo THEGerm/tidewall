@@ -18,8 +18,8 @@ const ADAPTERS: Record<ChatProvider, Adapter> = { anthropic, google, openai };
 
 export function callModel(provider: Provider, key: string, req: ChatRequest, opts?: CallOptions): Promise<ChatResult> {
   if (provider === "openrouter") {
-    // No OpenRouter chat adapter yet (it comes with the judges).
-    return Promise.reject(new ProviderError(provider, "bad_request", 0, "no chat adapter for this provider yet"));
+    // Players never call OpenRouter; the judges use callOpenRouter (providers/openrouter.ts).
+    return Promise.reject(new ProviderError(provider, "bad_request", 0, "no player chat adapter for this provider"));
   }
   return call(ADAPTERS[provider], key, req, opts);
 }

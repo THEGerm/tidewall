@@ -45,11 +45,19 @@ export const modelsFor = (set: ModelSet | "bot") => (set === "test" ? TEST_MODEL
 
 export const isPinned = (f: Family, set: ModelSet | "bot" = "study") => !modelsFor(set)[f].model.startsWith("PIN-");
 
-// The offline judges (#13: DeepSeek, Qwen and GLM), called through OpenRouter.
-// Empty on purpose: Germ pins each judge's exact OpenRouter ID
-// ("author/slug") here before any judging. Until then the OpenRouter key
-// check says there are no pinned models yet.
-export const JUDGE_MODELS: readonly { provider: Provider; model: string }[] = [];
+// The offline judges (#13, #112: DeepSeek, Qwen and GLM), called through
+// OpenRouter, each pinned to one model ID and one upstream provider
+// (pre-registration, section 6). Proposed by Vishnu on 2 Nov for Germ to
+// confirm: the first-party provider for each, so the judge runs where its
+// maker serves it. The judge runner's preflight (and Control's "Check judges")
+// looks each one up in OpenRouter's live list before any call and refuses to
+// start if the model or its provider isn't there.
+export interface Judge { judge: string; provider: Provider; model: string; upstream: string }
+export const JUDGE_MODELS: readonly Judge[] = [
+  { judge: "deepseek", provider: "openrouter", model: "deepseek/deepseek-v3.2", upstream: "deepseek" },
+  { judge: "qwen", provider: "openrouter", model: "qwen/qwen3.5-397b-a17b", upstream: "alibaba" },
+  { judge: "glm", provider: "openrouter", model: "z-ai/glm-4.7", upstream: "z-ai" },
+];
 
 // Every pinned model a provider's key may be asked to run: the study set, the
 // test set and the judges, each ID once, placeholders ("PIN-...") left out.

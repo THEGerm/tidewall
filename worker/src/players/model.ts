@@ -30,6 +30,7 @@ export interface CallRecord {
   stopDetail?: string | null; // the provider's own stop reason
   text?: string | null; // the raw answer, kept for the export of a finished run
   promptSha?: string; // sha-256 of the system prompt and the step's prompt
+  costUsd?: number | null; // the cost the provider reported (OpenRouter); else the ledger prices the tokens
 }
 
 export interface ModelPlayerOptions {

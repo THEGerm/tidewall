@@ -139,6 +139,13 @@ function runRow(r) {
   led.href = `/me/ledger/?run=${encodeURIComponent(r.id)}`;
   led.textContent = "Ledger";
   actions.append(led);
+  // The offline judges (#112): one finished, unsealed run, batch after batch until done.
+  if (done && r.model_set !== "bot") actions.append(button("Judge", async (ev) => {
+    const b = ev.currentTarget;
+    b.disabled = true;
+    await judgeLoop({ run: r.id }, (t) => { $("run-msg").textContent = `Judge ${r.id}: ${t}`; });
+    b.disabled = false;
+  }));
   if (!done) actions.append(button("End", async (ev) => {
     if (!confirm(`End ${r.id} for good? It moves to the archive and cannot be resumed.`)) return;
     ev.currentTarget.disabled = true;
@@ -219,6 +226,43 @@ $("recog-btn").onclick = async () => {
     const failed = out.answers.filter((a) => a.error).map((a) => `${a.model} as ${a.player}: ${a.error}`);
     $("recog-msg").textContent = `${ok} of ${out.answers.length} answers saved for coding.${failed.length ? ` Failed: ${failed.join("; ")}` : ""}`;
   } catch (err) { $("recog-msg").textContent = err.message; }
+};
+
+// The judges (#112). Each request is one batch of about 30 judge calls; the
+// page asks again until nothing is left, so judging stops if the page closes
+// and carries on where it left off when started again (coded items are skipped).
+async function judgeLoop(target, say) {
+  let calls = 0, coded = 0, failed = 0;
+  for (;;) {
+    say(`working... ${calls} calls so far (${coded} coded, ${failed} failed).`);
+    let out;
+    try {
+      out = await api("judges", { method: "POST", body: JSON.stringify(target) });
+    } catch (e) {
+      say(`${e.message}${calls ? ` (after ${calls} calls: ${coded} coded, ${failed} failed)` : ""}`);
+      return;
+    }
+    calls += out.calls; coded += out.coded; failed += out.failed;
+    const runs = out.runs.map((p) => `${p.run} ${p.coded + p.failed}/${p.jobs}${p.failed ? ` (${p.failed} failed)` : ""}`).join(", ");
+    if (out.done) { say(`done. ${calls} calls in this session, ${coded} coded, ${failed} failed. ${runs || "No finished, unsealed study run yet."}`); return; }
+    if (!out.calls) { say(`stopped with work left: ${runs}`); return; }
+  }
+}
+
+$("judge-check-btn").onclick = async () => {
+  $("judge-msg").textContent = "Looking up the judges on OpenRouter...";
+  try {
+    const s = await api("judges");
+    const judges = s.judges.map((j) => `${j.judge}: ${j.model} on ${j.upstream}${j.json ? ` (${j.json === "schema" ? "structured output" : j.json === "object" ? "JSON mode" : "no JSON mode"}, $${(j.price.prompt * 1e6).toFixed(2)} in / $${(j.price.completion * 1e6).toFixed(2)} out per million)` : ""}`).join("; ");
+    const runs = s.runs.map((p) => `${p.run} ${p.coded + p.failed}/${p.jobs}`).join(", ");
+    $("judge-msg").textContent = `${s.problems.length ? `Not ready: ${s.problems.join("; ")}. ` : "Ready. "}${judges}.${runs ? ` Judged so far: ${runs}.` : ""}`;
+  } catch (e) { $("judge-msg").textContent = e.message; }
+};
+$("judge-all-btn").onclick = async (ev) => {
+  const b = ev.currentTarget;
+  b.disabled = true;
+  await judgeLoop({ all: true }, (t) => { $("judge-msg").textContent = `Judges: ${t}`; });
+  b.disabled = false;
 };
 
 // The 27 study runs (#38). The server refuses without the typed phrase and if

@@ -6,6 +6,7 @@ import { createRun, createRunStatement, getRun, setStatus, type Seating } from "
 import { blocker } from "../engine/runner";
 import { DRAND_ROUND, studyPlan } from "../engine/study";
 import { recognitionCheck } from "../engine/recognition";
+import { judgeBatch, judgeStatus } from "../judges/runner";
 import { log, recentLog } from "../engine/log";
 import { runLedger, studySpend } from "../ledger/ledger";
 import { EFFORT, MODELS, TEST_MODELS } from "../players/models";
@@ -95,6 +96,19 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     const answers = await recognitionCheck(env.DB, env.KEY_ENC_SECRET, only);
     await log(env.DB, `${who} ran the recognition check: ${answers.filter((a) => a.text).length} of ${answers.length} answers.`);
     return json({ ok: true, answers });
+  }
+
+  // The offline judges (#112). GET: the preflight (each pinned judge on
+  // OpenRouter's live list) and each run's counts, without spending. POST: one
+  // batch of judge calls for one finished run ({run}) or every finished,
+  // unsealed study run ({all: true}); the page asks again until done.
+  if (path === "judges" && request.method === "GET") return json({ ok: true, ...(await judgeStatus(env.DB)) });
+  if (path === "judges" && request.method === "POST") {
+    const b = (await request.json().catch(() => null)) as { run?: unknown; all?: unknown } | null;
+    const target = typeof b?.run === "string" && /^[a-z0-9-]{1,40}$/.test(b.run) ? { run: b.run } : b?.all === true ? { all: true as const } : null;
+    if (!target) return json({ ok: false, error: 'send {"run": "<id>"} or {"all": true}' }, 400);
+    const out = await judgeBatch(env, target);
+    return json(out, out.ok ? 200 : 409);
   }
 
   if (path === "study" && request.method === "POST") {

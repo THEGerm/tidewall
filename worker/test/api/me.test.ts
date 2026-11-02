@@ -41,16 +41,12 @@ describe("/api/me keys", () => {
     const seen: Request[] = [];
     vi.stubGlobal("fetch", async (req: Request) => {
       seen.push(req);
-      return new Response(JSON.stringify({ data: {} }), { status: 200 });
+      return new Response(JSON.stringify({ data: { endpoints: [{ provider_name: "x" }] } }), { status: 200 });
     });
     const test = await call("/api/me/keys/openrouter/test", "POST");
-    expect(test.body).toEqual({
-      ok: true,
-      check: { ok: true, status: 200, detail: "the provider accepted this key" },
-      models: [],
-      pinned: false,
-    });
-    expect(seen).toHaveLength(1);
+    expect(test.body).toMatchObject({ ok: true, check: { ok: true, status: 200, detail: "the provider accepted this key" }, pinned: true });
+    expect(test.body.models).toHaveLength(3); // the three pinned judges
+    expect(seen).toHaveLength(4);
 
     expect((await call("/api/me/keys/openrouter", "DELETE")).body.keys.openrouter).toEqual({ saved: false });
   });

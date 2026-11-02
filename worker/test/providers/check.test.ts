@@ -105,14 +105,15 @@ describe("pinned models", () => {
     expect(pinnedModels("anthropic")).toEqual(["claude-opus-5-5", "claude-haiku-5-5"]);
   });
 
-  it("has no judge models pinned yet", () => {
-    expect(JUDGE_MODELS).toEqual([]);
-    expect(pinnedModels("openrouter")).toEqual([]);
+  it("pins three judges on OpenRouter, one each from DeepSeek, Qwen and GLM, each with one upstream provider", () => {
+    expect(JUDGE_MODELS.map((j) => j.judge)).toEqual(["deepseek", "qwen", "glm"]);
+    expect(JUDGE_MODELS.every((j) => j.provider === "openrouter" && /^[a-z0-9-]+\/[a-z0-9.-]+$/.test(j.model) && j.upstream.length > 0)).toBe(true);
+    expect(pinnedModels("openrouter")).toEqual(JUDGE_MODELS.map((j) => j.model));
   });
 });
 
 describe("openrouter", () => {
-  it("has no chat adapter yet: a call fails without reaching anyone", async () => {
+  it("has no player chat adapter: callModel refuses it without reaching anyone (judges use callOpenRouter)", async () => {
     const { fetch, seen } = fakeFetch(200, {});
     const err = await callModel("openrouter", FAKE_KEY, { model: "m", system: "s", messages: [], maxOutputTokens: 10 }, { fetch }).catch((e) => e);
     expect(err).toMatchObject({ kind: "bad_request", tryNextKey: false });
@@ -128,11 +129,12 @@ describe("openrouter", () => {
     expect(await checkKey("openrouter", FAKE_KEY, bad.fetch)).toMatchObject({ ok: false, status: 401, detail: "the provider rejected this key" });
   });
 
-  it("says there are no pinned models yet, and asks only about the key", async () => {
-    const { fetch, seen } = fakeFetch(200, { data: {} });
+  it("checks the key, then asks about each pinned judge", async () => {
+    const { fetch, seen } = fakeFetch(200, { data: { endpoints: [{ provider_name: "x" }] } });
     const out = await testKey("openrouter", FAKE_KEY, fetch);
-    expect(out).toEqual({ check: { ok: true, status: 200, detail: "the provider accepted this key" }, models: [] });
-    expect(seen).toHaveLength(1);
+    expect(out.check).toEqual({ ok: true, status: 200, detail: "the provider accepted this key" });
+    expect(out.models.map((m) => [m.model, m.result])).toEqual(JUDGE_MODELS.map((j) => [j.model, "usable"]));
+    expect(seen).toHaveLength(1 + JUDGE_MODELS.length);
   });
 
   it("asks the public endpoints listing about a judge model, without the key", async () => {

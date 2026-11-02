@@ -41,9 +41,29 @@ jobs:
                 mv "$f.tmp" "$f"
                 echo "saved $f"
               done
+      - name: Download judge codes not yet saved
+        # The judges' codes of a run (#112), once every item is coded or out of
+        # attempts. Saved apart from the run, in data/judges/, because a run's
+        # export is saved once, usually before it is judged.
+        env:
+          SITE: https://tidewall.tcdar400.workers.dev
+        run: |
+          set -euo pipefail
+          mkdir -p data/judges
+          curl -fsS "$SITE/api/runs" \
+            | jq -r '.runs[] | select(.sealed == false and .model_set != "bot") | .id' \
+            | while read -r id; do
+                f="data/judges/$id.json"
+                [ -f "$f" ] && continue
+                curl -fsS "$SITE/api/runs/$id/judges" > "$f.tmp" || { rm -f "$f.tmp"; continue; }
+                if [ "$(jq -r '.judges.complete // false' "$f.tmp")" != "true" ]; then rm "$f.tmp"; continue; fi
+                if grep -qE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' "$f.tmp"; then echo "::error::$id judge codes contain an email address, not saved"; rm "$f.tmp"; continue; fi
+                jq . "$f.tmp" > "$f" && rm "$f.tmp"
+                echo "saved $f"
+              done
       - name: Commit
         run: |
-          git add data/runs
+          git add data/runs data/judges
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
           git config user.name "tidewall-export"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
