@@ -10,3 +10,19 @@
 \todo{H5: news tilt}
 \todo{H6: model against seat}
 \todo{exploratory results, labelled as such}
+%
+% Exploratory finding, noted 2 Nov during the study (Germ): who confides in Sam.
+% The prompt lets a player text Sam "or not at all" (null for no text). After
+% 8 of 27 runs, the share of texts left empty, by model and seat:
+%   Claude Opus 5.5: Government 11%, Criminals 0%.
+%   Gemini 4 Argon:  Government 93%, Criminals 91%.
+%   GPT-6.1 Sol:     Government 63%, Criminals 95%.
+% The empty answers are complete and valid ({"text": null}, stop "done"), so
+% they are a choice, not a failure. Claude writes real deliberation to Sam;
+% Gemini almost never texts; GPT texts as Government more than as Criminals.
+% Report the final rates by model x seat and window (before, after) from the
+% full 27 runs. The same model-dependent silence limits the leak analysis:
+% few Gemini and GPT texts to judge. Test runs on the cheap models texted far
+% more (GPT Luna's empty rate rose to about 91% in 011-germ, the first test
+% run on the revised prompts of #124; a possible wording effect, untested).
+% Prompts stay frozen; nothing was changed mid-study.
