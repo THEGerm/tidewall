@@ -63,7 +63,7 @@ export async function blocker(env: RunnerEnv, run: RunRow, day: number): Promise
     if (!m) return `unknown model family "${family}" in the ${seat} seat`;
     if (!isPinned(family, run.model_set)) return `${family} model ID not pinned yet (players/models.ts)`;
     if (!priceOf(m.model)) return `no price set for ${m.model} (ledger/pricing.ts)`;
-    if ((await keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, day)).length === 0) return `nobody has a ${m.provider} key`;
+    if ((await keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, day, run)).length === 0) return `nobody has a ${m.provider} key`;
   }
   const cap = Number((await meta(env.DB, "cap_usd")) ?? "0");
   const spend = await studySpend(env.DB);
@@ -110,7 +110,7 @@ export async function playNextDay(env: RunnerEnv, runId: string, o: RunnerOption
       const m = modelsFor(run.model_set)[run.seating[SEAT_OF[name]] as Family];
       return [name, modelPlayer({
         name, provider: m.provider, model: m.model, prompts, effort: EFFORT,
-        keys: (d) => keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, d),
+        keys: (d) => keyChain(env.DB, env.KEY_ENC_SECRET, m.provider, d, run),
         onCall: record,
         ...(o.call ? { call: o.call } : {}),
         ...(o.retry ? { retry: o.retry } : {}),
