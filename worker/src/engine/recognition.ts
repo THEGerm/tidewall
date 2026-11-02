@@ -27,7 +27,7 @@ export interface RecognitionAnswer { family: Family; model: string; player: Play
 // study call.
 export const RECOGNITION_MAX_TOKENS = 4000;
 
-// set "study2" asks the smaller models of Study 2 instead (Germ, 2 Nov), so the
+// set "study2" asks the lightweight models of Study 2 instead (Germ, 2 Nov), so the
 // addendum's recall question has a measure for them too.
 export async function recognitionCheck(db: D1Database, secret: string, only?: Family[], set: "study" | "study2" = "study"): Promise<RecognitionAnswer[]> {
   const models = modelsFor(set);

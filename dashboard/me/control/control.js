@@ -236,7 +236,7 @@ $("study-btn").onclick = async () => {
   } catch (err) { $("study-msg").textContent = err.message; }
 };
 
-// Study 2 (Germ, 2 Nov): the same 27 runs on the smaller models. The server
+// Study 2 (Germ, 2 Nov): the same 27 runs on the lightweight models. The server
 // refuses while any study run is unfinished, and if Study 2 runs exist.
 $("study2-btn").onclick = async () => {
   const phrase = "create the 27 study 2 runs";

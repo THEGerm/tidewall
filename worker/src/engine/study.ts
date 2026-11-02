@@ -33,7 +33,7 @@ export async function studySeed(triple: number): Promise<string> {
 export interface StudyRun { id: string; seed: string; triple: number; rotation: Rotation; seating: Seating }
 
 // The sets that play the 27-run design. Study 2 (Germ, 2 Nov) replays it on
-// smaller models with its own run IDs, so no row or export of the study is
+// lightweight models with its own run IDs, so no row or export of the study is
 // ever touched.
 export type DesignSet = "study" | "study2";
 export const runPrefix = (set: DesignSet) => (set === "study" ? "study" : "study2");

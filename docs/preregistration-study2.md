@@ -1,8 +1,8 @@
-# Pre-registration addendum: Study 2, the smaller models
+# Pre-registration addendum: Study 2, the lightweight models
 
 2 Nov 2026. Germ and Shazz.
 
-Study 2 replays the study with each family's smaller model in place of its study model. Claude Haiku 5.5, Gemini 3.1 Flash-Lite and GPT-6 Luna are their makers' smaller, faster tiers, built for speed and low cost, beside the frontier models of the study. Everything in it is exploratory. H1 to H6, the Holm family of 11 entries and every decision rule in [preregistration-analysis.md](preregistration-analysis.md) stay as frozen.
+Study 2 replays the study with each provider's lightweight model in place of its flagship. Claude Haiku 5.5, Gemini 3.1 Flash-Lite and GPT-6 Luna are their makers' lightweight tiers, built for speed and low cost; the study played the flagships, Claude Opus 5.5, Gemini 4 Argon and GPT-6.1 Sol. "Study 2" is the project's internal name; the paper speaks of lightweight and flagship models. Everything in it is exploratory. H1 to H6, the Holm family of 11 entries and every decision rule in [preregistration-analysis.md](preregistration-analysis.md) stay as frozen.
 
 ## What we knew when we wrote this
 
@@ -39,7 +39,7 @@ Everything else is the study's:
 
 **Main question.** Within each family, does the gap from theory change with capability?
 
-**Recall against reasoning.** Smaller models probably know less textbook game theory. Before the first Study 2 run, the study's recognition check (both questions, every seat's prompt) runs on the 3 smaller models and is coded and reported as for the study, so this is measured, not assumed. If they also respect turf and avoid crime, the restraint needs no sophistication. If they play nearer the equilibrium, the frontier models' restraint is learned.
+**Recall against reasoning.** Lightweight models probably know less textbook game theory. Before the first Study 2 run, the study's recognition check (both questions, every seat's prompt) runs on the 3 lightweight models and is coded and reported as for the study, so this is measured, not assumed. If they also respect turf and avoid crime, the restraint needs no sophistication. If they play nearer the equilibrium, the flagships' restraint is learned.
 
 **The confidant.** In the study, Gemini and GPT mostly stayed silent with Sam. Study 2 reports texts to Sam by model.
 
@@ -68,7 +68,7 @@ Each difference is summarised by family and by seat, with a bootstrap interval: 
 
 **How the studies are compared.** For each family, the change is the Study 2 score minus the study score. The two studies share their seeds, so each resample draws the same triples from both, and the comparison is paired.
 
-**The figure.** A slope chart of the one relationship tested: the change from each family's frontier model to its smaller model. Brier skill on one axis, the study and Study 2 as two columns, one line per family, with each point's 95% interval. A line that crosses another is a change of rank. Labels are the family names only; the model names are in the caption, and the values and ranks in the table. The code is `analysis/compare_studies.py`, written and tested on made-up data before any Study 2 run. It runs with:
+**The figure.** A slope chart of the one relationship tested: the change from each provider's lightweight model (left column) to its flagship (right column). Brier skill on one axis, one line per provider, with each point's 95% interval. A line that crosses another is a change of rank. The only labels are the short model names at the line ends; the caption gives the full names, and the table the values and ranks. The figure says lightweight and flagship, never Study 2. The code is `analysis/compare_studies.py`, written and tested on made-up data before any Study 2 run. It runs with:
 
 ```
 python -m analysis.compare_studies data/runs/study/*.json data/runs/study2/*.json --figure paper/figures/study-comparison.svg --table paper/figures/study-comparison.md
@@ -84,7 +84,7 @@ The study's rules apply unchanged:
 - a seat-run where fewer than 50% of the lambda decisions are the player's own leaves the lambda test;
 - every test also runs without fallback days.
 
-Smaller models may break format more often. Study 2 reports the fallback rate and the refusal rate by model.
+Lightweight models may break format more often. Study 2 reports the fallback rate and the refusal rate by model.
 
 **Judges.** If the judges run on the study, they run on Study 2 after its last run ends, under the same frozen protocol (preregistration-analysis.md, section 6).
 

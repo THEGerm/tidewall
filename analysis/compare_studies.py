@@ -34,6 +34,10 @@ FAMILIES = ("claude", "gemini", "gpt")
 STUDY_NAMES = {"claude": "Claude Opus 5.5", "gemini": "Gemini 4 Argon", "gpt": "GPT-6.1 Sol"}
 STUDY2_NAMES = {"claude": "Claude Haiku 5.5", "gemini": "Gemini 3.1 Flash-Lite", "gpt": "GPT-6 Luna"}
 FAMILY_LABEL = {"claude": "Claude", "gemini": "Gemini", "gpt": "GPT"}
+# "Study 2" is an internal name; the paper calls the two sets of models by the
+# providers' own tier words (Germ, 2 Nov): lightweight and flagship.
+SHORT = {"study": {"claude": "Opus 5.5", "gemini": "Argon", "gpt": "Sol"},
+         "study2": {"claude": "Haiku 5.5", "gemini": "Flash-Lite", "gpt": "Luna"}}
 
 
 def _by_triple(rows):
@@ -104,23 +108,24 @@ def _fmt(x, d=3):
 
 def table(result):
     """The comparison as a Markdown table, for the paper's notes."""
-    lines = ["| Family | Study model | Brier skill (95% CI) | Rank | P(first) | Study 2 model | Brier skill (95% CI) | Rank | P(first) | Change (95% CI) |",
+    lines = ["| Family | Lightweight model | Brier skill (95% CI) | Rank | P(first) | Flagship model | Brier skill (95% CI) | Rank | P(first) | Flagship minus lightweight (95% CI) |",
              "|---|---|---|---|---|---|---|---|---|---|"]
     for e in result:
-        a, b, c = e["study"], e["study2"], e["change"]
-        lines.append(f"| {FAMILY_LABEL[e['family']]} | {e['study_model']} | {_fmt(a['score'])} ({_fmt(a['low'])} to {_fmt(a['high'])}) | {a['rank'] or ''} | {_fmt(a['p_first'], 2)} "
-                     f"| {e['study2_model']} | {_fmt(b['score'])} ({_fmt(b['low'])} to {_fmt(b['high'])}) | {b['rank'] or ''} | {_fmt(b['p_first'], 2)} "
-                     f"| {_fmt(c['score'])} ({_fmt(c['low'])} to {_fmt(c['high'])}) |")
+        a, b, c = e["study2"], e["study"], e["change"]
+        neg = lambda v: None if v is None else -v
+        lines.append(f"| {FAMILY_LABEL[e['family']]} | {e['study2_model']} | {_fmt(a['score'])} ({_fmt(a['low'])} to {_fmt(a['high'])}) | {a['rank'] or ''} | {_fmt(a['p_first'], 2)} "
+                     f"| {e['study_model']} | {_fmt(b['score'])} ({_fmt(b['low'])} to {_fmt(b['high'])}) | {b['rank'] or ''} | {_fmt(b['p_first'], 2)} "
+                     f"| {_fmt(neg(c['score']))} ({_fmt(neg(c['high']))} to {_fmt(neg(c['low']))}) |")
     return "\n".join(lines) + "\n"
 
 
 # The figure: a slope chart, the relationship it shows being the change from
-# each family's frontier model (the study) to its smaller model (Study 2). One
+# each family's lightweight model (left) to its flagship model (right). One
 # line per family between two columns; a crossing line is a change of rank.
 # Categorical palette slots 1 to 3, checked with the dataviz validator (the
 # aqua's low contrast is why every line also carries its family name in ink).
-# Labels are the family name only, at the line ends; model names, values and
-# intervals are in the caption and the table.
+# Labels are short model names at the line ends; values, ranks and
+# intervals are in the table, the pairing in the caption.
 SERIES = {"claude": "#2a78d6", "gemini": "#eb6834", "gpt": "#1baf7a"}
 INK, MUTED, GRID, SURFACE = "#1f1f1e", "#5f5e58", "#e4e3dd", "#fcfcfb"
 
@@ -151,9 +156,10 @@ def _spread(ys, gap=15):
     return out
 
 
-def svg(result, title="Forecast accuracy: frontier against smaller models"):
-    W, H = 520, 400
-    top, bottom, x1, x2 = 78, 340, 170, 350
+def svg(result, title="Forecast accuracy: lightweight against flagship models"):
+    W, H = 540, 380
+    top, bottom, x1, x2 = 78, 340, 200, 370
+    AXIS_X = 52  # tick numbers at the far left, clear of the model labels
     pts = [e for e in result if e["study"]["score"] is not None and e["study2"]["score"] is not None]
     vals = [v for e in pts for k in ("study", "study2") for v in (e[k]["low"], e[k]["high"], e[k]["score"]) if v is not None]
     lo, hi = (min(vals), max(vals)) if vals else (0.0, 1.0)
@@ -165,35 +171,35 @@ def svg(result, title="Forecast accuracy: frontier against smaller models"):
          f'<text x="24" y="28" font-size="15" fill="{INK}" font-weight="600">{_esc(title)}</text>',
          f'<text x="24" y="48" font-size="12" fill="{MUTED}">Brier skill, higher is better (0 = base rate). Bars: 95% intervals over triples.</text>']
     for tv in _ticks(lo, hi):
-        p.append(f'<line x1="{x1 - 40}" y1="{y(tv):.1f}" x2="{x2 + 40}" y2="{y(tv):.1f}" stroke="{GRID}" stroke-width="1"/>')
-        p.append(f'<text x="{x1 - 46}" y="{y(tv) + 4:.1f}" font-size="11" fill="{MUTED}" text-anchor="end">{tv:g}</text>')
-    for x, head in ((x1, "Study"), (x2, "Study 2")):
+        p.append(f'<line x1="{AXIS_X + 8}" y1="{y(tv):.1f}" x2="{x2 + 40}" y2="{y(tv):.1f}" stroke="{GRID}" stroke-width="1"/>')
+        p.append(f'<text x="{AXIS_X}" y="{y(tv) + 4:.1f}" font-size="11" fill="{MUTED}" text-anchor="end">{tv:g}</text>')
+    for x, head in ((x1, "Lightweight"), (x2, "Flagship")):
         p.append(f'<line x1="{x}" y1="{top - 6}" x2="{x}" y2="{bottom + 6}" stroke="{MUTED}" stroke-width="1"/>')
         p.append(f'<text x="{x}" y="{bottom + 26}" font-size="12" fill="{INK}" text-anchor="middle" font-weight="600">{head}</text>')
-        p.append(f'<text x="{x}" y="{bottom + 42}" font-size="11" fill="{MUTED}" text-anchor="middle">{"frontier" if x == x1 else "smaller"}</text>')
     for e in pts:
         c = SERIES[e["family"]]
-        a, b = e["study"], e["study2"]
+        a, b = e["study2"], e["study"]  # lightweight left, flagship right
         for x, s_ in ((x1, a), (x2, b)):
             if s_["low"] is not None:
                 p.append(f'<line x1="{x}" y1="{y(s_["low"]):.1f}" x2="{x}" y2="{y(s_["high"]):.1f}" stroke="{c}" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>')
         p.append(f'<line x1="{x1}" y1="{y(a["score"]):.1f}" x2="{x2}" y2="{y(b["score"]):.1f}" stroke="{c}" stroke-width="2"/>')
         for x, s_ in ((x1, a), (x2, b)):
             p.append(f'<circle cx="{x}" cy="{y(s_["score"]):.1f}" r="5" fill="{c}" stroke="{SURFACE}" stroke-width="2"/>')
-    for side, x, anchor, dx in (("study", x1, "end", -12), ("study2", x2, "start", 12)):
+    for side, x, anchor, dx in (("study2", x1, "end", -12), ("study", x2, "start", 12)):
         ys = _spread([y(e[side]["score"]) for e in pts])
         for e, yy in zip(pts, ys):
-            p.append(f'<text x="{x + dx}" y="{yy + 4:.1f}" font-size="12" fill="{INK}" text-anchor="{anchor}">{FAMILY_LABEL[e["family"]]}</text>')
+            p.append(f'<text x="{x + dx}" y="{yy + 4:.1f}" font-size="12" fill="{INK}" text-anchor="{anchor}">{SHORT[side][e["family"]]}</text>')
     p.append("</svg>")
     return "\n".join(p) + "\n"
 
 
 def caption(result):
     """The figure's caption: which model is which, and what the bars are."""
-    pairs = "; ".join(f"{FAMILY_LABEL[e['family']]}: {e['study_model']} (study) and {e['study2_model']} (Study 2)" for e in result)
-    return (f"Mean Brier skill of each model over its 27 seat-runs, in the study and in Study 2. {pairs}. "
-            "Bars are 95% bootstrap intervals over the 9 triples (seed 2026). Both studies play the same seeds, "
-            "so each line is a paired comparison. Values, ranks and the share of resamples each model ranks first are in the table.")
+    pairs = "; ".join(f"{e['study2_model']} and {e['study_model']}" for e in result)
+    return (f"Mean Brier skill of each model over its 27 seat-runs. Each line joins a provider's lightweight model (left) "
+            f"to its flagship model (right): {pairs}. Bars are 95% bootstrap intervals over the 9 triples (seed 2026). "
+            "The lightweight models replay the flagship runs' seeds, so each line is a paired comparison. "
+            "Values, ranks and the share of resamples each model ranks first are in the table.")
 
 
 def main(argv):

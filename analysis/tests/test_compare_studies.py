@@ -34,8 +34,11 @@ class CompareStudies(unittest.TestCase):
         out = cs.compare(rows({"claude": 0.3, "gemini": -0.05, "gpt": 0.1}), rows({"claude": 0.1, "gemini": 0.0, "gpt": 0.2}), resamples=200)
         s = cs.svg(out)
         self.assertTrue(s.startswith("<svg"))
-        for fam in ("Claude", "Gemini", "GPT"):
-            self.assertEqual(s.count(f">{fam}</text>"), 2)
+        for name in ("Haiku 5.5", "Flash-Lite", "Luna", "Opus 5.5", "Argon", "Sol"):
+            self.assertEqual(s.count(f">{name}</text>"), 1)
+        self.assertNotIn("Study 2", s)
+        self.assertNotIn("Study 2", cs.caption(out))
+        self.assertLess(s.index(">Lightweight<"), s.index(">Flagship<"))
         c = cs.caption(out)
         for name in list(cs.STUDY_NAMES.values()) + list(cs.STUDY2_NAMES.values()):
             self.assertIn(name, c)

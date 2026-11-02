@@ -53,7 +53,7 @@ function optionLabel(r) {
 }
 
 function fillPicker(selected) {
-  const groups = [["Study runs", runs.filter((r) => r.model_set === "study")], ["Study 2 runs (smaller models)", runs.filter((r) => r.model_set === "study2")], ["Test runs", runs.filter(isTest)], ["Bot runs", runs.filter(isBot)]];
+  const groups = [["Study runs", runs.filter((r) => r.model_set === "study")], ["Study 2 runs (lightweight models)", runs.filter((r) => r.model_set === "study2")], ["Test runs", runs.filter(isTest)], ["Bot runs", runs.filter(isBot)]];
   const opts = groups.filter(([, rs]) => rs.length).map(([label, rs]) =>
     h("optgroup", { label }, rs.map((r) => h("option", { value: r.id, selected: r.id === selected }, optionLabel(r)))));
   $("pick").replaceChildren(...opts);
@@ -243,7 +243,7 @@ function renderRun() {
     document.title = `${run.id} analysis · Tidewall`;
   }
   $("facts").replaceChildren(
-    fact("Seating", h("span", { class: "seats" }, ["Government", "Criminals", "World"].map((s) => h("span", {}, `${s}: `, h("strong", {}, FAMILY[run.seating?.[s]] || run.seating?.[s] || "?")))), isBot(run) ? "Bot run: equilibrium bots, no models" : isTest(run) ? "Test run" : run.model_set === "study2" ? `Study 2 run (smaller models), triple ${run.triple}, rotation ${run.rotation}` : `Study run, triple ${run.triple}, rotation ${run.rotation}`),
+    fact("Seating", h("span", { class: "seats" }, ["Government", "Criminals", "World"].map((s) => h("span", {}, `${s}: `, h("strong", {}, FAMILY[run.seating?.[s]] || run.seating?.[s] || "?")))), isBot(run) ? "Bot run: equilibrium bots, no models" : isTest(run) ? "Test run" : run.model_set === "study2" ? `Study 2 run (lightweight models), triple ${run.triple}, rotation ${run.rotation}` : `Study run, triple ${run.triple}, rotation ${run.rotation}`),
     fact("Status", STATUS[run.status] || run.status, run.sealed ? "Public data only until it ends" : run.seed ? `Seed ${run.seed}` : null),
     fact("Days", String(days), run.rules_version ? `Rules ${run.rules_version}` : null),
     fact("Cost", money(cost), days ? `${money(cost / days)} a day` : null),

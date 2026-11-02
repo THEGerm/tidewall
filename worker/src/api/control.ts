@@ -110,7 +110,7 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     return json({ ok: true, runs: plan.map((r) => ({ id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation })) });
   }
 
-  // Study 2 (Germ, 2 Nov): the 27-run design on the smaller models, same seeds
+  // Study 2 (Germ, 2 Nov): the 27-run design on the lightweight models, same seeds
   // and seatings, own IDs (study2-t<n>-r<r>) and own model_set. Refused while
   // any study run hasn't finished: the scheduler plays runs by triple, so a
   // study2 run would otherwise cut in ahead of the study's later triples.
@@ -123,7 +123,7 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     if (existing) return json({ ok: false, error: `Study 2 runs already exist (${existing.id})` }, 409);
     const plan = await studyPlan("study2");
     await env.DB.batch(plan.map((r) => createRunStatement(env.DB, { ...r, model_set: "study2" }).stmt));
-    await log(env.DB, `${who} created the 27 Study 2 runs (smaller models, the study's seeds and seatings). With the schedule on, they play in order from ${plan[0].id}.`);
+    await log(env.DB, `${who} created the 27 Study 2 runs (lightweight models, the study's seeds and seatings). With the schedule on, they play in order from ${plan[0].id}.`);
     return json({ ok: true, runs: plan.map((r) => ({ id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation })) });
   }
 

@@ -1,4 +1,4 @@
-// Study 2 (Germ, 2 Nov): the 27-run design on the smaller models. It must reuse
+// Study 2 (Germ, 2 Nov): the 27-run design on the lightweight models. It must reuse
 // the study's seeds and seatings exactly, live under its own IDs and
 // model_set, never touch a study row, and wait for the study to finish.
 import { readdirSync, readFileSync } from "node:fs";
@@ -29,7 +29,7 @@ describe("Study 2", () => {
     expect(s2.filter((r) => s1.some((x) => x.id === r.id))).toEqual([]);
   });
 
-  it("uses the smaller models, its own pinned copy", () => {
+  it("uses the lightweight models, its own pinned copy", () => {
     expect(modelsFor("study2")).toBe(STUDY2_MODELS);
     expect(STUDY2_MODELS).toEqual(TEST_MODELS);
     expect(STUDY2_MODELS).not.toBe(TEST_MODELS);
