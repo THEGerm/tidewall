@@ -39,7 +39,7 @@ Everything else is the study's:
 
 **Main question.** Within each family, does the gap from theory change with capability?
 
-**Recall against reasoning.** Smaller models probably know less textbook game theory; this is an assumption, not measured. If they also respect turf and avoid crime, the restraint needs no sophistication. If they play nearer the equilibrium, the frontier models' restraint is learned.
+**Recall against reasoning.** Smaller models probably know less textbook game theory. Before the first Study 2 run, the study's recognition check (both questions, every seat's prompt) runs on the 3 cheap models and is coded and reported as for the study, so this is measured, not assumed. If they also respect turf and avoid crime, the restraint needs no sophistication. If they play nearer the equilibrium, the frontier models' restraint is learned.
 
 **The confidant.** In the study, Gemini and GPT mostly stayed silent with Sam. Study 2 reports texts to Sam by model.
 

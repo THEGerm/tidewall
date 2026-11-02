@@ -211,10 +211,11 @@ $("new-form").onsubmit = async (e) => {
 
 // The recognition check before the freeze (Zhou, Huang et al. 2025).
 $("recog-btn").onclick = async () => {
-  $("recog-msg").textContent = "Asking the study models... this takes a minute.";
+  $("recog-msg").textContent = "Asking the models... this takes a minute.";
   try {
     const fam = $("recog-family").value;
-    const out = await api("recognition", { method: "POST", body: JSON.stringify(fam ? { families: [fam] } : {}) });
+    const set = $("recog-set").value;
+    const out = await api("recognition", { method: "POST", body: JSON.stringify({ ...(fam ? { families: [fam] } : {}), ...(set === "study2" ? { set } : {}) }) });
     const ok = out.answers.filter((a) => a.text).length;
     const failed = out.answers.filter((a) => a.error).map((a) => `${a.model} as ${a.player}: ${a.error}`);
     $("recog-msg").textContent = `${ok} of ${out.answers.length} answers saved for coding.${failed.length ? ` Failed: ${failed.join("; ")}` : ""}`;

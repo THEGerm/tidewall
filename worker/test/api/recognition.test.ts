@@ -51,4 +51,15 @@ describe("recognition check", () => {
     expect(again.every((a) => a.text && !a.error)).toBe(true);
     expect((await db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE run_id = 'recognition-check'").first<{ n: number }>())!.n).toBe(40);
   });
+
+  it("asks the Study 2 models when set is study2, and records the set (Germ, 2 Nov)", async () => {
+    const db = testD1();
+    await db.prepare("INSERT INTO participants (email, name, turn_order) VALUES ('g@x', 'Germ', 1), ('s@x', 'Shazz', 2)").run();
+    for (const p of ["anthropic", "google", "openai"] as const) await saveKey(db, SECRET, "g@x", p, `test-key-${p}-0000000000000000`);
+    const answers = await recognitionCheck(db, SECRET, undefined, "study2");
+    expect(answers).toHaveLength(30);
+    expect(new Set(answers.map((a) => a.model))).toEqual(new Set(["claude-haiku-5-5", "gemini-3.1-flash-lite", "gpt-6-luna"]));
+    const saved = JSON.parse((await db.prepare("SELECT value FROM meta WHERE key LIKE 'recognition_check:%'").first<{ value: string }>())!.value);
+    expect(saved.set).toBe("study2");
+  });
 });
