@@ -228,7 +228,7 @@ $("recog-btn").onclick = async () => {
   } catch (err) { $("recog-msg").textContent = err.message; }
 };
 
-// The judges (#112). Each request is one batch of about 30 judge calls; the
+// The judges (#112). Each request is one batch of up to 48 judge calls; the
 // page asks again until nothing is left, so judging stops if the page closes
 // and carries on where it left off when started again (coded items are skipped).
 async function judgeLoop(target, say) {

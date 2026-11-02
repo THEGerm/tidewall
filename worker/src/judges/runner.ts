@@ -30,8 +30,8 @@ import { altSample, itemsOf, type Item } from "./items";
 import { judgesSignature, MAX_ATTEMPTS, MAX_OUTPUT_TOKENS, TEMPERATURE } from "./export";
 import { readCode, schemaFor, SYSTEM, userMessage, type Template } from "./prompt";
 
-export const BATCH_CALLS = 32;
-export const CONCURRENCY = 8;
+export const BATCH_CALLS = 48; // 3 rounds of CONCURRENCY: a request stays under about a minute
+export const CONCURRENCY = 16;
 const LOCK_MS = 5 * 60_000;
 const CALL_TIMEOUT_MS = 120_000;
 
