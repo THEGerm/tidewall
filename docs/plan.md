@@ -264,13 +264,16 @@ The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Part
 
 ### Whose turn it is
 
-- Days alternate owners: odd days Germ, even days Shazz.
-- On your day, every call uses your key for that provider.
+- **Study runs alternate owners by run** (Germ, 2 Nov): in play order, study-t1-r1 is Germ's, study-t1-r2 Shazz's, study-t1-r3 Germ's, and so on. One owner pays a whole run.
+- Test runs keep the daily rotation: odd days Germ, even days Shazz.
+- On your run (or your day, in a test run), every call uses your key for that provider.
 - If you have no working key for a provider, the call falls back to the other participant's key. The ledger marks it.
 - If neither participant has a working key, the run pauses and Control says which key is missing.
 - The key never changes the model: same ID, same effort, whoever pays.
 
-**Fallback payback (#117).** Fallback calls create a debt. The debtor repays it through their Anthropic key on the creditor's days, and the Ledger page shows the balance. Two rules (Germ, 1 Nov):
+**Fallback payback (#117), as of 2 Nov.** Fallback calls create a debt, and the Ledger page keeps count. While the debt is above $2, the creditor's runs use the debtor's Anthropic key for Claude. Once the debt is back to $2 or less, the creditor's runs are normal again. If the debtor's Anthropic key runs out of credit, the creditor's own key pays. Shazz asked that his Claude credit be used as much as possible. In practice: Shazz's runs fall back to Germ's keys for Gemini and GPT, and Germ's next run pays it back through Shazz's Claude key.
+
+Superseded on 2 Nov, kept for the record. Two rules (Germ, 1 Nov):
 
 - **Expiring credit first.** Germ's Anthropic credit expires 18 Nov, so it's on hold: no payback goes ahead of Germ's own Anthropic key until the end of 18 Nov (2026-11-19 05:00 UTC), or until that credit runs out, whichever comes first.
 - **A dry key repays elsewhere.** If the debtor's Anthropic key is out of credit, the debtor repays through its Google and OpenAI keys instead. A key counts as dry from its last Anthropic call, and stays dry until its owner's next turn. No top-up is planned for Germ's expiring Anthropic credit.
@@ -402,6 +405,7 @@ Decided 30 to 31 Oct:
 | 1 Nov | Changes from six Scholar papers: a negative gang response to its forecast is a finding (Terada et al., AIES 2026); an outcome-sufficiency check on forecasts (arXiv 2609.07943); "seat" means role identity plus payoffs (2601.10102); an impersonation scan (2405.03862); a second recognition question and a diary scan for game-theory terms (2506.18600); collusion needs punishment, else "cartel-like" (2610.28787) | Germ |
 | 1 Nov | Matched bot baselines: after each triple ends, the equilibrium bots and the encroaching variant play its seed (bot-t<n>-eq, bot-t<n>-enc); exploratory | Germ |
 | 1 Nov | Recognition check run (Claude rerun at 4,000 tokens after empty answers at 800). All 15 recognition answers name the prisoner's dilemma and a principal-agent or corruption model; 14 name the inspection game; all guess the study's aims. Asked for the best day-1 move, all 5 Claude answers work out crime 4/15, inspection 1/4 and the bribe line b > 100a + 11 from the stated payoffs; most Gemini and GPT answers work out the first two, and only Gemini's the bribe line. The prompts name no game, so none changes; the rate is reported as a limitation (recall against reasoning). Answers in D1 meta under recognition_check | Germ |
+| 2 Nov | Study runs alternate owners by run, not by day. Payback goes through the debtor's Anthropic key only, while the debt is above $2. The hold on Germ's expiring credit and the Google and OpenAI payback are dropped. Payer only: no effect on play or the analysis | Germ |
 | 31 Oct | Fallback payback through the debtor's Anthropic key (#117), proposed by Vishnu | Germ |
 | 30 Oct | Workers Paid plan ($5 a month), which brings D1 Time Travel | Germ |
 
