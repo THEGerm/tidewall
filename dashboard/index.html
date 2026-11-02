@@ -54,15 +54,18 @@
 
     <section>
       <h2>The rotation</h2>
-      <p>Every model holds every seat once every 3 weeks. Same city, same rules, same seed; only the seating changes.</p>
+      <p>27 study runs in 9 triples, played back to back. The 3 runs of a triple share one seed, so the same city, rules and luck; only the seating changes. Odd and even triples use two different squares, so every model holds every seat 9 times, and no pair of models always meets in the same seats.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Week</th><th>Government</th><th>Criminals</th><th>World</th></tr></thead>
+          <thead><tr><th>Triples</th><th>Run</th><th>Government</th><th>Criminals</th><th>World</th></tr></thead>
           <tbody>
-            <tr><td>0</td><td colspan="3">Scripted bots playing the equilibrium (engine check)</td></tr>
-            <tr><td>1, 4, 7</td><td>Claude</td><td>Gemini</td><td>GPT</td></tr>
-            <tr><td>2, 5, 8</td><td>Gemini</td><td>GPT</td><td>Claude</td></tr>
-            <tr><td>3, 6, 9</td><td>GPT</td><td>Claude</td><td>Gemini</td></tr>
+            <tr><td rowspan="3">1, 3, 5, 7, 9</td><td>r1</td><td>Claude</td><td>Gemini</td><td>GPT</td></tr>
+            <tr><td>r2</td><td>Gemini</td><td>GPT</td><td>Claude</td></tr>
+            <tr><td>r3</td><td>GPT</td><td>Claude</td><td>Gemini</td></tr>
+            <tr><td rowspan="3">2, 4, 6, 8</td><td>r4</td><td>Claude</td><td>GPT</td><td>Gemini</td></tr>
+            <tr><td>r5</td><td>GPT</td><td>Gemini</td><td>Claude</td></tr>
+            <tr><td>r6</td><td>Gemini</td><td>Claude</td><td>GPT</td></tr>
+            <tr><td colspan="2">After each triple</td><td colspan="3">Scripted bots replay the triple's seed: the equilibrium, and the gangs encroaching (baselines)</td></tr>
           </tbody>
         </table>
       </div>
@@ -75,7 +78,8 @@
         <li><strong>Each run's data:</strong> every day in one table, with downloads. Linked from the run's page.</li>
         <li><strong>Control</strong> (participants): start, step, pause and end runs; the log; spending.</li>
         <li><strong>Ledger</strong> (participants): every model call, who paid, and what it cost.</li>
-        <li><strong>Coming:</strong> the game theory panel, play against the equilibrium.</li>
+        <li><strong>Each run's game theory page:</strong> play against the equilibrium. Linked from the run's page.</li>
+        <li><strong>Analysis:</strong> every run's results and raw logs, and a view across runs.</li>
       </ul>
     </section>
   </main>
