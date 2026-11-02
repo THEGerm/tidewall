@@ -159,7 +159,7 @@ def _spread(ys, gap=15):
 def svg(result, title="Forecast accuracy: lightweight against flagship models"):
     W, H = 540, 380
     top, bottom, x1, x2 = 78, 340, 200, 370
-    AXIS_X = 52  # tick numbers at the far left, clear of the model labels
+    AXIS_X = 64  # tick numbers at the left, clear of the model labels and the axis title
     pts = [e for e in result if e["study"]["score"] is not None and e["study2"]["score"] is not None]
     vals = [v for e in pts for k in ("study", "study2") for v in (e[k]["low"], e[k]["high"], e[k]["score"]) if v is not None]
     lo, hi = (min(vals), max(vals)) if vals else (0.0, 1.0)
@@ -169,7 +169,8 @@ def svg(result, title="Forecast accuracy: lightweight against flagship models"):
     p = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="{_esc(title)}">',
          f'<rect width="{W}" height="{H}" fill="{SURFACE}"/>',
          f'<text x="24" y="28" font-size="15" fill="{INK}" font-weight="600">{_esc(title)}</text>',
-         f'<text x="24" y="48" font-size="12" fill="{MUTED}">Brier skill, higher is better (0 = base rate). Bars: 95% intervals over triples.</text>']
+         f'<text x="24" y="48" font-size="12" fill="{MUTED}">Higher is better; 0 is the base rate. Bars: 95% intervals over triples.</text>',
+         f'<text x="18" y="{(top + bottom) / 2:.1f}" font-size="12" fill="{INK}" text-anchor="middle" transform="rotate(-90 18 {(top + bottom) / 2:.1f})">Brier skill</text>']
     for tv in _ticks(lo, hi):
         p.append(f'<line x1="{AXIS_X + 8}" y1="{y(tv):.1f}" x2="{x2 + 40}" y2="{y(tv):.1f}" stroke="{GRID}" stroke-width="1"/>')
         p.append(f'<text x="{AXIS_X}" y="{y(tv) + 4:.1f}" font-size="11" fill="{MUTED}" text-anchor="end">{tv:g}</text>')

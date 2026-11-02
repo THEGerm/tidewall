@@ -37,6 +37,7 @@ class CompareStudies(unittest.TestCase):
         for name in ("Haiku 5.5", "Flash-Lite", "Luna", "Opus 5.5", "Argon", "Sol"):
             self.assertEqual(s.count(f">{name}</text>"), 1)
         self.assertNotIn("Study 2", s)
+        self.assertIn(">Brier skill</text>", s)
         self.assertNotIn("Study 2", cs.caption(out))
         self.assertLess(s.index(">Lightweight<"), s.index(">Flagship<"))
         c = cs.caption(out)
