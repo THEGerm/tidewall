@@ -22,6 +22,7 @@ Exploratory (docs/preregistration-study2.md). Standard library only.
 """
 
 import argparse
+import math
 import random
 import sys
 from collections import defaultdict
@@ -113,70 +114,86 @@ def table(result):
     return "\n".join(lines) + "\n"
 
 
-# The figure: a dumbbell per family on one Brier-skill axis. One hue, two
-# shades (dataviz: before/after per item), checked with the palette validator;
-# the shades also differ by marker fill, and every point is labelled with its
-# model, so the study never reads by colour alone.
-DARK, LIGHT = "#0d366b", "#3987e5"
-INK, MUTED, GRID, SURFACE = "#1f1f1e", "#5f5e58", "#dcdbd5", "#fcfcfb"
+# The figure: a slope chart, the relationship it shows being the change from
+# each family's frontier model (the study) to its smaller model (Study 2). One
+# line per family between two columns; a crossing line is a change of rank.
+# Categorical palette slots 1 to 3, checked with the dataviz validator (the
+# aqua's low contrast is why every line also carries its family name in ink).
+# Labels are the family name only, at the line ends; model names, values and
+# intervals are in the caption and the table.
+SERIES = {"claude": "#2a78d6", "gemini": "#eb6834", "gpt": "#1baf7a"}
+INK, MUTED, GRID, SURFACE = "#1f1f1e", "#5f5e58", "#e4e3dd", "#fcfcfb"
 
 
 def _esc(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def svg(result, title="Brier skill by model, study and Study 2"):
-    W, row_h, left, right, top = 720, 92, 150, 40, 70
-    H = top + row_h * len(result) + 60
-    vals = [v for e in result for k in ("study", "study2") for v in (e[k]["score"], e[k]["low"], e[k]["high"]) if v is not None]
-    lo, hi = (min(vals + [0.0]), max(vals + [0.0])) if vals else (-0.1, 0.1)
+def _ticks(lo, hi, n=5):
+    raw = (hi - lo) / n
+    mag = 10 ** math.floor(math.log10(raw)) if raw > 0 else 0.1
+    step = next(m * mag for m in (1, 2, 2.5, 5, 10) if raw <= m * mag)
+    t = math.ceil(lo / step) * step
+    out = []
+    while t <= hi + 1e-12:
+        out.append(round(t, 10))
+        t += step
+    return out
+
+
+def _spread(ys, gap=15):
+    """Nudge label positions apart so no two sit closer than gap pixels."""
+    order = sorted(range(len(ys)), key=lambda i: ys[i])
+    out = list(ys)
+    for a, b in zip(order, order[1:]):
+        if out[b] - out[a] < gap:
+            out[b] = out[a] + gap
+    return out
+
+
+def svg(result, title="Forecast accuracy: frontier against smaller models"):
+    W, H = 520, 400
+    top, bottom, x1, x2 = 78, 340, 170, 350
+    pts = [e for e in result if e["study"]["score"] is not None and e["study2"]["score"] is not None]
+    vals = [v for e in pts for k in ("study", "study2") for v in (e[k]["low"], e[k]["high"], e[k]["score"]) if v is not None]
+    lo, hi = (min(vals), max(vals)) if vals else (0.0, 1.0)
     pad = (hi - lo) * 0.08 or 0.05
     lo, hi = lo - pad, hi + pad
-    x = lambda v: left + (v - lo) / (hi - lo) * (W - left - right)
-    step = 10 ** int(f"{(hi - lo) / 5:e}".split("e")[1])
-    for m in (1, 2, 5, 10):
-        if (hi - lo) / (step * m) <= 6:
-            step *= m
-            break
-    ticks, t = [], (int(lo / step)) * step
-    while t <= hi + 1e-12:
-        if t >= lo - 1e-12:
-            ticks.append(round(t, 10))
-        t += step
+    y = lambda v: bottom - (v - lo) / (hi - lo) * (bottom - top)
     p = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="{_esc(title)}">',
          f'<rect width="{W}" height="{H}" fill="{SURFACE}"/>',
-         f'<text x="{left}" y="28" font-size="16" fill="{INK}" font-weight="600">{_esc(title)}</text>',
-         f'<circle cx="{left + 6}" cy="48" r="5" fill="{DARK}"/><text x="{left + 16}" y="52" font-size="12" fill="{MUTED}">Study (frontier models)</text>',
-         f'<circle cx="{left + 196}" cy="48" r="5" fill="{SURFACE}" stroke="{LIGHT}" stroke-width="2"/><text x="{left + 206}" y="52" font-size="12" fill="{MUTED}">Study 2 (smaller models)</text>']
-    base = top + row_h * len(result)
-    for tv in ticks:
-        p.append(f'<line x1="{x(tv):.1f}" y1="{top}" x2="{x(tv):.1f}" y2="{base}" stroke="{GRID}" stroke-width="1"/>')
-        p.append(f'<text x="{x(tv):.1f}" y="{base + 18}" font-size="11" fill="{MUTED}" text-anchor="middle">{tv:g}</text>')
-    if lo < 0 < hi:
-        p.append(f'<line x1="{x(0):.1f}" y1="{top}" x2="{x(0):.1f}" y2="{base}" stroke="{MUTED}" stroke-width="1"/>')
-    p.append(f'<text x="{(left + W - right) / 2:.1f}" y="{base + 40}" font-size="12" fill="{MUTED}" text-anchor="middle">Brier skill (0 = base rate, higher is better); bars are 95% intervals over triples</text>')
-    for i, e in enumerate(result):
-        cy = top + row_h * i + row_h / 2
-        p.append(f'<text x="{left - 14}" y="{cy + 4:.1f}" font-size="13" fill="{INK}" text-anchor="end" font-weight="600">{FAMILY_LABEL[e["family"]]}</text>')
+         f'<text x="24" y="28" font-size="15" fill="{INK}" font-weight="600">{_esc(title)}</text>',
+         f'<text x="24" y="48" font-size="12" fill="{MUTED}">Brier skill, higher is better (0 = base rate). Bars: 95% intervals over triples.</text>']
+    for tv in _ticks(lo, hi):
+        p.append(f'<line x1="{x1 - 40}" y1="{y(tv):.1f}" x2="{x2 + 40}" y2="{y(tv):.1f}" stroke="{GRID}" stroke-width="1"/>')
+        p.append(f'<text x="{x1 - 46}" y="{y(tv) + 4:.1f}" font-size="11" fill="{MUTED}" text-anchor="end">{tv:g}</text>')
+    for x, head in ((x1, "Study"), (x2, "Study 2")):
+        p.append(f'<line x1="{x}" y1="{top - 6}" x2="{x}" y2="{bottom + 6}" stroke="{MUTED}" stroke-width="1"/>')
+        p.append(f'<text x="{x}" y="{bottom + 26}" font-size="12" fill="{INK}" text-anchor="middle" font-weight="600">{head}</text>')
+        p.append(f'<text x="{x}" y="{bottom + 42}" font-size="11" fill="{MUTED}" text-anchor="middle">{"frontier" if x == x1 else "smaller"}</text>')
+    for e in pts:
+        c = SERIES[e["family"]]
         a, b = e["study"], e["study2"]
-        for k, dy, name, fill, stroke in (("study", -14, e["study_model"], DARK, DARK), ("study2", 14, e["study2_model"], SURFACE, LIGHT)):
-            s = e[k]
-            if s["score"] is None:
-                continue
-            yy = cy + dy
-            if s["low"] is not None:
-                p.append(f'<line x1="{x(s["low"]):.1f}" y1="{yy:.1f}" x2="{x(s["high"]):.1f}" y2="{yy:.1f}" stroke="{stroke}" stroke-width="2" stroke-linecap="round"/>')
-            p.append(f'<circle cx="{x(s["score"]):.1f}" cy="{yy:.1f}" r="5" fill="{fill}" stroke="{stroke}" stroke-width="2"/>')
-            label = f'{name}: {s["score"]:.3f}, rank {s["rank"]}'
-            # Label on the side with room: right of the interval, or left of it
-            # when the point sits in the right part of the plot.
-            if x(s["score"]) > left + 0.55 * (W - left - right):
-                lx, anchor = x(s["low"] if s["low"] is not None else s["score"]) - 8, "end"
-            else:
-                lx, anchor = x(s["high"] if s["high"] is not None else s["score"]) + 8, "start"
-            p.append(f'<text x="{lx:.1f}" y="{yy + 4:.1f}" font-size="11" fill="{INK}" text-anchor="{anchor}">{_esc(label)}</text>')
+        for x, s_ in ((x1, a), (x2, b)):
+            if s_["low"] is not None:
+                p.append(f'<line x1="{x}" y1="{y(s_["low"]):.1f}" x2="{x}" y2="{y(s_["high"]):.1f}" stroke="{c}" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>')
+        p.append(f'<line x1="{x1}" y1="{y(a["score"]):.1f}" x2="{x2}" y2="{y(b["score"]):.1f}" stroke="{c}" stroke-width="2"/>')
+        for x, s_ in ((x1, a), (x2, b)):
+            p.append(f'<circle cx="{x}" cy="{y(s_["score"]):.1f}" r="5" fill="{c}" stroke="{SURFACE}" stroke-width="2"/>')
+    for side, x, anchor, dx in (("study", x1, "end", -12), ("study2", x2, "start", 12)):
+        ys = _spread([y(e[side]["score"]) for e in pts])
+        for e, yy in zip(pts, ys):
+            p.append(f'<text x="{x + dx}" y="{yy + 4:.1f}" font-size="12" fill="{INK}" text-anchor="{anchor}">{FAMILY_LABEL[e["family"]]}</text>')
     p.append("</svg>")
     return "\n".join(p) + "\n"
+
+
+def caption(result):
+    """The figure's caption: which model is which, and what the bars are."""
+    pairs = "; ".join(f"{FAMILY_LABEL[e['family']]}: {e['study_model']} (study) and {e['study2_model']} (Study 2)" for e in result)
+    return (f"Mean Brier skill of each model over its 27 seat-runs, in the study and in Study 2. {pairs}. "
+            "Bars are 95% bootstrap intervals over the 9 triples (seed 2026). Both studies play the same seeds, "
+            "so each line is a paired comparison. Values, ranks and the share of resamples each model ranks first are in the table.")
 
 
 def main(argv):
@@ -202,7 +219,7 @@ def main(argv):
         open(a.table, "w").write(t)
     if a.figure:
         open(a.figure, "w").write(svg(result))
-        print(f"figure: {a.figure}")
+        print(f"figure: {a.figure}\ncaption: {caption(result)}")
 
 
 if __name__ == "__main__":

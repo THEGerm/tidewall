@@ -68,7 +68,7 @@ Each difference is summarised by family and by seat, with a bootstrap interval: 
 
 **How the studies are compared.** For each family, the change is the Study 2 score minus the study score. The two studies share their seeds, so each resample draws the same triples from both, and the comparison is paired.
 
-**The figure.** One axis, Brier skill. One row per family. Each row shows the study's model and its Study 2 sibling, each with its 95% interval and its rank. The code is `analysis/compare_studies.py`, written and tested on made-up data before any Study 2 run. It runs with:
+**The figure.** A slope chart of the one relationship tested: the change from each family's frontier model to its smaller model. Brier skill on one axis, the study and Study 2 as two columns, one line per family, with each point's 95% interval. A line that crosses another is a change of rank. Labels are the family names only; the model names are in the caption, and the values and ranks in the table. The code is `analysis/compare_studies.py`, written and tested on made-up data before any Study 2 run. It runs with:
 
 ```
 python -m analysis.compare_studies data/runs/study/*.json data/runs/study2/*.json --figure paper/figures/study-comparison.svg --table paper/figures/study-comparison.md

@@ -30,12 +30,18 @@ class CompareStudies(unittest.TestCase):
         self.assertTrue(all(e["study2"]["score"] is None and e["change"]["score"] is None for e in out))
         self.assertIn("Claude Haiku 5.5", cs.table(out))
 
-    def test_figure_names_every_model(self):
+    def test_figure_is_one_line_per_family_and_the_caption_names_every_model(self):
         out = cs.compare(rows({"claude": 0.3, "gemini": -0.05, "gpt": 0.1}), rows({"claude": 0.1, "gemini": 0.0, "gpt": 0.2}), resamples=200)
         s = cs.svg(out)
         self.assertTrue(s.startswith("<svg"))
+        for fam in ("Claude", "Gemini", "GPT"):
+            self.assertEqual(s.count(f">{fam}</text>"), 2)
+        c = cs.caption(out)
         for name in list(cs.STUDY_NAMES.values()) + list(cs.STUDY2_NAMES.values()):
-            self.assertIn(name, s)
+            self.assertIn(name, c)
+
+    def test_labels_never_overlap(self):
+        self.assertEqual(cs._spread([100.0, 104.0, 200.0]), [100.0, 115.0, 200.0])
 
 
 if __name__ == "__main__":
