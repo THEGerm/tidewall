@@ -1,4 +1,4 @@
--- Study 2 (Germ, 2 Nov): the same 27-run design on cheap models, kept apart
+-- Study 2 (Germ, 2 Nov): the same 27-run design on smaller models, kept apart
 -- from the study by its own model_set, 'study2', and its own run IDs
 -- (study2-t<n>-r<r>). Widens the model_set CHECK the way 0010 did: copy aside,
 -- drop, add again, copy back.

@@ -39,7 +39,7 @@ export const CHEAP_TEST_MODELS: Record<Family, { provider: Provider; model: stri
 // run, set this to MODELS.
 export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = CHEAP_TEST_MODELS;
 
-// Study 2 (Germ, 2 Nov): the 27-run design again on the cheap siblings of the
+// Study 2 (Germ, 2 Nov): the 27-run design again on the smaller siblings of the
 // study models, same engine, prompts, seeds and seatings. Its own copy, so a
 // later change to the test models never changes a Study 2 run.
 export const STUDY2_MODELS: Record<Family, { provider: Provider; model: string }> = {

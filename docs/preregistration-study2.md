@@ -1,8 +1,8 @@
-# Pre-registration addendum: Study 2, the cheap models
+# Pre-registration addendum: Study 2, the smaller models
 
 2 Nov 2026. Germ and Shazz.
 
-Study 2 replays the study with each provider's cheap model in place of its study model. Everything in it is exploratory. H1 to H6, the Holm family of 11 entries and every decision rule in [preregistration-analysis.md](preregistration-analysis.md) stay as frozen.
+Study 2 replays the study with each family's smaller model in place of its study model. Claude Haiku 5.5, Gemini 3.1 Flash-Lite and GPT-6 Luna are their makers' smaller, faster tiers, built for speed and low cost, beside the frontier models of the study. Everything in it is exploratory. H1 to H6, the Holm family of 11 entries and every decision rule in [preregistration-analysis.md](preregistration-analysis.md) stay as frozen.
 
 ## What we knew when we wrote this
 
@@ -39,7 +39,7 @@ Everything else is the study's:
 
 **Main question.** Within each family, does the gap from theory change with capability?
 
-**Recall against reasoning.** Smaller models probably know less textbook game theory. Before the first Study 2 run, the study's recognition check (both questions, every seat's prompt) runs on the 3 cheap models and is coded and reported as for the study, so this is measured, not assumed. If they also respect turf and avoid crime, the restraint needs no sophistication. If they play nearer the equilibrium, the frontier models' restraint is learned.
+**Recall against reasoning.** Smaller models probably know less textbook game theory. Before the first Study 2 run, the study's recognition check (both questions, every seat's prompt) runs on the 3 smaller models and is coded and reported as for the study, so this is measured, not assumed. If they also respect turf and avoid crime, the restraint needs no sophistication. If they play nearer the equilibrium, the frontier models' restraint is learned.
 
 **The confidant.** In the study, Gemini and GPT mostly stayed silent with Sam. Study 2 reports texts to Sam by model.
 
@@ -58,6 +58,24 @@ Everything else is the study's:
 
 Each difference is summarised by family and by seat, with a bootstrap interval: 10,000 resamples, seed 2026, as in the study. Benjamini-Hochberg runs across the 7 measures.
 
+## Comparing the two studies
+
+**The benchmark.** Every model is ranked on one benchmark: Brier skill, the forecast measure H6 already uses. It says how much better a model's forecasts are than the base rate: 0 is the base rate, and higher is better. A model is scored only on events its own moves don't decide. It is the one measure every model has in every seat, since all 3 seats give the same 16 forecasts a day. It is a proper scoring rule, so a model can't raise it by shading its forecasts.
+
+**How a model is tested.** A model's score in a study is its mean Brier skill over its 27 seat-runs: 9 in each seat. The Latin squares give every model the same seats the same number of times, so no model is helped by the seat it held. The 95% interval resamples whole triples (10,000 resamples, seed 2026), as the study's run-level tests do.
+
+**How the models are ranked.** Within each study, the 3 models are ranked by score. With 3 models and 9 triples, a rank can be fragile, so the table also gives each model's share of resamples in which it ranks first.
+
+**How the studies are compared.** For each family, the change is the Study 2 score minus the study score. The two studies share their seeds, so each resample draws the same triples from both, and the comparison is paired.
+
+**The figure.** One axis, Brier skill. One row per family. Each row shows the study's model and its Study 2 sibling, each with its 95% interval and its rank. The code is `analysis/compare_studies.py`, written and tested on made-up data before any Study 2 run. It runs with:
+
+```
+python -m analysis.compare_studies data/runs/study/*.json data/runs/study2/*.json --figure paper/figures/study-comparison.svg --table paper/figures/study-comparison.md
+```
+
+The figure and its table go in the paper as they come out. Every other measure in this addendum is reported in tables, not ranked.
+
 ## Validity
 
 The study's rules apply unchanged:
@@ -66,13 +84,13 @@ The study's rules apply unchanged:
 - a seat-run where fewer than 50% of the lambda decisions are the player's own leaves the lambda test;
 - every test also runs without fallback days.
 
-Cheap models may break format more often. Study 2 reports the fallback rate and the refusal rate by model.
+Smaller models may break format more often. Study 2 reports the fallback rate and the refusal rate by model.
 
 **Judges.** If the judges run on the study, they run on Study 2 after its last run ends, under the same frozen protocol (preregistration-analysis.md, section 6).
 
 ## Cost
 
-Cheap test runs cost about US$0.02 to 0.025 a game day. The study models cost about US$0.19. Study 2 plays the study's days, so we expect it to cost roughly a tenth of the study. That figure is an estimate. A spending cap is set before the first Study 2 run.
+Test runs on these models cost about US$0.02 to 0.025 a game day. The study models cost about US$0.19. Study 2 plays the study's days, so we expect it to cost roughly a tenth of the study. That figure is an estimate. A spending cap is set before the first Study 2 run.
 
 ## Freeze
 

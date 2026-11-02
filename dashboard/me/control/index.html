@@ -87,13 +87,13 @@
       <h2 id="h-study">The study</h2>
       <p class="muted">Creates all 27 study runs: 9 triples on their published seeds, odd triples playing rotations 1 to 3 and even triples rotations 4 to 6 (<a href="https://github.com/THEGerm/tidewall/blob/main/docs/seeds.md">seeds.md</a>). They are created ready. With the schedule on, they play one after another, from study-t1-r1 to study-t9-r3. Do this once, after the freeze tag and with the cap set.</p>
       <p class="muted">Before the freeze: the recognition check asks each study model, for each seat's prompt, what study or game it thinks this is (Zhou, Huang et al. 2025), and what the best day-1 move is and how play will go (Flint Ashery et al. 2025). About 30 short calls on day 1's keys (10 for one model); each run's answers are saved separately for coding.</p>
-      <label>Set <select id="recog-set"><option value="study">Study models</option><option value="study2">Study 2 models (cheap)</option></select></label>
+      <label>Set <select id="recog-set"><option value="study">Study models</option><option value="study2">Study 2 models (smaller)</option></select></label>
       <label>Models <select id="recog-family"><option value="">All three</option><option value="claude">Claude only</option><option value="gemini">Gemini only</option><option value="gpt">GPT only</option></select></label>
       <button type="button" id="recog-btn" class="ghost">Run the recognition check</button>
       <p id="recog-msg" class="msg" role="status"></p>
       <button type="button" id="study-btn">Create the 27 study runs</button>
       <p id="study-msg" class="msg" role="status"></p>
-      <h3>Study 2 (cheap models)</h3>
+      <h3>Study 2 (smaller models)</h3>
       <p class="muted">The same 27 runs, seeds and seatings, played by Claude Haiku 5.5, Gemini 3.1 Flash-Lite and GPT-6 Luna, as study2-t1-r1 to study2-t9-r3. Exploratory, under its own addendum. No bot runs: the study's baselines share these seeds. It can only be created once every study run has finished. Set the cap first.</p>
       <button type="button" id="study2-btn">Create the 27 Study 2 runs</button>
       <p id="study2-msg" class="msg" role="status"></p>
