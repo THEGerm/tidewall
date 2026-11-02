@@ -136,9 +136,20 @@ export function readCode(task: Task, text: string): { code: Code } | { error: st
 }
 
 // Model and provider names, removed from the judged text before a judge sees
-// it (Li et al. 2025): the study's families and their makers, the judges' own,
-// and the common chat products. Full model IDs ("gpt-6.1-sol") go whole.
-const NAMES = /\b(?:claude[\w.-]*|anthropic|opus|sonnet|haiku|gemini[\w.-]*|google|deepmind|bard|chatgpt|gpt[\w.-]*|openai|deepseek[\w.-]*|qwen[\w.-]*|alibaba|glm[\w.-]*|zhipu|z\.ai|openrouter|llama[\w.-]*|mistral|grok|xai)\b/gi;
+// it (Li et al. 2025). Only forms that can't be ordinary English: the
+// families' and makers' names (Claude, Gemini, GPT, Anthropic, OpenAI,
+// DeepMind, DeepSeek, Qwen, GLM, Zhipu, OpenRouter, ChatGPT) and their
+// model IDs, and a product line only with a version number ("Opus 5.5",
+// "Llama 4"). Ordinary words ("opus", "haiku", "google", "bard") stay.
+const NAMES = new RegExp(
+  [
+    String.raw`\b(?:claude|gemini|anthropic|openai|deepmind|deepseek|qwen|zhipu|openrouter|chatgpt)(?:[\w.-]*\w)?`,
+    String.raw`\bz\.ai\b`,
+    String.raw`\b(?:gpt|glm)(?:[-.\s]?\d(?:[\w.-]*\w)?)?\b`,
+    String.raw`\b(?:opus|sonnet|haiku|llama|grok|mistral)[-\s]?\d(?:[\w.-]*\w)?`,
+  ].join("|"),
+  "gi",
+);
 export const stripNames = (text: string) => text.replace(NAMES, "[name]");
 
 export const DATA_OPEN = "<<<DATA";

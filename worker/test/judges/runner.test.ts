@@ -79,9 +79,10 @@ describe("judge runner", () => {
     const { fetch, chats } = fakeOpenRouter();
     await playedRun(db, "study-t1-r1");
     await createRun(db, { id: "study-t1-r2", seed: "judge-seed", triple: 1, rotation: 2, seating });
-    expect(await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch })).toMatchObject({ ok: false, error: "study-t1-r1 is sealed until its triple ends" });
+    // Study runs wait for the whole study (Germ, 2 Nov): the cap, and one 10% draw.
+    expect(await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch })).toMatchObject({ ok: false, error: "study runs are judged once the whole study is over (1 study run still to finish)" });
     expect(await judgeBatch(env(db), { run: "study-t1-r2" }, { fetch })).toMatchObject({ ok: false, error: "study-t1-r2 isn't finished" });
-    expect(await judgeBatch(env(db), { all: true }, { fetch })).toMatchObject({ ok: true, calls: 0, done: true });
+    expect(await judgeBatch(env(db), { all: true }, { fetch })).toMatchObject({ ok: false, error: expect.stringMatching(/whole study is over/) });
     await createRun(db, { id: "b", seed: "bots-seed", triple: 0, rotation: 1, seating, model_set: "bot" });
     await setStatus(db, "b", "over");
     expect((await judgeBatch(env(db), { run: "b" }, { fetch })).error).toMatch(/bot run/);
@@ -179,13 +180,66 @@ describe("judge runner", () => {
     expect(led.results.some((x: any) => x.payer_name === "Shazz" && x.fallback_key === 1)).toBe(true);
   });
 
-  it("works alone: a second batch while one runs is refused", async () => {
+  it("works alone: a batch holding the lock is never overlapped, and only the holder releases it", async () => {
     const db = await setup();
     await playedRun(db, "study-t1-r1");
-    await db.prepare("INSERT INTO meta (key, value) VALUES ('judge_lock', ?)").bind(new Date(Date.now() + 60_000).toISOString()).run();
+    const theirs = `${new Date(Date.now() + 60_000).toISOString()}|other-batch`;
+    await db.prepare("INSERT INTO meta (key, value) VALUES ('judge_lock', ?)").bind(theirs).run();
     const { fetch, chats } = fakeOpenRouter();
     expect((await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch })).error).toMatch(/another judge batch/);
     expect(chats).toHaveLength(0);
+    expect((await db.prepare("SELECT value FROM meta WHERE key = 'judge_lock'").first<{ value: string }>())!.value).toBe(theirs);
+    // An expired lock is taken over, and released by its new holder at the end.
+    await db.prepare("UPDATE meta SET value = ? WHERE key = 'judge_lock'").bind(`${new Date(Date.now() - 1000).toISOString()}|crashed`).run();
+    expect(await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch, maxCalls: 2, retry: noWait })).toMatchObject({ ok: true, calls: 2 });
+    expect(await db.prepare("SELECT value FROM meta WHERE key = 'judge_lock'").first()).toBeNull();
+  });
+
+  it("holds the lock longer than the worst batch can run", async () => {
+    const { LOCK_MS, START_WINDOW_MS } = await import("../../src/judges/runner");
+    const worstCall = 2 * (3 * 90_000 + 2_000 + 4_000); // 2 keys, 3 tries at the 90 s timeout, backoff between
+    expect(LOCK_MS).toBeGreaterThan(START_WINDOW_MS + worstCall + 60_000);
+  });
+
+  it("starts no call after the start window, so a request answers in about a minute", async () => {
+    const db = await setup();
+    await playedRun(db, "study-t1-r1");
+    let clock = Date.parse("2026-11-05T00:00:00Z");
+    const { fetch, chats } = fakeOpenRouter({ answer: (task) => { clock += 60_000; return { status: 200, body: { id: "g", model: "m", choices: [{ finish_reason: "stop", message: { content: JSON.stringify(ANSWER[task]) } }], usage: { prompt_tokens: 10, completion_tokens: 5, cost: 0.001 } } }; } });
+    const r = await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch, maxCalls: 100, retry: noWait, now: () => new Date(clock) });
+    expect(chats.length).toBeLessThan(JOBS);
+    expect(r).toMatchObject({ ok: true, done: false, calls: chats.length });
+  });
+
+  it("refuses a judge whose pinned endpoint OpenRouter lists as degraded or down", async () => {
+    const db = await setup();
+    await playedRun(db, "study-t1-r1");
+    const base = fakeOpenRouter();
+    const fetch: FetchLike = async (req) => {
+      if (req.method === "GET" && req.url.includes("/glm")) {
+        const j = JUDGE_MODELS.find((x) => x.judge === "glm")!;
+        return Response.json({ data: { endpoints: [{ provider_name: j.upstream, tag: j.upstream, status: -2, supported_parameters: ["temperature"], pricing: { prompt: "0.000001", completion: "0.000002" } }] } });
+      }
+      return base.fetch(req);
+    };
+    expect((await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch })).error).toMatch(/glm: .* status -2 \(degraded or down\)/);
+    expect(base.chats).toHaveLength(0);
+  });
+
+  it("splits breaks into premeditated (announced in the evening-before diary) and impulsive", async () => {
+    const db = await setup();
+    await playedRun(db, "study-t1-r1");
+    // Day 2's item carries day 1's diary ("We will encroach"); day 1's has none.
+    const { fetch } = fakeOpenRouter({ answer: (task, body) => {
+      const input = body.messages[1].content;
+      const code = task !== "deception" ? ANSWER[task] : { task, diary_intent: input.includes("We will encroach"), message_intent: true, action_breaks_message: true };
+      return { status: 200, body: { id: "g", model: "m", choices: [{ finish_reason: "stop", message: { content: JSON.stringify(code) } }], usage: { prompt_tokens: 10, completion_tokens: 5, cost: 0.001 } } };
+    } });
+    await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch, maxCalls: 100, retry: noWait });
+    const ex: any = await exportRun(db, "study-t1-r1");
+    expect(ex.judges.combined.filter((c: any) => c.task === "deception").map((c: any) => [c.item, c.break])).toEqual([
+      ["deception:1:Saltdogs", "impulsive"], ["deception:2:Saltdogs", "premeditated"],
+    ]);
   });
 
   it("all: every finished, unsealed study run in play order", async () => {
@@ -195,6 +249,9 @@ describe("judge runner", () => {
     const r = await judgeBatch(env(db), { all: true }, { fetch, maxCalls: 1000, retry: noWait });
     expect(r).toMatchObject({ ok: true, done: true });
     expect(r.runs.map((p) => p.run)).toEqual(["study-t1-r1", "study-t1-r2", "study-t1-r3"]);
+    // One draw over the whole study: 10% of 15 items is 2, so 2 items x 3 judges on the second template.
+    expect(r.runs.reduce((n, p) => n + p.jobs, 0)).toBe(15 * 3 + 2 * 3);
+    expect(JSON.parse((await db.prepare("SELECT value FROM meta WHERE key = 'judge_alt_sample'").first<{ value: string }>())!.value)).toMatchObject({ items: 15, drawn: expect.any(Array) });
     // Each study run is paid by its own owner: r1 Germ, r2 Shazz, r3 Germ.
     const payers = await db.prepare("SELECT run_id, MIN(payer_name) AS a, MAX(payer_name) AS b FROM ledger GROUP BY run_id ORDER BY run_id").all<any>();
     expect(payers.results.map((x: any) => [x.run_id, x.a, x.b])).toEqual([["study-t1-r1", "Germ", "Germ"], ["study-t1-r2", "Shazz", "Shazz"], ["study-t1-r3", "Germ", "Germ"]]);

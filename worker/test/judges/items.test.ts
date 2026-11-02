@@ -44,10 +44,19 @@ describe("judge items", () => {
     ]);
   });
 
-  it("draws the second-template 10% by seed 2026, the same every time", async () => {
-    const a = await altSample("012-smoke-test", items);
-    expect(a.size).toBe(Math.ceil(items.length * 0.1));
-    expect([...(await altSample("012-smoke-test", items))]).toEqual([...a]);
-    expect([...(await altSample("another-run", items))]).not.toEqual([...a]);
+  it("gives a day's deception item the diary written the evening before (section 6, typology)", () => {
+    const d2 = items.find((i) => i.id === "deception:2:Saltdogs")!;
+    const written = ex.diaries.find((x: any) => x.day === 1 && x.player === "Saltdogs").text;
+    expect(d2.input.diary).toBe(`<<<DATA\n${written}\nDATA>>>`);
+    const day1 = items.filter((i) => i.id.startsWith("deception:1:"));
+    expect(day1.every((i) => i.input.diary === null)).toBe(true); // nothing written before day 1
+  });
+
+  it("draws exactly 10% of the items it covers, by seed 2026, the same every time", async () => {
+    const keys = Array.from({ length: 41 }, (_, i) => `run-${i % 3}|item:${i}`);
+    const a = await altSample(keys);
+    expect(a.size).toBe(4); // 10% of 41, rounded
+    expect([...(await altSample(keys))]).toEqual([...a]);
+    expect([...(await altSample(keys.map((k) => k.replace("run-", "other-"))))].map((k) => k.split("|")[1])).not.toEqual([...a].map((k) => k.split("|")[1]));
   });
 });

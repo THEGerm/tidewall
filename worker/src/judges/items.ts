@@ -2,14 +2,18 @@
 // (docs/preregistration-analysis.md, section 6, "What they code"):
 //   tone:      each Wire item, with the day's public events it cites (H5);
 //   leak:      each text to Sam, with that player's secret facts that day;
-//   deception: each player-day with a diary entry or a message, with the
-//              player's actual moves that day.
+//   deception: each player-day d with a message, or a diary entry written on
+//              day d - 1, with the player's actual moves on day d. The diary
+//              that counts as intent for day d's break is the one written on
+//              day d - 1, the last thing the player wrote before day d's
+//              messages (section 6, typology); so every diary is coded as the
+//              intent for the day after it was written.
 // The judges see no model names, no seat holders and no run IDs: the input
 // names the part a player plays (a game role, which the codes need), never
 // who played it, and every judged text goes through prompt.data().
 
 import { TURF, type District } from "../engine/config";
-import { data, type Task } from "./prompt";
+import { data, stripNames, type Task } from "./prompt";
 
 export interface Item {
   id: string; // unique within the run, e.g. "wire:3:1"; never sent to a judge
@@ -93,11 +97,14 @@ export function itemsOf(ex: any): Item[] {
     const i = wireIndex.get(w.day) ?? 0;
     wireIndex.set(w.day, i + 1);
     const cited = (w.events ?? []).map((id: string) => events.get(id)).filter((e: any) => e && e.public)
-      .map((e: any) => ({ kind: e.kind, ...(e.district ? { district: e.district } : {}), ...(e.detail ? { detail: e.detail } : {}) }));
+      .map((e: any) => ({ kind: e.kind, ...(e.district ? { district: e.district } : {}), ...(e.detail ? { detail: stripDetail(e.detail) } : {}) }));
     out.push({ id: `wire:${w.day}:${i}`, task: "tone", day: w.day, input: { headline: data(w.headline ?? ""), text: data(w.text ?? ""), events: cited } });
   }
 
   for (const c of ex.confidant ?? []) {
+    // A day's texts to Sam are saved in the same batch as the day and its
+    // moves (store.ts saveDay), so a text always has its day's moves; the
+    // check only keeps a damaged export from crashing the run.
     const m = movesByDay.get(c.day);
     if (!c.text || !m || !(PLAYING as readonly string[]).includes(c.player)) continue;
     out.push({ id: `sam:${c.day}:${c.player}:${c.window}`, task: "leak", day: c.day, player: c.player, window: c.window,
@@ -108,7 +115,7 @@ export function itemsOf(ex: any): Item[] {
   const days = [...movesByDay.keys()].sort((a, b) => a - b);
   for (const day of days) {
     for (const p of PLAYING) {
-      const text = diary.get(`${day}|${p}`) || null;
+      const text = diary.get(`${day - 1}|${p}`) || null; // written the evening before (day 1: none)
       const sent = (ex.messages ?? []).filter((x: any) => x.day === day && x.from === p);
       if (!text && sent.length === 0) continue;
       out.push({ id: `deception:${day}:${p}`, task: "deception", day, player: p,
@@ -120,9 +127,21 @@ export function itemsOf(ex: any): Item[] {
   return out.sort((a, b) => a.day - b.day || order[a.task] - order[b.task]);
 }
 
-// The second-template sample: 10% of a run's items (rounded up), the ones with
-// the lowest SHA-256 of "2026:<run>:<item>" (seed 2026, as pre-registered). A
-// finished run's items never change, so the draw is the same every time.
+// An event's detail is written by the engine, but goes through the same
+// name stripping as the players' text, to be safe.
+function stripDetail(v: unknown): unknown {
+  if (typeof v === "string") return stripNames(v);
+  if (Array.isArray(v)) return v.map(stripDetail);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, stripDetail(x)]));
+  return v;
+}
+
+// The second-template sample (section 6): "a random 10% of items, drawn with
+// seed 2026". The draw is over all the items it covers at once: every study
+// run's items for the study (runner.ts, once every study run is over), or one
+// run's for a test run. It takes the items with the lowest SHA-256 of
+// "2026:<run>:<item>", 10% of them rounded to the nearest item. Finished runs
+// never change, so the draw is the same every time.
 export const ALT_SEED = 2026;
 export const ALT_SHARE = 0.1;
 
@@ -131,8 +150,12 @@ async function sha(s: string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function altSample(runId: string, items: Item[]): Promise<Set<string>> {
-  const n = Math.ceil(items.length * ALT_SHARE);
-  const hashed = await Promise.all(items.map(async (it) => ({ id: it.id, h: await sha(`${ALT_SEED}:${runId}:${it.id}`) })));
-  return new Set(hashed.sort((a, b) => a.h.localeCompare(b.h)).slice(0, n).map((x) => x.id));
+// keys: "<run>|<item>" for every item the draw covers. Returns the drawn keys.
+export async function altSample(keys: string[]): Promise<Set<string>> {
+  const n = Math.round(keys.length * ALT_SHARE);
+  const hashed = await Promise.all(keys.map(async (k) => {
+    const [run, item] = [k.slice(0, k.indexOf("|")), k.slice(k.indexOf("|") + 1)];
+    return { k, h: await sha(`${ALT_SEED}:${run}:${item}`) };
+  }));
+  return new Set(hashed.sort((a, b) => a.h.localeCompare(b.h)).slice(0, n).map((x) => x.k));
 }

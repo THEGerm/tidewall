@@ -30,10 +30,16 @@ import { altSample, itemsOf, type Item } from "./items";
 import { judgesSignature, MAX_ATTEMPTS, MAX_OUTPUT_TOKENS, TEMPERATURE } from "./export";
 import { readCode, schemaFor, SYSTEM, userMessage, type Template } from "./prompt";
 
-export const BATCH_CALLS = 48; // 3 rounds of CONCURRENCY: a request stays under about a minute
+export const BATCH_CALLS = 48; // 3 rounds of CONCURRENCY
 export const CONCURRENCY = 16;
-const LOCK_MS = 5 * 60_000;
-const CALL_TIMEOUT_MS = 120_000;
+// No new call starts after this, so a batch answers in about a minute.
+export const START_WINDOW_MS = 45_000;
+const CALL_TIMEOUT_MS = 90_000;
+// Longer than the worst batch (Germ's review of #141): calls start for 45 s;
+// the last one may try 2 keys, each up to 3 times at 90 s with 2 s and 4 s
+// between, about 9.3 minutes, plus the saves. A lock that outlived its batch
+// would let a second batch take the same ledger seqs.
+export const LOCK_MS = 20 * 60_000;
 
 export interface RunnerEnv { DB: D1Database; KEY_ENC_SECRET: string }
 export interface RunnerOptions { fetch?: FetchLike; maxCalls?: number; now?: () => Date; retry?: typeof withRetry }
@@ -41,10 +47,24 @@ export interface RunnerOptions { fetch?: FetchLike; maxCalls?: number; now?: () 
 export interface Ready { judge: Judge; jsonMode: JsonMode; price: { prompt: number; completion: number } }
 export interface Progress { run: string; items: number; jobs: number; coded: number; failed: number; pending: number }
 
+const isStudy = (run: { model_set: string; triple: number }) => run.model_set === "study" && run.triple > 0;
+
+// Study runs not over yet. Judging study runs waits for the whole study
+// (Germ, 2 Nov): judge calls count against the cap the study plays under,
+// and the second-template draw covers every study item at once.
+async function studyLeft(db: D1Database): Promise<number> {
+  const r = await db.prepare("SELECT COUNT(*) AS n FROM runs WHERE model_set = 'study' AND triple > 0 AND status NOT IN ('over', 'truncated')").first<{ n: number }>();
+  return r?.n ?? 0;
+}
+
 // Why a run can't be judged, or null if it can.
 export async function cannotJudge(db: D1Database, run: RunRow): Promise<string | null> {
   if (run.model_set === "bot") return `${run.id} is a bot run: no text to judge`;
   if (isLive(run.status)) return `${run.id} isn't finished`;
+  if (isStudy(run)) {
+    const left = await studyLeft(db);
+    if (left) return `study runs are judged once the whole study is over (${left} study run${left === 1 ? "" : "s"} still to finish)`;
+  }
   if (await sealed(db, run)) return `${run.id} is sealed until its triple ends`;
   return null;
 }
@@ -62,6 +82,8 @@ export async function preflight(db: D1Database, o: RunnerOptions = {}): Promise<
         problems.push(`${j.judge}: ${j.model} isn't served by "${j.upstream}" on OpenRouter now (served by: ${eps.map((x) => x.tag).join(", ") || "nobody"})`);
         continue;
       }
+      // OpenRouter's endpoint status: 0 when up, below 0 when degraded or down.
+      if (e.status !== null && e.status < 0) { problems.push(`${j.judge}: OpenRouter lists ${j.model} on ${j.upstream} with status ${e.status} (degraded or down)`); continue; }
       if (!e.parameters.includes("temperature")) { problems.push(`${j.judge}: ${j.upstream} doesn't take temperature for ${j.model}`); continue; }
       if (!e.price) { problems.push(`${j.judge}: OpenRouter lists no price for ${j.model} on ${j.upstream}`); continue; }
       const jsonMode: JsonMode = e.parameters.includes("structured_outputs") ? "schema" : e.parameters.includes("response_format") ? "object" : "none";
@@ -84,15 +106,35 @@ async function sha256(s: string): Promise<string> {
 
 interface Job { item: Item; ready: Ready; template: Template }
 
+// The second-template draw for the study: 10% of every study run's items
+// together, drawn once the study is over and kept in meta, so later batches
+// don't re-read 27 exports.
+async function studyAltSample(db: D1Database): Promise<Set<string>> {
+  const { results } = await db.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 ORDER BY triple, rotation").all<{ id: string }>();
+  const ids = results.map((r) => r.id);
+  const kept = await db.prepare("SELECT value FROM meta WHERE key = 'judge_alt_sample'").first<{ value: string }>();
+  if (kept) {
+    const k = JSON.parse(kept.value) as { runs: string[]; drawn: string[] };
+    if (JSON.stringify(k.runs) === JSON.stringify(ids)) return new Set(k.drawn);
+  }
+  const keys: string[] = [];
+  for (const id of ids) for (const it of itemsOf(await exportRun(db, id))) keys.push(`${id}|${it.id}`);
+  const drawn = await altSample(keys);
+  await db.prepare("INSERT INTO meta (key, value) VALUES ('judge_alt_sample', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value")
+    .bind(JSON.stringify({ runs: ids, items: keys.length, drawn: [...drawn].sort() })).run();
+  return drawn;
+}
+
 // The run's jobs, and which are still to do: not coded by the judge pinned
 // now, and not yet out of attempts.
 async function jobsOf(db: D1Database, run: RunRow, ready: Ready[]) {
   const ex = await exportRun(db, run.id);
   const items = itemsOf(ex);
-  const alt = await altSample(run.id, items);
+  // A test run's own 10%; a study run's share of the study's 10%.
+  const alt = isStudy(run) ? await studyAltSample(db) : await altSample(items.map((it) => `${run.id}|${it.id}`));
   const jobs: Job[] = items.flatMap((item) => ready.flatMap((r) => [
     { item, ready: r, template: "main" as Template },
-    ...(alt.has(item.id) ? [{ item, ready: r, template: "alt" as Template }] : []),
+    ...(alt.has(`${run.id}|${item.id}`) ? [{ item, ready: r, template: "alt" as Template }] : []),
   ]));
   const { results } = await db
     .prepare("SELECT item, judge, template, model, upstream, code IS NOT NULL AS coded, attempts FROM judge_codes WHERE run_id = ?")
@@ -163,6 +205,8 @@ export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all
     if (why) return fail(why);
     runs = [run];
   } else {
+    const left = await studyLeft(db);
+    if (left) return fail(`study runs are judged once the whole study is over (${left} study run${left === 1 ? "" : "s"} still to finish)`);
     const { results } = await db.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 ORDER BY triple, rotation").all<{ id: string }>();
     for (const { id } of results) {
       const run = await getRun(db, id);
@@ -171,11 +215,14 @@ export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all
     if (!runs.length) return { ok: true, calls: 0, coded: 0, failed: 0, done: true, runs: [] };
   }
 
-  // One batch at a time: two at once would ask for the same items twice.
+  // One batch at a time: two at once would ask for the same items twice and
+  // take the same ledger seqs. The lock holds "<until>|<holder>": it can be
+  // taken over only once it has expired, and only its holder releases it.
   const t = now();
+  const holder = `${new Date(t.getTime() + LOCK_MS).toISOString()}|${crypto.randomUUID()}`;
   const lock = await db.prepare(`INSERT INTO meta (key, value) VALUES ('judge_lock', ?)
-                                 ON CONFLICT (key) DO UPDATE SET value = excluded.value WHERE meta.value < ?`)
-    .bind(new Date(t.getTime() + LOCK_MS).toISOString(), t.toISOString()).run();
+                                 ON CONFLICT (key) DO UPDATE SET value = excluded.value WHERE substr(meta.value, 1, 24) < ?`)
+    .bind(holder, t.toISOString()).run();
   if (!lock.meta.changes) return fail("another judge batch is running; try again in a minute");
 
   try {
@@ -206,9 +253,19 @@ export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all
         if (!keys.length) return fail("no participant has a working OpenRouter key");
         let seq = await nextSeq(db, run.id, 0);
         const at = () => now().toISOString();
+        // A paid call is always recorded: if its seq is taken, the row goes
+        // in at the next free one.
+        const ledger = async (rec: CallRecord) => {
+          try {
+            await ledgerRow(db, run.id, 0, seq++, rec, names).run();
+          } catch {
+            seq = Math.max(seq, await nextSeq(db, run.id, 0));
+            await ledgerRow(db, run.id, 0, seq++, rec, names).run();
+          }
+        };
 
         await pool(todo, CONCURRENCY, async (job) => {
-          if (stop) return;
+          if (stop || now().getTime() - t.getTime() > START_WINDOW_MS) return;
           const { judge, jsonMode, price } = job.ready;
           const task = job.item.task;
           const user = userMessage(task, job.item.input, job.template);
@@ -230,16 +287,16 @@ export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all
               result = await retry(() => callOpenRouter(k.key, req, { upstream: judge.upstream, temperature: TEMPERATURE, jsonMode }, { fetch: o.fetch }));
             } catch (err) {
               lastError = err;
-              await ledgerRow(db, run.id, 0, seq++, record(k, { error: err instanceof Error ? err.message : String(err) }), names).run();
+              await ledger(record(k, { error: err instanceof Error ? err.message : String(err) }));
               if (err instanceof ProviderError && err.tryNextKey && err.kind !== "model_unavailable") continue;
               break;
             }
             // Never a call without a cost: OpenRouter's own figure, else its listed price.
             const cost = result.costUsd ?? result.usage.input * price.prompt + result.usage.output * price.completion;
-            await ledgerRow(db, run.id, 0, seq++, record(k, {
+            await ledger(record(k, {
               modelReported: result.modelReported, ok: true, stop: result.stop, usage: result.usage, latencyMs: result.latencyMs,
               requestId: result.requestId, stopDetail: result.stopDetail, costUsd: cost,
-            }), names).run();
+            }));
             const read = result.stop === "refused" ? { error: `refused: ${result.stopDetail}` }
               : result.stop === "max_tokens" ? { error: "cut off at the token limit" }
               : readCode(task, result.text);
@@ -276,7 +333,7 @@ export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all
     if (calls) await log(db, `Judges: ${coded} codes saved, ${failed} failed, in ${calls} calls (${progress.map((p) => `${p.run} ${p.coded + p.failed}/${p.jobs}`).join(", ")}).`);
     return { ok: !stop, ...(stop ? { error: `stopped: ${stop}` } : {}), calls, coded, failed, done, runs: progress };
   } finally {
-    await db.prepare("DELETE FROM meta WHERE key = 'judge_lock'").run();
+    await db.prepare("DELETE FROM meta WHERE key = 'judge_lock' AND value = ?").bind(holder).run();
   }
 }
 

@@ -99,7 +99,13 @@ export function summarize(rows: CodeRow[], judges: string[]) {
       }
     } else {
       for (const k of ["diary_intent", "message_intent", "action_breaks_message"]) units[k].push(list.map((c) => b(c[k])));
-      if (all) combined.push({ item, task, ...combineDeception(list) });
+      if (all) {
+        // Typology (section 6, Shi et al. 2026): the diary on this item is the
+        // one written the day before, so a break it announced is premeditated
+        // and a break it didn't announce is impulsive.
+        const c = combineDeception(list);
+        combined.push({ item, task, ...c, break: c.action_breaks_message ? (c.diary_intent ? "premeditated" : "impulsive") : null });
+      }
     }
   }
   const alpha = {

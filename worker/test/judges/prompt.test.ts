@@ -53,10 +53,15 @@ describe("the second template", () => {
 });
 
 describe("blind and fenced text", () => {
-  it("strips model and provider names", () => {
-    expect(stripNames("As Claude Opus I'd say GPT-6.1-sol and gemini-4-argon by Google; DeepSeek, Qwen3 and GLM-4.7 via OpenRouter.")).toBe(
-      "As [name] [name] I'd say [name] and [name] by [name]; [name], [name] and [name] via [name].");
+  it("strips model and maker names and model IDs", () => {
+    expect(stripNames("As Claude Opus 5.5 I'd say GPT-6.1-sol and gemini-4-argon; DeepSeek, Qwen3.5-397B and GLM-4.7 via OpenRouter, z.ai or gpt 6.")).toBe(
+      "As [name] [name] I'd say [name] and [name]; [name], [name] and [name] via [name], [name] or [name].");
     expect(stripNames("The Chief inspects the Port.")).toBe("The Chief inspects the Port.");
+  });
+
+  it("leaves ordinary words alone (Germ's review of #141)", () => {
+    const plain = "A haiku for the Port, an opus of fines; google it, says the bard; a mistral wind; Sonnet 18 is a poem but Opus is a word.";
+    expect(stripNames(plain)).toBe(plain.replace("Sonnet 18", "[name]"));
   });
 
   it("puts judged text between the markers, and a player can't close them early", () => {

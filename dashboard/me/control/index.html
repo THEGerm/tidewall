@@ -52,7 +52,7 @@
         <li><strong>Check</strong> answers "can the next day play?": it looks for a missing key, an unpinned model or the spending cap, without spending anything.</li>
         <li><strong>Ledger</strong> opens the ledger page on this run: every model call, its tokens, cost and who paid.</li>
         <li><strong>End</strong> finishes the run for good. It moves to the archive on the home page, its secrets open (a study run's once its whole triple has ended), and its data is saved to the repo within the hour.</li>
-        <li><strong>Judge</strong> (finished runs) has the three judges code the run's Wire items, texts to Sam and player-days (pre-registration, section 6). A study run can be judged once its whole triple has ended. Keep the page open while it works; if it stops, press it again and it carries on, skipping what is coded.</li>
+        <li><strong>Judge</strong> (finished runs) has the three judges code the run's Wire items, texts to Sam and player-days (pre-registration, section 6). Study runs can be judged once the whole study is over (Germ, 2 Nov); a finished test run, any time. Keep the page open while it works; if it stops, press it again and it carries on, skipping what is coded.</li>
         <li>A run that can't play pauses itself and says why in the log.</li>
       </ul>
       <div class="table-wrap">
@@ -97,7 +97,7 @@
 
     <section aria-labelledby="h-judges">
       <h2 id="h-judges">The judges</h2>
-      <p class="muted">DeepSeek, Qwen and GLM, through OpenRouter, each pinned to one model and one provider, at temperature 0, with the frozen prompt and schema (pre-registration, section 6). Calls use the saved OpenRouter keys, the run's owner first, and go in the ledger, so they count against the cap. Check judges looks each one up on OpenRouter without spending anything.</p>
+      <p class="muted">DeepSeek, Qwen and GLM, through OpenRouter, each pinned to one model and one provider, at temperature 0, with the frozen prompt and schema (pre-registration, section 6). Calls use the saved OpenRouter keys, the run's owner first, and go in the ledger, so they count against the cap. Check judges looks each one up on OpenRouter without spending anything. Study runs are judged once all 27 are over.</p>
       <button type="button" id="judge-check-btn" class="ghost">Check judges</button>
       <button type="button" id="judge-all-btn">Judge every finished study run</button>
       <p id="judge-msg" class="msg" role="status"></p>
