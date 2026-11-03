@@ -122,3 +122,26 @@ describe("study runs: one owner per run (Germ, 2 Nov)", () => {
     expect((await keyChain(db, SECRET, "anthropic", 1, study(1, 2)))[0]).toMatchObject({ email: "s@x", owner: true });
   });
 });
+
+describe("key route (Germ, 3 Nov)", () => {
+  it("sends each provider to its routed payer, as owner, whatever the run or day, with the others only behind it", async () => {
+    const db = await setup();
+    for (const e of ["g@x", "s@x"]) {
+      await saveKey(db, SECRET, e, "google", `test-key-google-${e}-0000000000000`);
+      await saveKey(db, SECRET, e, "openai", `test-key-openai-${e}-0000000000000`);
+    }
+    await db.prepare("INSERT INTO meta (key, value) VALUES ('key_route', ?)").bind(JSON.stringify({ google: "Germ", openai: "Germ", anthropic: "Shazz" })).run();
+    const shazzRun = { model_set: "study2", triple: 1, rotation: 2 }; // Shazz owns this run
+    for (const day of [1, 2]) {
+      expect((await keyChain(db, SECRET, "google", day, shazzRun)).map((k) => [k.name, k.owner])).toEqual([["Germ", true], ["Shazz", false]]);
+      expect((await keyChain(db, SECRET, "openai", day, shazzRun))[0]).toMatchObject({ name: "Germ", owner: true });
+      expect((await keyChain(db, SECRET, "anthropic", day, { model_set: "study2", triple: 1, rotation: 1 }))[0]).toMatchObject({ name: "Shazz", owner: true });
+    }
+  });
+
+  it("changes nothing without a route", async () => {
+    const db = await setup();
+    expect((await keyChain(db, SECRET, "anthropic", 2))[0]).toMatchObject({ name: "Shazz", owner: true });
+    expect((await keyChain(db, SECRET, "anthropic", 1))[0]).toMatchObject({ name: "Germ", owner: true });
+  });
+});
