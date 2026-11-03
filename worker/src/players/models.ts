@@ -39,9 +39,18 @@ export const CHEAP_TEST_MODELS: Record<Family, { provider: Provider; model: stri
 // run, set this to MODELS.
 export const TEST_MODELS: Record<Family, { provider: Provider; model: string }> = CHEAP_TEST_MODELS;
 
-export type ModelSet = "study" | "test";
+// Study 2 (Germ, 2 Nov): the 27-run design again on the lightweight siblings of the
+// study models, same engine, prompts, seeds and seatings. Its own copy, so a
+// later change to the test models never changes a Study 2 run.
+export const STUDY2_MODELS: Record<Family, { provider: Provider; model: string }> = {
+  claude: { provider: "anthropic", model: "claude-haiku-5-5" },
+  gemini: { provider: "google", model: "gemini-3.1-flash-lite" },
+  gpt: { provider: "openai", model: "gpt-6-luna" },
+};
+
+export type ModelSet = "study" | "test" | "study2";
 // Bot runs call no model; they never reach the code that asks for one.
-export const modelsFor = (set: ModelSet | "bot") => (set === "test" ? TEST_MODELS : MODELS);
+export const modelsFor = (set: ModelSet | "bot") => (set === "test" ? TEST_MODELS : set === "study2" ? STUDY2_MODELS : MODELS);
 
 export const isPinned = (f: Family, set: ModelSet | "bot" = "study") => !modelsFor(set)[f].model.startsWith("PIN-");
 
@@ -54,7 +63,7 @@ export const JUDGE_MODELS: readonly { provider: Provider; model: string }[] = []
 // Every pinned model a provider's key may be asked to run: the study set, the
 // test set and the judges, each ID once, placeholders ("PIN-...") left out.
 export function pinnedModels(provider: Provider): string[] {
-  const all = [...Object.values(MODELS), ...Object.values(TEST_MODELS), ...JUDGE_MODELS];
+  const all = [...Object.values(MODELS), ...Object.values(TEST_MODELS), ...Object.values(STUDY2_MODELS), ...JUDGE_MODELS];
   const ids = all.filter((m) => m.provider === provider && !m.model.startsWith("PIN-")).map((m) => m.model);
   return [...new Set(ids)];
 }

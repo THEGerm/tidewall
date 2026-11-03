@@ -34,6 +34,7 @@ const isBot = (r) => r.model_set === "bot";
 // A study-model run outside triples 1 to 9 (the 012-smoke-test) is a test, as
 // in the export workflow and analysis.data.is_study_run.
 const isTest = (r) => r.model_set === "test" || (r.model_set === "study" && !(r.triple > 0));
+const isStudy2 = (r) => r.model_set === "study2"; // Study 2, lightweight models: never pooled with the study
 
 // What each seat's family is compared on. Welfare is the whole city's, shown
 // under every seat by the family that held it; fallbacks and cost are the
@@ -139,7 +140,7 @@ export function show(el, all) {
   if (root) return;
   root = el;
   runs = all.filter((r) => !r.sealed);
-  const study = runs.filter((r) => !isTest(r) && !isBot(r));
+  const study = runs.filter((r) => r.model_set === "study" && !isTest(r));
   chosen = new Set((study.length ? study : runs.filter(isTest)).map((r) => r.id));
   const live = all.filter((r) => r.sealed).length;
   root.replaceChildren(
@@ -159,7 +160,8 @@ export function show(el, all) {
 
 function renderPicker() {
   const groups = [
-    ["Study runs", runs.filter((r) => !isTest(r) && !isBot(r)), null],
+    ["Study runs", runs.filter((r) => r.model_set === "study" && !isTest(r)), null],
+    ["Study 2 runs (lightweight models)", runs.filter(isStudy2), null],
     ["Test runs", runs.filter(isTest), null],
     ["Bot runs", runs.filter(isBot), "The equilibrium baseline: bots, no models. Loaded only when ticked."],
   ].filter(([, rs]) => rs.length);

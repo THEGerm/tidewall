@@ -32,14 +32,20 @@ export async function studySeed(triple: number): Promise<string> {
 
 export interface StudyRun { id: string; seed: string; triple: number; rotation: Rotation; seating: Seating }
 
+// The sets that play the 27-run design. Study 2 (Germ, 2 Nov) replays it on
+// lightweight models with its own run IDs, so no row or export of the study is
+// ever touched.
+export type DesignSet = "study" | "study2";
+export const runPrefix = (set: DesignSet) => (set === "study" ? "study" : "study2");
+
 // The 27 runs in playing order: triple 1 rotations 1 to 3, triple 2 rotations
 // 4 to 6, and so on.
 // The scheduler plays ready runs in this order (runner.ts, ORDER BY triple, rotation).
-export async function studyPlan(): Promise<StudyRun[]> {
+export async function studyPlan(set: DesignSet = "study"): Promise<StudyRun[]> {
   const out: StudyRun[] = [];
   for (let t = 1; t <= TRIPLES; t++) {
     const seed = await studySeed(t);
-    for (const r of rotationsFor(t)) out.push({ id: `study-t${t}-r${r}`, seed, triple: t, rotation: r, seating: SEATINGS[r] });
+    for (const r of rotationsFor(t)) out.push({ id: `${runPrefix(set)}-t${t}-r${r}`, seed, triple: t, rotation: r, seating: SEATINGS[r] });
   }
   return out;
 }

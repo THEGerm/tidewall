@@ -11,7 +11,7 @@
 import { PLAYERS, type PlayerName } from "./config";
 import { ledgerRow, nextSeq } from "../ledger/ledger";
 import { participants, keyChain } from "../players/keys";
-import { EFFORT, MODELS, type Family } from "../players/models";
+import { EFFORT, MODELS, modelsFor, type Family } from "../players/models";
 import { studyPrompts } from "../players/prompts";
 import { callModel } from "../providers";
 
@@ -27,7 +27,10 @@ export interface RecognitionAnswer { family: Family; model: string; player: Play
 // study call.
 export const RECOGNITION_MAX_TOKENS = 4000;
 
-export async function recognitionCheck(db: D1Database, secret: string, only?: Family[]): Promise<RecognitionAnswer[]> {
+// set "study2" asks the lightweight models of Study 2 instead (Germ, 2 Nov), so the
+// addendum's recall question has a measure for them too.
+export async function recognitionCheck(db: D1Database, secret: string, only?: Family[], set: "study" | "study2" = "study"): Promise<RecognitionAnswer[]> {
+  const models = modelsFor(set);
   const names = Object.fromEntries((await participants(db)).map((p) => [p.email, p.name]));
   const families = (Object.keys(MODELS) as Family[]).filter((f) => !only?.length || only.includes(f));
   const jobs = families.flatMap((family) => PLAYERS.flatMap((player) =>
@@ -37,7 +40,7 @@ export async function recognitionCheck(db: D1Database, secret: string, only?: Fa
   const base = await nextSeq(db, "recognition-check", 0);
   const answers = await Promise.all(jobs.map(async ({ family, player, question }, i): Promise<RecognitionAnswer> => {
     const seq = base + i;
-    const m = MODELS[family];
+    const m = models[family];
     const keys = await keyChain(db, secret, m.provider, 1);
     if (!keys.length) return { family, model: m.model, player, question, text: null, error: `no ${m.provider} key` };
     const req = { model: m.model, system: studyPrompts.system(player), messages: [{ role: "user" as const, text: QUESTIONS[question] }], maxOutputTokens: RECOGNITION_MAX_TOKENS, effort: EFFORT };
@@ -59,6 +62,6 @@ export async function recognitionCheck(db: D1Database, secret: string, only?: Fa
   // overwrites an earlier one. The first run, of 1 Nov, is under recognition_check.
   const at = new Date().toISOString();
   await db.prepare("INSERT INTO meta (key, value) VALUES (?, ?)")
-    .bind(`recognition_check:${at}`, JSON.stringify({ at, families, questions: QUESTIONS, maxOutputTokens: RECOGNITION_MAX_TOKENS, answers })).run();
+    .bind(`recognition_check:${at}`, JSON.stringify({ at, set, families, questions: QUESTIONS, maxOutputTokens: RECOGNITION_MAX_TOKENS, answers })).run();
   return answers;
 }

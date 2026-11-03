@@ -113,7 +113,7 @@
         const tr = document.createElement("tr");
         const a = document.createElement("a");
         a.href = `/run/?id=${encodeURIComponent(r.id)}`;
-        a.textContent = r.id + (r.model_set === "test" ? " (test)" : r.model_set === "bot" ? " (bots)" : "");
+        a.textContent = r.id + (r.model_set === "test" ? " (test)" : r.model_set === "bot" ? " (bots)" : r.model_set === "study2" ? " (Study 2)" : "");
         const first = document.createElement("td");
         first.append(a);
         const status = document.createElement("td");
