@@ -41,6 +41,21 @@
 % lambda. Replace with the 27-run figures; keep the date.
 \todo{exploratory results, labelled as such}
 %
+% Study 2 note (Germ, 3 Nov): a replayed day changed a choice. On
+% study2-t1-r1, day 10, Haiku 5.5 as Chief accepted all 6 bribe offers on each
+% of 3 attempts (answers kept in the ledger's responses, day_saved = 0). Each
+% attempt then failed on our side: the Chief's step-5 schema had an empty
+% enum, since no district was left to inspect (#155, fixed in #156). By the
+% rules, a day lost to an infrastructure error is replayed, never saved. On the
+% replay, after the fix, the same model on the same seed and prompts refused
+% all 6, after texting Sam that its account was at -83 and "one audit could
+% cost me 100". The flagship Chiefs accepted no bribe in the study.
+% To report: (1) the replay rule can change a recorded choice, because the
+% seed fixes Nature and the dice, not the models' answers; list every
+% replayed day whose unsaved answers differ from the saved ones; (2) the
+% unsaved attempts are evidence of a lightweight Chief willing to take every
+% bribe, which the confirmatory data alone would miss.
+%
 % Exploratory finding, noted 2 Nov during the study (Germ): who confides in Sam.
 % The prompt lets a player text Sam "or not at all" (null for no text). After
 % 8 of 27 runs, the share of texts left empty, by model and seat:
