@@ -124,12 +124,12 @@ svg .grid { stroke: var(--line); stroke-width: 1; }
 svg .axis { stroke: var(--muted); stroke-width: 1; }
 svg .now { stroke: var(--muted); stroke-dasharray: 2 3; }
 svg .tick { fill: var(--muted); font-size: 11px; }
-svg .label { font-size: 12px; font-weight: 600; }
+svg .label { font-size: 12px; font-weight: 600; fill: var(--text); }
 svg .line { fill: none; stroke-width: 2; stroke-linejoin: round; }
 svg .line.gov { stroke: var(--gov); } svg .pt.gov, svg .label.gov { fill: var(--gov); }
 svg .line.fam { stroke: var(--fam); } svg .pt.fam, svg .label.fam { fill: var(--fam); }
 svg .line.salt { stroke: var(--salt); } svg .pt.salt, svg .label.salt { fill: var(--salt); }
-svg .line.wire { stroke: var(--wire); } svg .pt.wire { fill: var(--wire); }
+svg .line.wire { stroke: var(--wire); } svg .pt.wire, svg .label.wire { fill: var(--wire); }
 .today { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .chip { font-size: 0.85rem; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
 .chip.gov { color: var(--gov); } .chip.fam { color: var(--fam); } .chip.salt { color: var(--salt); }

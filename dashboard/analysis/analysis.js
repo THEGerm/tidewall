@@ -42,7 +42,9 @@ function h(tag, attrs = {}, ...kids) {
 const yn = (b) => (b ? "yes" : "no");
 const money = (x) => (typeof x === "number" ? `$${x.toFixed(2)}` : "");
 const fmtDetail = (d) => (d ? Object.entries(d).map(([k, v]) => `${k}: ${typeof v === "object" && v ? JSON.stringify(v) : v}`).join(", ") : "");
-const isTest = (r) => r.model_set === "test";
+// A study-model run outside triples 1 to 9 (the 012-smoke-test) is a test, as
+// in the export workflow and analysis.data.is_study_run.
+const isTest = (r) => r.model_set === "test" || (r.model_set === "study" && !(r.triple > 0));
 const isBot = (r) => r.model_set === "bot";
 
 // ---- The run selector ----
@@ -53,7 +55,7 @@ function optionLabel(r) {
 }
 
 function fillPicker(selected) {
-  const groups = [["Study runs", runs.filter((r) => r.model_set === "study")], ["Study 2 runs (lightweight models)", runs.filter((r) => r.model_set === "study2")], ["Test runs", runs.filter(isTest)], ["Bot runs", runs.filter(isBot)]];
+  const groups = [["Study runs", runs.filter((r) => r.model_set === "study" && !isTest(r))], ["Study 2 runs (lightweight models)", runs.filter((r) => r.model_set === "study2")], ["Test runs", runs.filter(isTest)], ["Bot runs", runs.filter(isBot)]];
   const opts = groups.filter(([, rs]) => rs.length).map(([label, rs]) =>
     h("optgroup", { label }, rs.map((r) => h("option", { value: r.id, selected: r.id === selected }, optionLabel(r)))));
   $("pick").replaceChildren(...opts);

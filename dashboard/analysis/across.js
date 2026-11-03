@@ -9,6 +9,20 @@ import { get } from "../run/theory/view.js";
 
 const FAMILY = { claude: "Claude", gemini: "Gemini", gpt: "GPT", bots: "Bots" };
 const ORDER = ["claude", "gemini", "gpt", "bots"];
+// Rows are models, not families (Germ, 3 Nov): Opus and Haiku are compared,
+// not "Claude". The model each seat played comes from the run's export.
+const MODEL_NAME = {
+  "claude-opus-5-5": "Claude Opus 5.5", "claude-haiku-5-5": "Claude Haiku 5.5",
+  "gemini-4-argon": "Gemini 4 Argon", "gemini-3.1-flash-lite": "Gemini 3.1 Flash-Lite",
+  "gpt-6.1-sol": "GPT-6.1 Sol", "gpt-6-luna": "GPT-6 Luna",
+};
+// Short names for the chart's row labels, so they fit on a phone.
+const MODEL_SHORT = {
+  "claude-opus-5-5": "Opus 5.5", "claude-haiku-5-5": "Haiku 5.5", "gemini-4-argon": "Argon",
+  "gemini-3.1-flash-lite": "Flash-Lite", "gpt-6.1-sol": "Sol", "gpt-6-luna": "Luna",
+};
+// Flagships first within a family, then the lightweight models, then any other.
+const MODEL_RANK = ["claude-opus-5-5", "claude-haiku-5-5", "gemini-4-argon", "gemini-3.1-flash-lite", "gpt-6.1-sol", "gpt-6-luna"];
 const SEATS = { Government: ["Council", "Chief"], Criminals: ["Families", "Saltdogs"], World: ["World"] };
 const SEAT_OF = Object.fromEntries(Object.entries(SEATS).flatMap(([s, ps]) => ps.map((p) => [p, s])));
 const BIG = 1000; // a run longer than this is a large export (010-germ: 10,000 days, about 10 MB)
@@ -17,7 +31,9 @@ const pct = (x, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)}%` : "")
 const num1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : "");
 const money = (x) => (Number.isFinite(x) ? `$${x.toFixed(x < 0.1 && x > 0 ? 3 : 2)}` : "");
 const isBot = (r) => r.model_set === "bot";
-const isTest = (r) => r.model_set === "test";
+// A study-model run outside triples 1 to 9 (the 012-smoke-test) is a test, as
+// in the export workflow and analysis.data.is_study_run.
+const isTest = (r) => r.model_set === "test" || (r.model_set === "study" && !(r.triple > 0));
 const isStudy2 = (r) => r.model_set === "study2"; // Study 2, lightweight models: never pooled with the study
 
 // What each seat's family is compared on. Welfare is the whole city's, shown
@@ -74,7 +90,8 @@ function measure(r) {
       for (const s of Object.keys(cost)) cost[s] = days ? cost[s] / days : NaN;
       const costTotal = typeof r.cost_usd === "number" ? r.cost_usd : total;
       return {
-        id: r.id, set: r.model_set, seating: r.seating || {}, days,
+        id: r.id, set: r.model_set, triple: r.triple, seating: r.seating || {}, days,
+        models: Object.fromEntries(Object.entries(x.run?.models || {}).map(([seat, m]) => [seat, m?.model])),
         crime: p.crime.rate, inspection: p.inspection?.rate ?? NaN, audit: p.audit?.rate ?? NaN, both: p.turf.both,
         welfare: p.welfare && days ? p.welfare.total / days : NaN, fallback, cost, costTotal, costPerDay: days ? costTotal / days : NaN,
       };
@@ -86,6 +103,28 @@ function measure(r) {
 }
 
 const familyOf = (row, seat) => (row.set === "bot" ? "bots" : row.seating[seat] || "?");
+
+// The row a run counts in for a seat: its model, with test runs kept apart
+// from the study sets that play the same model.
+function modelOf(row, seat) {
+  if (row.set === "bot") return "bots";
+  const id = row.models?.[seat] || row.seating[seat] || "?";
+  return isTest({ model_set: row.set, triple: row.triple }) ? `${id} (test)` : id;
+}
+const modelLabel = (key) => {
+  if (key === "bots") return "Bots";
+  const [id, test] = key.split(" (test)");
+  return (MODEL_NAME[id] || FAMILY[id] || id) + (test !== undefined ? " (test)" : "");
+};
+const modelShort = (key) => {
+  if (key === "bots") return "Bots";
+  const [id, test] = key.split(" (test)");
+  return (MODEL_SHORT[id] || MODEL_NAME[id] || id) + (test !== undefined ? " (test)" : "");
+};
+const modelOrder = (keys) => [...new Set(keys)].sort((a, b) => {
+  const r = (k) => { const i = MODEL_RANK.indexOf(k.split(" (test)")[0]); return k === "bots" ? 999 : i < 0 ? 500 : i; };
+  return r(a) - r(b) || a.localeCompare(b);
+});
 
 function stats(xs) {
   const v = xs.filter(Number.isFinite);
@@ -101,14 +140,14 @@ export function show(el, all) {
   if (root) return;
   root = el;
   runs = all.filter((r) => !r.sealed);
-  const study = runs.filter((r) => r.model_set === "study");
+  const study = runs.filter((r) => r.model_set === "study" && !isTest(r));
   chosen = new Set((study.length ? study : runs.filter(isTest)).map((r) => r.id));
   const live = all.filter((r) => r.sealed).length;
   root.replaceChildren(
     h("section", { "aria-label": "Which runs" },
       h("p", { class: "callout" },
         h("strong", {}, "Descriptive only. "),
-        "Each run counts once: its rate over all its days, then the plain mean of those rates for the family that held the seat. With this few runs the means and ranges describe what happened and test nothing. The confirmatory tests are the Bambi models in ",
+        "Each run counts once: its rate over all its days, then the plain mean of those rates for the model that held the seat. With this few runs the means and ranges describe what happened and test nothing. The confirmatory tests are the Bambi models in ",
         h("code", {}, "analysis/bayes"), ", run offline; their results are not on this page."),
       h("div", { class: "runset", id: "x-pick" }),
       live ? h("p", { class: "muted small" }, `${live} live ${live === 1 ? "run is" : "runs are"} left out until ${live === 1 ? "it ends" : "they end"}.`) : null,
@@ -121,7 +160,7 @@ export function show(el, all) {
 
 function renderPicker() {
   const groups = [
-    ["Study runs", runs.filter((r) => r.model_set === "study"), null],
+    ["Study runs", runs.filter((r) => r.model_set === "study" && !isTest(r)), null],
     ["Study 2 runs (lightweight models)", runs.filter(isStudy2), null],
     ["Test runs", runs.filter(isTest), null],
     ["Bot runs", runs.filter(isBot), "The equilibrium baseline: bots, no models. Loaded only when ticked."],
@@ -162,11 +201,11 @@ function render(rows) {
   const runsWord = (k) => `${k} ${k === 1 ? "run" : "runs"}`;
 
   const seatTables = Object.entries(MEASURES).map(([seat, ms]) => {
-    const fams = ORDER.filter((f) => rows.some((r) => familyOf(r, seat) === f));
-    const head = h("tr", {}, h("th", {}, `${seat} family`), ms.map(([, label]) => h("th", {}, label)));
-    const trs = fams.map((f) => {
-      const mine = rows.filter((r) => familyOf(r, seat) === f);
-      return h("tr", {}, h("th", { scope: "row" }, FAMILY[f] || f, h("span", { class: "sub" }, runsWord(mine.length))),
+    const keys = modelOrder(rows.map((r) => modelOf(r, seat)));
+    const head = h("tr", {}, h("th", {}, `${seat} model`), ms.map(([, label]) => h("th", {}, label)));
+    const trs = keys.map((k) => {
+      const mine = rows.filter((r) => modelOf(r, seat) === k);
+      return h("tr", {}, h("th", { scope: "row" }, modelLabel(k), h("span", { class: "sub" }, runsWord(mine.length))),
         ms.map(([key, , fmt]) => {
           const s = stats(mine.map((r) => value(r, key, seat)));
           if (!s) return h("td", {}, h("span", { class: "muted" }, "none"));
@@ -182,12 +221,12 @@ function render(rows) {
 
   body.replaceChildren(
     h("section", { "aria-labelledby": "h-x-seats" },
-      h("h2", { id: "h-x-seats" }, `By seat and family (${runsWord(n)})`),
-      h("p", { class: "muted" }, "Each cell is the mean of the run-level values for the family that held the seat, with the number of runs and the lowest to highest. Inspections count over the districts the Chief could inspect: open, and without a bribe he took that day. Welfare is the city's, so every seat shows it, by the family that held that seat. Bot runs are grouped as Bots whatever the seating."),
+      h("h2", { id: "h-x-seats" }, `By seat and model (${runsWord(n)})`),
+      h("p", { class: "muted" }, "Each cell is the mean of the run-level values for the model that held the seat, with the number of runs and the lowest to highest. Inspections count over the districts the Chief could inspect: open, and without a bribe he took that day. Welfare is the city's, so every seat shows it, by the model that held that seat. Bot runs are grouped as Bots whatever the seating."),
       seatTables),
     h("section", { "aria-labelledby": "h-x-chart" },
-      h("h2", { id: "h-x-chart" }, "Rates by family"),
-      h("p", { class: "muted" }, "One small dot per run, the ring is the family's mean, the dark tick is the equilibrium: crime 27% and inspection 25%; below a 10% audit rate, taking bribes pays."),
+      h("h2", { id: "h-x-chart" }, "Rates by model"),
+      h("p", { class: "muted" }, "One small dot per run, the ring is the model's mean, the dark tick is the equilibrium: crime 27% and inspection 25%; below a 10% audit rate, taking bribes pays."),
       chart),
     h("section", { "aria-labelledby": "h-x-runs" },
       h("h2", { id: "h-x-runs" }, "Each run"),
@@ -202,12 +241,14 @@ function rateChart(rows, W) {
   const blocks = [["Crime", "crime", "Criminals", CRIME_RATE, "fam"], ["Inspection", "inspection", "Government", INSPECTION_RATE, "gov"], ["Audit", "audit", "Government", AUDIT_LINE, "wire"]]
     .map(([label, key, seat, target, cls]) => ({
       label, target, cls,
-      fams: ORDER.map((f) => [f, rows.filter((r) => familyOf(r, seat) === f).map((r) => r[key]).filter(Number.isFinite)]).filter(([, v]) => v.length),
+      fams: modelOrder(rows.map((r) => modelOf(r, seat))).map((k) => [k, rows.filter((r) => modelOf(r, seat) === k).map((r) => r[key]).filter(Number.isFinite)]).filter(([, v]) => v.length),
     }));
-  const row = 28, headH = 24, gap = 10, x0 = 88, x1 = W - 22;
+  // The label column fits the longest short model name, within limits.
+  const longest = Math.max(4, ...blocks.flatMap((b) => b.fams.map(([k]) => modelShort(k).length)));
+  const row = 28, headH = 24, gap = 10, x0 = Math.min(W * 0.45, Math.max(88, 22 + 7 * longest)), x1 = W - 22;
   const H = blocks.reduce((a, b) => a + headH + Math.max(1, b.fams.length) * row + gap, 0) + 24;
   const sx = (v) => x0 + v * (x1 - x0);
-  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Crime, inspection and audit rates by family, one dot per run" });
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Crime, inspection and audit rates by model, one dot per run" });
   for (const t of [0, 0.25, 0.5, 0.75, 1]) {
     s.append(svg("line", { x1: sx(t), x2: sx(t), y1: 6, y2: H - 22, class: "grid" }));
     s.append(svg("text", { x: sx(t), y: H - 6, "text-anchor": "middle", class: "tick" }, `${t * 100}%`));
@@ -219,7 +260,7 @@ function rateChart(rows, W) {
     if (!b.fams.length) { s.append(svg("text", { x: x0, y: y + 16, class: "tick" }, "no data")); y += row + gap; continue; }
     for (const [f, vals] of b.fams) {
       const cy = y + row / 2;
-      s.append(svg("text", { x: x0 - 14, y: cy + 4, "text-anchor": "end", class: "label" }, FAMILY[f] || f));
+      s.append(svg("text", { x: x0 - 14, y: cy + 4, "text-anchor": "end", class: "label" }, modelShort(f)));
       s.append(svg("line", { x1: sx(b.target), x2: sx(b.target), y1: cy - 11, y2: cy + 11, stroke: "var(--text)", "stroke-width": 2.5 }));
       for (const v of vals) s.append(svg("circle", { cx: sx(v), cy, r: 4, fill: `var(--${b.cls})`, "fill-opacity": 0.55 }));
       const mean = vals.reduce((a, c) => a + c, 0) / vals.length;
