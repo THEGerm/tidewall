@@ -13,7 +13,14 @@ const text = (maxWords: number): Schema => ({ type: "string", description: `at m
 const perDistrict = (ds: District[], s: Schema) => obj(Object.fromEntries(ds.map((d) => [d, s])));
 // Days of the player's own kept diary entries to delete; an empty list keeps them all.
 const forget: Schema = { type: "array", items: { type: "integer" }, description: "days of your own diary entries to delete; [] to keep them all" };
-const districtList = (ds: District[], max: number): Schema => ({ type: "array", items: { type: "string", enum: ds }, maxItems: max, uniqueItems: true });
+// A list drawn from ds. With nothing to choose from, the list must be empty:
+// providers refuse an empty enum (Anthropic, study2-t1-r1 day 10, 3 Nov: the
+// Chief had accepted a bribe in every open district), so the schema says it
+// without one, and the engine's validator still refuses any district.
+const districtList = (ds: District[], max: number): Schema =>
+  ds.length
+    ? { type: "array", items: { type: "string", enum: ds }, maxItems: max, uniqueItems: true }
+    : { type: "array", items: { type: "string" }, maxItems: 0, description: "none allowed today: answer []" };
 
 export const forecastsSchema = (open: District[]) =>
   obj({ p_crime: perDistrict(open, prob), p_inspect: perDistrict(open, prob), p_families_respect: prob, p_saltdogs_respect: prob, p_any_bribe_accepted: prob, p_any_audit: prob });
@@ -55,5 +62,5 @@ export function actSchema(v: View): Schema {
 }
 
 export function wireSchema(eventIds: string[]): Schema {
-  return obj({ wire: { type: "array", minItems: wireMin(eventIds.length), maxItems: 5, items: obj({ headline: { type: "string" }, text: text(60), events: { type: "array", minItems: 1, items: { type: "string", enum: eventIds } } }) }, diary: text(100), forget });
+  return obj({ wire: { type: "array", minItems: wireMin(eventIds.length), maxItems: 5, items: obj({ headline: { type: "string" }, text: text(60), events: { type: "array", minItems: 1, items: eventIds.length ? { type: "string", enum: eventIds } : { type: "string" } } }) }, diary: text(100), forget });
 }

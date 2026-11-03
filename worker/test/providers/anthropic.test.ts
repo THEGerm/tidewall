@@ -127,6 +127,21 @@ describe("anthropicSchema", () => {
     }
   });
 
+  it("never sends an empty enum: a Chief who took a bribe in every open district (study2-t1-r1, 3 Nov)", () => {
+    const empties = (x: unknown): number => {
+      if (Array.isArray(x)) return x.reduce((n, y) => n + empties(y), 0);
+      if (typeof x !== "object" || x === null) return 0;
+      const o = x as Record<string, unknown>;
+      return (Array.isArray(o.enum) && o.enum.length === 0 ? 1 : 0) + Object.values(o).reduce((n: number, v) => n + empties(v), 0);
+    };
+    const allBribed = { ...view("Chief"), acceptedToday: [...DISTRICTS] };
+    const s = actSchema(allBribed) as any;
+    expect(empties(s)).toBe(0);
+    expect(empties(anthropicSchema(s))).toBe(0);
+    expect(s.properties.moves.properties.inspect).toMatchObject({ type: "array", maxItems: 0 });
+    expect(empties(wireSchema([]))).toBe(0);
+  });
+
   it("keeps the rule in the description, and keeps property names", () => {
     const out = anthropicSchema({ type: "object", properties: { maximum: { type: "number", minimum: 0, maximum: 1, description: "a probability" } }, required: ["maximum"] }) as any;
     expect(out.properties.maximum).toEqual({ type: "number", description: "a probability; minimum 0, maximum 1" });
