@@ -42,7 +42,9 @@ function h(tag, attrs = {}, ...kids) {
 const yn = (b) => (b ? "yes" : "no");
 const money = (x) => (typeof x === "number" ? `$${x.toFixed(2)}` : "");
 const fmtDetail = (d) => (d ? Object.entries(d).map(([k, v]) => `${k}: ${typeof v === "object" && v ? JSON.stringify(v) : v}`).join(", ") : "");
-const isTest = (r) => r.model_set === "test";
+// A study-model run outside triples 1 to 9 (the 012-smoke-test) is a test, as
+// in the export workflow and analysis.data.is_study_run.
+const isTest = (r) => r.model_set === "test" || (r.model_set === "study" && !(r.triple > 0));
 const isBot = (r) => r.model_set === "bot";
 
 // ---- The run selector ----

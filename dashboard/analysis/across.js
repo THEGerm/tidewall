@@ -17,7 +17,9 @@ const pct = (x, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)}%` : "")
 const num1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : "");
 const money = (x) => (Number.isFinite(x) ? `$${x.toFixed(x < 0.1 && x > 0 ? 3 : 2)}` : "");
 const isBot = (r) => r.model_set === "bot";
-const isTest = (r) => r.model_set === "test";
+// A study-model run outside triples 1 to 9 (the 012-smoke-test) is a test, as
+// in the export workflow and analysis.data.is_study_run.
+const isTest = (r) => r.model_set === "test" || (r.model_set === "study" && !(r.triple > 0));
 
 // What each seat's family is compared on. Welfare is the whole city's, shown
 // under every seat by the family that held it; fallbacks and cost are the
