@@ -125,8 +125,29 @@ export async function held(db: D1Database, provider: Provider, creditor: string,
 // held() is no longer called (Germ, 2 Nov); the meta row stays as a record.
 // Works the same for every provider in PROVIDERS, OpenRouter included. Payback
 // runs through the debtor's Anthropic key only (Germ, 2 Nov).
+// A fixed payer per provider (Germ, 3 Nov), in meta key_route as
+// {"google": "Germ", "openai": "Germ", "anthropic": "Shazz"} (participant
+// names). When set for a provider, that participant's key is the only one
+// tried first and counts as the owner's, so no debt or payback follows; the
+// others stay behind it only as a last resort. It skips keys known to be dead
+// (Shazz's Google 429 and OpenAI 403) instead of trying them on every call.
+export async function keyRoute(db: D1Database): Promise<Record<string, string>> {
+  const m = await db.prepare("SELECT value FROM meta WHERE key = 'key_route'").first<{ value: string }>();
+  try { return m ? JSON.parse(m.value) : {}; } catch { return {}; }
+}
+
 export async function keyChain(db: D1Database, secret: string, provider: Provider, day: number, run?: RunRef | null): Promise<KeyCandidate[]> {
   const people = await participants(db);
+  const routeTo = (await keyRoute(db))[provider];
+  const routed = routeTo ? people.find((p) => p.name === routeTo) : undefined;
+  if (routed) {
+    const out: KeyCandidate[] = [];
+    for (const p of [routed, ...ownerOrder(people, day, run).filter((x) => x.email !== routed.email)]) {
+      const key = await readKey(db, secret, p.email, provider);
+      if (key) out.push({ email: p.email, name: p.name, key, owner: p.email === routed.email });
+    }
+    return out;
+  }
   const order = ownerOrder(people, day, run);
   const out: KeyCandidate[] = [];
   if (order.length > 1 && provider === "anthropic") {
