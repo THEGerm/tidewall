@@ -1,4 +1,4 @@
--- 0014: the offline judges' codes (#112; pre-registration, section 6). One row
+-- 0015: the offline judges' codes (#112; pre-registration, section 6). One row
 -- per item, judge and template. A row is written after every attempt: code
 -- holds the validated answer, or stays null with the error, and attempts
 -- counts tries, so a rerun skips what is coded and gives up after a few
@@ -36,4 +36,4 @@ CREATE TABLE judge_runs (
   updated_at TEXT NOT NULL
 );
 
-UPDATE meta SET value = '0014' WHERE key = 'schema';
+UPDATE meta SET value = '0015' WHERE key = 'schema';

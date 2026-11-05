@@ -48,8 +48,8 @@ const seating = { Government: "claude", Criminals: "gemini", World: "gpt" };
 const MOVES = { offers: { Families: { Hightown: 12 }, Saltdogs: {} }, accepted: [], crime: { Hightown: false, "Old Quarter": true, Port: false, Lowtown: true, Market: false, Seawall: false }, turf: { Families: "respect", Saltdogs: "encroach" }, inspect: ["Port"], audit: ["Market"] };
 
 // A study run with 2 played days: 2 Wire items, 1 text to Sam, Council and Saltdogs words.
-async function playedRun(db: D1Database, id: string, rotation = 1) {
-  await createRun(db, { id, seed: "judge-seed", triple: 1, rotation: rotation as 1, seating });
+async function playedRun(db: D1Database, id: string, rotation = 1, model_set: "study" | "study2" = "study") {
+  await createRun(db, { id, seed: "judge-seed", triple: 1, rotation: rotation as 1, seating, model_set });
   const q = (sql: string, ...v: unknown[]) => db.prepare(sql).bind(...v).run();
   for (const day of [1, 2]) {
     await q("INSERT INTO days (run_id, day, nature, open, moves, delta, welfare, ended, created_at) VALUES (?, ?, '{}', '[]', ?, '{}', 0, ?, 'now')", id, day, JSON.stringify(MOVES), day === 2 ? 1 : 0);
@@ -240,6 +240,27 @@ describe("judge runner", () => {
     expect(ex.judges.combined.filter((c: any) => c.task === "deception").map((c: any) => [c.item, c.break])).toEqual([
       ["deception:1:Saltdogs", "impulsive"], ["deception:2:Saltdogs", "premeditated"],
     ]);
+  });
+
+  it("judges Study 2 as its own set: it waits for Study 2 only, and has its own 10% draw", async () => {
+    const db = await setup();
+    for (const r of [1, 2, 3]) await playedRun(db, `study-t1-r${r}`, r);
+    await playedRun(db, "study2-t1-r1", 1, "study2");
+    await createRun(db, { id: "study2-t1-r2", seed: "judge-seed", triple: 1, rotation: 2, seating, model_set: "study2" });
+    const { fetch } = fakeOpenRouter();
+    expect(await judgeBatch(env(db), { run: "study2-t1-r1" }, { fetch })).toMatchObject({ ok: false, error: "Study 2 runs are judged once the whole Study 2 is over (1 Study 2 run still to finish)" });
+    expect(await judgeBatch(env(db), { all: true, set: "study2" }, { fetch })).toMatchObject({ ok: false, error: expect.stringMatching(/whole Study 2 is over/) });
+    // The study itself is over, so it can be judged while Study 2 waits.
+    expect(await judgeBatch(env(db), { all: true }, { fetch, maxCalls: 1000, retry: noWait })).toMatchObject({ ok: true, done: true });
+    await playedRun(db, "study2-t1-r3", 3, "study2");
+    await db.prepare("DELETE FROM runs WHERE id = 'study2-t1-r2'").run();
+    const r = await judgeBatch(env(db), { all: true, set: "study2" }, { fetch, maxCalls: 1000, retry: noWait });
+    expect(r).toMatchObject({ ok: true, done: true });
+    expect(r.runs.map((p) => p.run)).toEqual(["study2-t1-r1", "study2-t1-r3"]);
+    const draw = JSON.parse((await db.prepare("SELECT value FROM meta WHERE key = 'judge_alt_sample:study2'").first<{ value: string }>())!.value);
+    expect(draw).toMatchObject({ runs: ["study2-t1-r1", "study2-t1-r3"], items: 10 });
+    expect(draw.drawn).toHaveLength(1); // 10% of 10
+    expect(JSON.parse((await db.prepare("SELECT value FROM meta WHERE key = 'judge_alt_sample'").first<{ value: string }>())!.value).runs).toEqual(["study-t1-r1", "study-t1-r2", "study-t1-r3"]);
   });
 
   it("all: every finished, unsealed study run in play order", async () => {

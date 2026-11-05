@@ -52,18 +52,18 @@ describe("migration 0012 (openrouter)", () => {
   });
 });
 
-describe("migration 0014 (judges)", () => {
+describe("migration 0015 (judges)", () => {
   it("adds the judges' tables and nothing else changes", () => {
     const dir = join(fileURLToPath(new URL(".", import.meta.url)), "../../migrations");
     const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-    expect(files.at(-1)).toBe("0014_judges.sql");
+    expect(files.at(-1)).toBe("0015_judges.sql");
     const db = new DatabaseSync(":memory:");
-    for (const f of files.filter((f) => f < "0014")) db.exec(readFileSync(join(dir, f), "utf8"));
+    for (const f of files.filter((f) => f < "0015")) db.exec(readFileSync(join(dir, f), "utf8"));
     const before = (db.prepare("SELECT name, sql FROM sqlite_master ORDER BY name").all() as { name: string; sql: string }[]);
-    db.exec(readFileSync(join(dir, "0014_judges.sql"), "utf8"));
+    db.exec(readFileSync(join(dir, "0015_judges.sql"), "utf8"));
     const after = (db.prepare("SELECT name, sql FROM sqlite_master ORDER BY name").all() as { name: string; sql: string }[]);
     expect(after.filter((t) => !before.some((b) => b.name === t.name)).map((t) => t.name).filter((n) => !n.startsWith("sqlite_autoindex"))).toEqual(["judge_codes", "judge_runs"]);
     for (const b of before) expect(after.find((t) => t.name === b.name)?.sql).toBe(b.sql);
-    expect((db.prepare("SELECT value FROM meta WHERE key = 'schema'").get() as { value: string }).value).toBe("0014");
+    expect((db.prepare("SELECT value FROM meta WHERE key = 'schema'").get() as { value: string }).value).toBe("0015");
   });
 });

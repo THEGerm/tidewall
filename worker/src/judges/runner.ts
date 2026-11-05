@@ -47,23 +47,29 @@ export interface RunnerOptions { fetch?: FetchLike; maxCalls?: number; now?: () 
 export interface Ready { judge: Judge; jsonMode: JsonMode; price: { prompt: number; completion: number } }
 export interface Progress { run: string; items: number; jobs: number; coded: number; failed: number; pending: number }
 
-const isStudy = (run: { model_set: string; triple: number }) => run.model_set === "study" && run.triple > 0;
+// The study sets: the study, and Study 2 (Germ, 2 Nov: the same 27-run
+// design on lightweight models). Each is judged as a whole, on its own.
+export type StudySet = "study" | "study2";
+const STUDY_SETS: readonly string[] = ["study", "study2"];
+const isStudy = (run: { model_set: string; triple: number }) => STUDY_SETS.includes(run.model_set) && run.triple > 0;
+const setName = (set: string) => (set === "study2" ? "Study 2" : "study");
 
-// Study runs not over yet. Judging study runs waits for the whole study
-// (Germ, 2 Nov): judge calls count against the cap the study plays under,
-// and the second-template draw covers every study item at once.
-async function studyLeft(db: D1Database): Promise<number> {
-  const r = await db.prepare("SELECT COUNT(*) AS n FROM runs WHERE model_set = 'study' AND triple > 0 AND status NOT IN ('over', 'truncated')").first<{ n: number }>();
+// A study set's runs not over yet. Judging a set waits for the whole set
+// (Germ, 2 Nov): judge calls count against the cap it plays under, and the
+// second-template draw covers every item of the set at once.
+async function studyLeft(db: D1Database, set: string): Promise<number> {
+  const r = await db.prepare("SELECT COUNT(*) AS n FROM runs WHERE model_set = ? AND triple > 0 AND status NOT IN ('over', 'truncated')").bind(set).first<{ n: number }>();
   return r?.n ?? 0;
 }
+const notYet = (set: string, left: number) => `${setName(set)} runs are judged once the whole ${setName(set)} is over (${left} ${setName(set)} run${left === 1 ? "" : "s"} still to finish)`;
 
 // Why a run can't be judged, or null if it can.
 export async function cannotJudge(db: D1Database, run: RunRow): Promise<string | null> {
   if (run.model_set === "bot") return `${run.id} is a bot run: no text to judge`;
   if (isLive(run.status)) return `${run.id} isn't finished`;
   if (isStudy(run)) {
-    const left = await studyLeft(db);
-    if (left) return `study runs are judged once the whole study is over (${left} study run${left === 1 ? "" : "s"} still to finish)`;
+    const left = await studyLeft(db, run.model_set);
+    if (left) return notYet(run.model_set, left);
   }
   if (await sealed(db, run)) return `${run.id} is sealed until its triple ends`;
   return null;
@@ -106,13 +112,14 @@ async function sha256(s: string): Promise<string> {
 
 interface Job { item: Item; ready: Ready; template: Template }
 
-// The second-template draw for the study: 10% of every study run's items
-// together, drawn once the study is over and kept in meta, so later batches
+// The second-template draw for a study set: 10% of all its runs' items
+// together, drawn once the set is over and kept in meta, so later batches
 // don't re-read 27 exports.
-async function studyAltSample(db: D1Database): Promise<Set<string>> {
-  const { results } = await db.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 ORDER BY triple, rotation").all<{ id: string }>();
+async function studyAltSample(db: D1Database, set: string): Promise<Set<string>> {
+  const { results } = await db.prepare("SELECT id FROM runs WHERE model_set = ? AND triple > 0 ORDER BY triple, rotation").bind(set).all<{ id: string }>();
   const ids = results.map((r) => r.id);
-  const kept = await db.prepare("SELECT value FROM meta WHERE key = 'judge_alt_sample'").first<{ value: string }>();
+  const key = set === "study" ? "judge_alt_sample" : `judge_alt_sample:${set}`;
+  const kept = await db.prepare("SELECT value FROM meta WHERE key = ?").bind(key).first<{ value: string }>();
   if (kept) {
     const k = JSON.parse(kept.value) as { runs: string[]; drawn: string[] };
     if (JSON.stringify(k.runs) === JSON.stringify(ids)) return new Set(k.drawn);
@@ -120,8 +127,8 @@ async function studyAltSample(db: D1Database): Promise<Set<string>> {
   const keys: string[] = [];
   for (const id of ids) for (const it of itemsOf(await exportRun(db, id))) keys.push(`${id}|${it.id}`);
   const drawn = await altSample(keys);
-  await db.prepare("INSERT INTO meta (key, value) VALUES ('judge_alt_sample', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value")
-    .bind(JSON.stringify({ runs: ids, items: keys.length, drawn: [...drawn].sort() })).run();
+  await db.prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value")
+    .bind(key, JSON.stringify({ runs: ids, items: keys.length, drawn: [...drawn].sort() })).run();
   return drawn;
 }
 
@@ -131,7 +138,7 @@ async function jobsOf(db: D1Database, run: RunRow, ready: Ready[]) {
   const ex = await exportRun(db, run.id);
   const items = itemsOf(ex);
   // A test run's own 10%; a study run's share of the study's 10%.
-  const alt = isStudy(run) ? await studyAltSample(db) : await altSample(items.map((it) => `${run.id}|${it.id}`));
+  const alt = isStudy(run) ? await studyAltSample(db, run.model_set) : await altSample(items.map((it) => `${run.id}|${it.id}`));
   const jobs: Job[] = items.flatMap((item) => ready.flatMap((r) => [
     { item, ready: r, template: "main" as Template },
     ...(alt.has(`${run.id}|${item.id}`) ? [{ item, ready: r, template: "alt" as Template }] : []),
@@ -189,9 +196,9 @@ export interface BatchResult {
   runs: Progress[];
 }
 
-// One batch. target: one run by ID (a finished study or test run), or every
-// finished, unsealed study run.
-export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all: true }, o: RunnerOptions = {}): Promise<BatchResult> {
+// One batch. target: one run by ID (a finished study, Study 2 or test run),
+// or every run of a study set (the study unless set says "study2").
+export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all: true; set?: StudySet }, o: RunnerOptions = {}): Promise<BatchResult> {
   const db = env.DB;
   const now = o.now ?? (() => new Date());
   const fail = (error: string): BatchResult => ({ ok: false, error, calls: 0, coded: 0, failed: 0, done: false, runs: [] });
@@ -205,9 +212,10 @@ export async function judgeBatch(env: RunnerEnv, target: { run: string } | { all
     if (why) return fail(why);
     runs = [run];
   } else {
-    const left = await studyLeft(db);
-    if (left) return fail(`study runs are judged once the whole study is over (${left} study run${left === 1 ? "" : "s"} still to finish)`);
-    const { results } = await db.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 ORDER BY triple, rotation").all<{ id: string }>();
+    const set = target.set ?? "study";
+    const left = await studyLeft(db, set);
+    if (left) return fail(notYet(set, left));
+    const { results } = await db.prepare("SELECT id FROM runs WHERE model_set = ? AND triple > 0 ORDER BY triple, rotation").bind(set).all<{ id: string }>();
     for (const { id } of results) {
       const run = await getRun(db, id);
       if (run && !(await cannotJudge(db, run))) runs.push(run);

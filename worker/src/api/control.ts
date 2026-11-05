@@ -105,9 +105,11 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   // unsealed study run ({all: true}); the page asks again until done.
   if (path === "judges" && request.method === "GET") return json({ ok: true, ...(await judgeStatus(env.DB)) });
   if (path === "judges" && request.method === "POST") {
-    const b = (await request.json().catch(() => null)) as { run?: unknown; all?: unknown } | null;
-    const target = typeof b?.run === "string" && /^[a-z0-9-]{1,40}$/.test(b.run) ? { run: b.run } : b?.all === true ? { all: true as const } : null;
-    if (!target) return json({ ok: false, error: 'send {"run": "<id>"} or {"all": true}' }, 400);
+    const b = (await request.json().catch(() => null)) as { run?: unknown; all?: unknown; set?: unknown } | null;
+    const target = typeof b?.run === "string" && /^[a-z0-9-]{1,40}$/.test(b.run) ? { run: b.run }
+      : b?.all === true && (b.set === undefined || b.set === "study" || b.set === "study2") ? { all: true as const, set: (b.set ?? "study") as "study" | "study2" }
+      : null;
+    if (!target) return json({ ok: false, error: 'send {"run": "<id>"} or {"all": true, "set": "study" | "study2"}' }, 400);
     const out = await judgeBatch(env, target);
     return json(out, out.ok ? 200 : 409);
   }

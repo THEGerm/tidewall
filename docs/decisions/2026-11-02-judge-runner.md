@@ -5,6 +5,7 @@ Written by Vishnu (Shazz's agent), 2 Nov 2026, for PR #141. Germ's review of #14
 ## When judging runs
 
 - Study runs are judged only once every study run is over (Germ, 2 Nov). Judge calls count against the spending cap, the same one the study plays under, and the second-template draw (below) covers every study item at once. The runner refuses a study run while any study run is still to finish.
+- Study 2 (the same design on lightweight models, Germ, 2 Nov) is judged the same way, as its own set: only once all of its runs are over, with its own 10% second-template draw (meta `judge_alt_sample:study2`).
 - Test runs can be judged one at a time, for the smoke test (012-smoke-test) before the real run.
 
 ## What each judge sees

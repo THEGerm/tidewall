@@ -259,12 +259,14 @@ $("judge-check-btn").onclick = async () => {
     $("judge-msg").textContent = `${s.problems.length ? `Not ready: ${s.problems.join("; ")}. ` : "Ready. "}${judges}.${runs ? ` Judged so far: ${runs}.` : ""}`;
   } catch (e) { $("judge-msg").textContent = e.message; }
 };
-$("judge-all-btn").onclick = async (ev) => {
-  const b = ev.currentTarget;
-  b.disabled = true;
-  await judgeLoop({ all: true }, (t) => { $("judge-msg").textContent = `Judges: ${t}`; });
-  b.disabled = false;
-};
+for (const [id, set, label] of [["judge-all-btn", "study", "Judges"], ["judge-all2-btn", "study2", "Judges, Study 2"]]) {
+  $(id).onclick = async (ev) => {
+    const b = ev.currentTarget;
+    b.disabled = true;
+    await judgeLoop({ all: true, set }, (t) => { $("judge-msg").textContent = `${label}: ${t}`; });
+    b.disabled = false;
+  };
+}
 
 // The 27 study runs (#38). The server refuses without the typed phrase and if
 // any study run exists, so this can only happen once.

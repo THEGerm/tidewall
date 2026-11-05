@@ -102,9 +102,10 @@
 
     <section aria-labelledby="h-judges">
       <h2 id="h-judges">The judges</h2>
-      <p class="muted">DeepSeek, Qwen and GLM, through OpenRouter, each pinned to one model and one provider, at temperature 0, with the frozen prompt and schema (pre-registration, section 6). Calls use the saved OpenRouter keys, the run's owner first, and go in the ledger, so they count against the cap. Check judges looks each one up on OpenRouter without spending anything. Study runs are judged once all 27 are over.</p>
+      <p class="muted">DeepSeek, Qwen and GLM, through OpenRouter, each pinned to one model and one provider, at temperature 0, with the frozen prompt and schema (pre-registration, section 6). Calls use the saved OpenRouter keys, the run's owner first, and go in the ledger, so they count against the cap. Check judges looks each one up on OpenRouter without spending anything. Each study set (the study, Study 2) is judged once all 27 of its runs are over, with its own 10% second-template draw.</p>
       <button type="button" id="judge-check-btn" class="ghost">Check judges</button>
       <button type="button" id="judge-all-btn">Judge every finished study run</button>
+      <button type="button" id="judge-all2-btn" class="ghost">Judge every finished Study 2 run</button>
       <p id="judge-msg" class="msg" role="status"></p>
     </section>
 
