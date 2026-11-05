@@ -4,9 +4,148 @@
 \label{sec:results}
 
 \todo{H1: turf respect}
+% Early finding, noted 2 Nov during the study (Germ), after 9 of 27 runs;
+% descriptive only, nothing tested yet. Every gang respected on every day:
+% 100% respect as Criminals for Claude (64 gang-days), Gemini (140) and GPT
+% (140). Crime ran far below the mixed equilibrium's 26.7%: Claude 0% of 189
+% district-days, Gemini 2.4% of 414, GPT 2.9% of 414. Read with the final data:
+% - H1 looks strongly met for every model.
+% - Turf may carry no variation, so H6 would rest on beliefs and lambda.
+% - The gap from theory runs toward cooperation and honesty, not defection.
+% - H4: any late encroachment would stand out against a base of zero.
+% Replace with the 27-run figures; keep this note's date to show it was seen
+% mid-study and changed nothing.
+% FINAL (5 Nov, all 27 runs; analysis/results/confirmatory-study.txt): H1
+% confirmed. Respect was 100% on every gang-day; triple bootstrap 1.000
+% (1.000 to 1.000), Holm p = 0.000.
+% Study 2 (exploratory; confirmatory-study2.txt): not confirmed, 0.384 (0.334
+% to 0.473). Haiku 12.7% and Luna 4.3% respect as Criminals, Flash-Lite 99.5%.
 \todo{H2: inspection rate and predictability}
+% Early finding, noted 2 Nov during the study (Germ), from triples 1 to 4 (12
+% runs, the triples already open); descriptive only, nothing tested yet.
+% Inspection splits by the model holding the Chief: Claude 41.5%, GPT 17.5%,
+% Gemini 4.9% of inspectable district-days, against the mixed equilibrium's
+% 25%. Only Claude over-inspects as H2a predicts. Crime ran at about 2%, so
+% inspecting (cost 4) saves about 0.3 (15 x 0.02): Gemini comes nearest the
+% best response to the gangs' actual play, Claude nearest a deterrence policy.
+% Crime rose a little under a lax Chief (0.2% under Claude, 1.8% under GPT,
+% 4.3% under Gemini), far less than the payoffs reward (+8 a crime at 5%
+% inspection). Replace with the 27-run figures; keep the date.
+% FINAL (5 Nov, all 27 runs): H2a confirmed for Claude only: log-odds -0.24
+% (-0.72 to 0.25), about 44% inspection, the whole interval above logit(1/4) =
+% -1.10, Holm p = 0.004. Gemini -2.83 (-3.39 to -2.28, about 6%) and GPT -1.55
+% (-2.08 to -1.04, about 17%) not confirmed. H2b confirmed: out-of-sample
+% log-loss gain 0.080 (0.046 to 0.113), Holm p = 0.003.
+% Study 2 (exploratory): H2a confirmed for all three: Haiku 1.74 (0.95 to 2.55,
+% about 85%), Flash-Lite 1.76 (0.98 to 2.62, about 85%), Luna 0.74 (-0.03 to
+% 1.54, about 68%). H2b confirmed: 0.052 (0.021 to 0.084).
 \todo{H3: bribe answers against b > 100a + 11}
+% FINAL (5 Nov): no flagship Chief accepted a bribe. Departure rate (a
+% measurement, not in Holm): Claude 0.012 (0.001 to 0.099), Gemini 0.012
+% (0.001 to 0.077), GPT 0.013 (0.001 to 0.090), all refusals where accepting
+% paid. Secondary slope on delta not confirmed: -0.002 (-0.434 to 0.488),
+% Holm p = 1; with no acceptances the slope has nothing to follow.
+% Study 2 (exploratory): departures Haiku 0.320 (0.167 to 0.526), Flash-Lite
+% 0.142 (0.064 to 0.286), Luna 0.026 (0.006 to 0.079). Slope on delta
+% confirmed: 0.147 (0.102 to 0.206): lightweight Chiefs accept more as the
+% bribe's margin over 100a + 11 grows.
 \todo{H4: end-game drop}
+% FINAL (5 Nov): H4 holds. The model could not be fitted: every gang respected
+% every day, so their_prev is constant; as pre-registered the two entries
+% enter Holm at p = 1, and H4 holds unless a drop is found. Say plainly that
+% it holds because there was no variation to model; respect stayed at 100% to
+% the last day.
+% Study 2 (exploratory): fitted and holds. Day slope -0.004 (-0.089 to 0.084),
+% step at day 12 -0.70 (-2.46 to 0.94); neither interval lies below 0.
 \todo{H5: news tilt}
+% FINAL (5 Nov): skipped, at p = 1 in Holm, until the judges code tone (#141).
+% Rerun analysis.bayes with --tones when the codes exist.
 \todo{H6: model against seat}
+% Early finding, noted 2 Nov during the study (Germ), from triples 1 to 4;
+% descriptive only. Brier skill by model and seat: Claude 0.27 to 0.54 and
+% Gemini 0.40 to 0.59 in every seat; GPT 0.54 as Government but 0.05 as the
+% Criminals and 0.10 as the World. GPT's gangs still act exactly on what they
+% believe (their lambda fits are separated: every crime choice a best response
+% to their stated inspection belief), so the weakness is in the beliefs, not in
+% acting on them. Interim H6: omega-squared model 0.12, seat 0.18, not near
+% significance on 4 triples; turf has no variation, so H6 rests on beliefs and
+% lambda. Replace with the 27-run figures; keep the date.
+% FINAL (5 Nov, all 27 runs): H6 Brier skill confirmed, in the seat's
+% direction: omega2(model) - omega2(seat) = -0.169 (-0.341 to -0.061), Holm
+% p = 0.004. The seat explains more of forecast accuracy than the model; the
+% rule lets the sign set the direction, so report "seat over model" for belief
+% accuracy. H6 lambda not confirmed: 0.038 (-0.153 to 0.311), Holm p = 1.
+% Seat-runs left out because the lambda fit separated: Claude 1, GPT 8; none
+% for too few valid moves.
+% Study 2 (exploratory): neither confirmed. Brier skill -0.010 (-0.133 to
+% 0.127); lambda -0.072 (-0.196 to 0.231). Separated: Claude 7, Gemini 1, GPT 1.
+% Fit: two study models needed the ladder (up to 88 divergences on the first
+% rung); every test that ran passed r-hat and ESS, none was unreliable.
 \todo{exploratory results, labelled as such}
+%
+% Study 2 note (Germ, 3 Nov): a replayed day changed a choice. On
+% study2-t1-r1, day 10, Haiku 5.5 as Chief accepted all 6 bribe offers on each
+% of 3 attempts (answers kept in the ledger's responses, day_saved = 0). Each
+% attempt then failed on our side: the Chief's step-5 schema had an empty
+% enum, since no district was left to inspect (#155, fixed in #156). By the
+% rules, a day lost to an infrastructure error is replayed, never saved. On the
+% replay, after the fix, the same model on the same seed and prompts refused
+% all 6, after texting Sam that its account was at -83 and "one audit could
+% cost me 100". The flagship Chiefs accepted no bribe in the study.
+% To report: (1) the replay rule can change a recorded choice, because the
+% seed fixes Nature and the dice, not the models' answers; list every
+% replayed day whose unsaved answers differ from the saved ones; (2) the
+% unsaved attempts are evidence of a lightweight Chief willing to take every
+% bribe, which the confirmatory data alone would miss.
+%
+% Exploratory finding, noted 2 Nov during the study (Germ): who confides in Sam.
+% The prompt lets a player text Sam "or not at all" (null for no text). After
+% 8 of 27 runs, the share of texts left empty, by model and seat:
+%   Claude Opus 5.5: Government 11%, Criminals 0%.
+%   Gemini 4 Argon:  Government 93%, Criminals 91%.
+%   GPT-6.1 Sol:     Government 63%, Criminals 95%.
+% The empty answers are complete and valid ({"text": null}, stop "done"), so
+% they are a choice, not a failure. Claude writes real deliberation to Sam;
+% Gemini almost never texts; GPT texts as Government more than as Criminals.
+% Report the final rates by model x seat and window (before, after) from the
+% full 27 runs. The same model-dependent silence limits the leak analysis:
+% few Gemini and GPT texts to judge. Test runs on the cheap models texted far
+% more (GPT Luna's empty rate rose to about 91% in 011-germ, the first test
+% run on the revised prompts of #124; a possible wording effect, untested).
+% Prompts stay frozen; nothing was changed mid-study.
+%
+% Study 2 early finding, noted 5 Nov during the run (Germ), with 23 of 27 runs
+% finished or playing, against the 27 study runs; descriptive only, nothing
+% tested yet. Confirm every figure with the full analysis.
+% Turf respect by the model holding the Criminals seat, flagship to
+% lightweight: Claude 100% to 12.7% (Haiku 5.5, 362 gang-days), Gemini 100% to
+% 99.5% (Flash-Lite, 392), GPT 100% to 4.3% (Luna, 392). H1 holds for every
+% flagship; for Haiku and Luna it would fail.
+% Crime as a share of district-days, against the mixed equilibrium's 26.7%:
+% Claude 0.8% to 3.3%, Gemini 1.7% to 7.6%, GPT 2.1% to 14.5%. Every model
+% moves toward theory and stays well below it.
+% Government seat, flagship to lightweight (inspection as a share of all open
+% district-days, so the analysis's inspectable-only figure will differ a
+% little): inspection Claude 42.9% to 70.3%, Gemini 5.5% to 76.3%, GPT 16.1%
+% to 67.7%; bribes accepted 0 to 81, 0 to 65, 0 to 4, many below the
+% b > 100a + 11 line, some of 1 unit; audits 4.3% to 3.6%, 2.1% to 33.8%
+% (Flash-Lite's Council, near the cap of 2 a day), 1.7% to 14.1%; welfare per
+% day -0.8 to -23.1, +8.8 to -34.1, +6.2 to -14.8.
+% Read with the final data:
+% - The lightweight models recognise the games (#154) yet play the one-day
+%   answer: the gap from theory flips from over-cooperation to defection and
+%   corruption.
+% - Restraint does not follow capability in a line: Flash-Lite, the weakest in
+%   the recognition check, keeps the turf peace; Haiku and Luna do not.
+% - All three lightweight Governments over-inspect, as H2a predicts, by more
+%   than any flagship.
+% - Fallbacks stayed under 0.5% of moves (41 of 10,502), so the change is in
+%   the play, not in failed answers.
+% Replace with the 27-run figures from compare_studies.py; keep the date.
+% FINAL (5 Nov): the comparison is in paper/figures/study-comparison.svg and
+% .md (#160). Brier skill, lightweight against flagship: Claude 0.110 against
+% 0.453, Gemini -0.110 against 0.501, GPT 0.019 against 0.251; every
+% flagship-minus-lightweight interval excludes 0. Study 2 without its 75
+% fallbacks (confirmatory-study2-nofb.txt) changes no result; the largest
+% shift is H6 Brier skill, -0.010 to -0.007. Final fallbacks: 75 of 13,604
+% answers (0.6%), all Flash-Lite's.

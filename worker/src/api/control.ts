@@ -56,21 +56,21 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     const ok = b && /^[a-z0-9-]{1,40}$/.test(b.id ?? "") && typeof b.seed === "string" && b.seed.length >= 8
       && Number.isInteger(b.triple) && [1, 2, 3, 4, 5, 6].includes(b.rotation as number) && b.seating
       && ["Government", "Criminals", "World"].every((s) => ["claude", "gemini", "gpt"].includes((b.seating as any)[s]))
-      && (b.model_set === undefined || b.model_set === "study" || b.model_set === "test" || b.model_set === "bot")
+      && (b.model_set === undefined || b.model_set === "study" || b.model_set === "test" || b.model_set === "bot" || b.model_set === "study2")
       // a set length is for bot runs only (the 10,000-day engine check)
       && (b.fixed_days === undefined || (b.model_set === "bot" && Number.isInteger(b.fixed_days) && b.fixed_days >= 1 && b.fixed_days <= 10_000))
       && (b.bot_turf === undefined || (b.model_set === "bot" && b.bot_turf === "encroach"));
     if (!ok) {
       const why = !/^[a-z0-9-]{1,40}$/.test(b?.id ?? "") ? "Run ID: use lowercase letters, numbers and hyphens only (up to 40)"
         : !(typeof b?.seed === "string" && b.seed.length >= 8) ? "Seed: at least 8 characters"
-        : "need triple, rotation 1 to 6, seating of claude/gemini/gpt, model_set study, test or bot, and fixed_days (1 to 10,000) or bot_turf (encroach) only on a bot run";
+        : "need triple, rotation 1 to 6, seating of claude/gemini/gpt, model_set study, study2, test or bot, and fixed_days (1 to 10,000) or bot_turf (encroach) only on a bot run";
       return json({ ok: false, error: why }, 400);
     }
     if (await getRun(env.DB, b!.id!)) return json({ ok: false, error: "run exists" }, 409);
     // The 3 study runs of a triple share one seed (#17, #110).
-    if ((b!.model_set ?? "study") === "study" && b!.triple! > 0) {
-      const other = await env.DB.prepare("SELECT id, seed FROM runs WHERE model_set = 'study' AND triple = ? AND seed != ? LIMIT 1")
-        .bind(b!.triple, b!.seed).first<{ id: string; seed: string }>();
+    if (["study", "study2"].includes(b!.model_set ?? "study") && b!.triple! > 0) {
+      const other = await env.DB.prepare("SELECT id, seed FROM runs WHERE model_set = ? AND triple = ? AND seed != ? LIMIT 1")
+        .bind(b!.model_set ?? "study", b!.triple, b!.seed).first<{ id: string; seed: string }>();
       if (other) return json({ ok: false, error: `Seed: triple ${b!.triple} already uses seed ${other.seed} (run ${other.id}). The 3 runs of a triple share one seed.` }, 400);
     }
     const run = await createRun(env.DB, b as any);
@@ -91,10 +91,11 @@ export async function handleControl(request: Request, env: Env, path: string, wh
   // The recognition check before the freeze (pre-registration; Zhou, Huang
   // et al. 2025, arXiv 2509.18052): each study model, each seat's prompt.
   if (path === "recognition" && request.method === "POST") {
-    const b = (await request.json().catch(() => null)) as { families?: string[] } | null;
+    const b = (await request.json().catch(() => null)) as { families?: string[]; set?: string } | null;
     const only = (b?.families ?? []).filter((f): f is "claude" | "gemini" | "gpt" => f === "claude" || f === "gemini" || f === "gpt");
-    const answers = await recognitionCheck(env.DB, env.KEY_ENC_SECRET, only);
-    await log(env.DB, `${who} ran the recognition check: ${answers.filter((a) => a.text).length} of ${answers.length} answers.`);
+    const set = b?.set === "study2" ? "study2" : "study";
+    const answers = await recognitionCheck(env.DB, env.KEY_ENC_SECRET, only, set);
+    await log(env.DB, `${who} ran the recognition check${set === "study2" ? " on the Study 2 models" : ""}: ${answers.filter((a) => a.text).length} of ${answers.length} answers.`);
     return json({ ok: true, answers });
   }
 
@@ -120,6 +121,23 @@ export async function handleControl(request: Request, env: Env, path: string, wh
     // One batch: all 27 or none (Vishnu's review of #127).
     await env.DB.batch(plan.map((r) => createRunStatement(env.DB, { ...r, model_set: "study" }).stmt));
     await log(env.DB, `${who} created the 27 study runs (9 triples, seeds from drand round ${DRAND_ROUND}). With the schedule on, they play in order from ${plan[0].id}.`);
+    return json({ ok: true, runs: plan.map((r) => ({ id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation })) });
+  }
+
+  // Study 2 (Germ, 2 Nov): the 27-run design on the lightweight models, same seeds
+  // and seatings, own IDs (study2-t<n>-r<r>) and own model_set. Refused while
+  // any study run hasn't finished: the scheduler plays runs by triple, so a
+  // study2 run would otherwise cut in ahead of the study's later triples.
+  if (path === "study2" && request.method === "POST") {
+    const b = (await request.json().catch(() => null)) as { confirm?: string } | null;
+    if (b?.confirm !== "create the 27 study 2 runs") return json({ ok: false, error: 'type "create the 27 study 2 runs" to confirm' }, 400);
+    const unfinished = await env.DB.prepare("SELECT id FROM runs WHERE model_set = 'study' AND triple > 0 AND status NOT IN ('over', 'truncated') ORDER BY triple, rotation LIMIT 1").first<{ id: string }>();
+    if (unfinished) return json({ ok: false, error: `the study is still playing (${unfinished.id}); Study 2 starts after its last run` }, 409);
+    const existing = await env.DB.prepare("SELECT id FROM runs WHERE model_set = 'study2' LIMIT 1").first<{ id: string }>();
+    if (existing) return json({ ok: false, error: `Study 2 runs already exist (${existing.id})` }, 409);
+    const plan = await studyPlan("study2");
+    await env.DB.batch(plan.map((r) => createRunStatement(env.DB, { ...r, model_set: "study2" }).stmt));
+    await log(env.DB, `${who} created the 27 Study 2 runs (lightweight models, the study's seeds and seatings). With the schedule on, they play in order from ${plan[0].id}.`);
     return json({ ok: true, runs: plan.map((r) => ({ id: r.id, seed: r.seed, triple: r.triple, rotation: r.rotation })) });
   }
 

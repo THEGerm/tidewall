@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380" width="540" height="380" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Forecast accuracy: lightweight against flagship models">
+<rect width="540" height="380" fill="#fcfcfb"/>
+<text x="24" y="28" font-size="15" fill="#1f1f1e" font-weight="600">Forecast accuracy: lightweight against flagship models</text>
+<text x="24" y="48" font-size="12" fill="#5f5e58">Higher is better; 0 is the base rate. Bars: 95% intervals over triples.</text>
+<text x="18" y="209.0" font-size="12" fill="#1f1f1e" text-anchor="middle" transform="rotate(-90 18 209.0)">Brier skill</text>
+<line x1="72" y1="332.9" x2="410" y2="332.9" stroke="#e4e3dd" stroke-width="1"/>
+<text x="64" y="336.9" font-size="11" fill="#5f5e58" text-anchor="end">-0.2</text>
+<line x1="72" y1="270.2" x2="410" y2="270.2" stroke="#e4e3dd" stroke-width="1"/>
+<text x="64" y="274.2" font-size="11" fill="#5f5e58" text-anchor="end">0</text>
+<line x1="72" y1="207.5" x2="410" y2="207.5" stroke="#e4e3dd" stroke-width="1"/>
+<text x="64" y="211.5" font-size="11" fill="#5f5e58" text-anchor="end">0.2</text>
+<line x1="72" y1="144.8" x2="410" y2="144.8" stroke="#e4e3dd" stroke-width="1"/>
+<text x="64" y="148.8" font-size="11" fill="#5f5e58" text-anchor="end">0.4</text>
+<line x1="72" y1="82.1" x2="410" y2="82.1" stroke="#e4e3dd" stroke-width="1"/>
+<text x="64" y="86.1" font-size="11" fill="#5f5e58" text-anchor="end">0.6</text>
+<line x1="200" y1="72" x2="200" y2="346" stroke="#5f5e58" stroke-width="1"/>
+<text x="200" y="366" font-size="12" fill="#1f1f1e" text-anchor="middle" font-weight="600">Lightweight</text>
+<line x1="370" y1="72" x2="370" y2="346" stroke="#5f5e58" stroke-width="1"/>
+<text x="370" y="366" font-size="12" fill="#1f1f1e" text-anchor="middle" font-weight="600">Flagship</text>
+<line x1="200" y1="251.6" x2="200" y2="220.8" stroke="#2a78d6" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>
+<line x1="370" y1="146.6" x2="370" y2="109.0" stroke="#2a78d6" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>
+<line x1="200" y1="235.7" x2="370" y2="128.1" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="200" cy="235.7" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="370" cy="128.1" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<line x1="200" y1="321.9" x2="200" y2="285.1" stroke="#eb6834" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>
+<line x1="370" y1="129.7" x2="370" y2="96.1" stroke="#eb6834" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>
+<line x1="200" y1="304.7" x2="370" y2="113.1" stroke="#eb6834" stroke-width="2"/>
+<circle cx="200" cy="304.7" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="370" cy="113.1" r="5" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"/>
+<line x1="200" y1="285.2" x2="200" y2="244.3" stroke="#1baf7a" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>
+<line x1="370" y1="211.1" x2="370" y2="173.3" stroke="#1baf7a" stroke-width="2" stroke-opacity="0.35" stroke-linecap="round"/>
+<line x1="200" y1="264.1" x2="370" y2="191.5" stroke="#1baf7a" stroke-width="2"/>
+<circle cx="200" cy="264.1" r="5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="370" cy="191.5" r="5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="2"/>
+<text x="188" y="239.7" font-size="12" fill="#1f1f1e" text-anchor="end">Haiku 5.5</text>
+<text x="188" y="308.7" font-size="12" fill="#1f1f1e" text-anchor="end">Flash-Lite</text>
+<text x="188" y="268.1" font-size="12" fill="#1f1f1e" text-anchor="end">Luna</text>
+<text x="382" y="132.1" font-size="12" fill="#1f1f1e" text-anchor="start">Opus 5.5</text>
+<text x="382" y="117.1" font-size="12" fill="#1f1f1e" text-anchor="start">Argon</text>
+<text x="382" y="195.5" font-size="12" fill="#1f1f1e" text-anchor="start">Sol</text>
+</svg>

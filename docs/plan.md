@@ -266,6 +266,7 @@ The whole project runs from one web app at `tidewall.tcdar400.workers.dev`. Part
 
 - **Study runs alternate owners by run** (Germ, 2 Nov): in play order, study-t1-r1 is Germ's, study-t1-r2 Shazz's, study-t1-r3 Germ's, and so on. One owner pays a whole run.
 - Test runs keep the daily rotation: odd days Germ, even days Shazz.
+- **Fixed route per provider** (Germ, 3 Nov, from Study 2 on): meta `key_route` sends Gemini and GPT to Germ's keys and Claude to Shazz's, as the payer of record, whoever owns the run. Shazz's Google and OpenAI keys never worked (429 and 403), and trying them first on every call slowed each day.
 - On your run (or your day, in a test run), every call uses your key for that provider.
 - If you have no working key for a provider, the call falls back to the other participant's key. The ledger marks it.
 - If neither participant has a working key, the run pauses and Control says which key is missing.

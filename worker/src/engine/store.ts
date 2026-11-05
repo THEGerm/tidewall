@@ -26,7 +26,7 @@ export interface Seating {
 
 // study and test runs call models; bot runs play the equilibrium bots, free,
 // at their own speed (runner.ts playBots).
-export type RunSet = "study" | "test" | "bot";
+export type RunSet = "study" | "test" | "bot" | "study2";
 
 export interface RunRow {
   id: string;
