@@ -1,0 +1,73 @@
+Seat-runs left out of H6 lambda because the fit separated: claude 1, gpt 8
+Seat-runs left out of H6 lambda with under 50% of moves their own: none
+lambda study-t1-r1         Criminals  gemini lambda -0.082  normalized -0.540  gain over base rate -61.9  own moves 100%
+lambda study-t1-r1         Government claude lambda 0.212  normalized 0.218  gain over base rate 2.5  own moves 100%
+lambda study-t1-r2         Criminals  gpt    lambda 11.106  normalized 78.637  gain over base rate 22.3  own moves 100%
+lambda study-t1-r2         Government gemini lambda 1.044  normalized 1.856  gain over base rate 6.2  own moves 100%
+lambda study-t1-r3         Criminals  claude lambda 0.708  normalized 3.892  gain over base rate -32.0  own moves 100%
+lambda study-t1-r3         Government gpt    lambda 0.462  normalized 0.544  gain over base rate 7.2  own moves 100%
+lambda study-t2-r4         Criminals  gpt    lambda 5.878  normalized 33.424  gain over base rate -0.0  own moves 100%
+lambda study-t2-r4         Government claude lambda -0.010  normalized -0.011  gain over base rate -0.7  own moves 100%
+lambda study-t2-r5         Criminals  gemini lambda 0.455  normalized 3.111  gain over base rate -2.4  own moves 100%
+lambda study-t2-r5         Government gpt    lambda 3.615  normalized 5.218  gain over base rate 39.9  own moves 100%
+lambda study-t2-r6         Criminals  claude lambda 1.351  normalized 3.923  gain over base rate -17.3  own moves 100%
+lambda study-t2-r6         Government gemini lambda 1.156  normalized 1.645  gain over base rate -0.8  own moves 100%
+lambda study-t3-r1         Criminals  gemini lambda 0.041  normalized 0.104  gain over base rate -153.4  own moves 100%
+lambda study-t3-r1         Government claude lambda 0.185  normalized 0.159  gain over base rate 4.3  own moves 100%
+lambda study-t3-r2         Criminals  gpt    lambda 10.224  normalized 43.922  gain over base rate 27.8  own moves 100%
+lambda study-t3-r2         Government gemini lambda 1.365  normalized 1.297  gain over base rate 12.4  own moves 100%
+lambda study-t3-r3         Criminals  claude lambda 0.005  normalized 0.026  gain over base rate -160.1  own moves 100%
+lambda study-t3-r3         Government gpt    lambda 30.987  normalized 26.504  gain over base rate 27.8  own moves 100%
+lambda study-t4-r4         Criminals  gpt    lambda 1.334  normalized 6.469  gain over base rate -10.9  own moves 100%
+lambda study-t4-r4         Government claude lambda 0.220  normalized 0.127  gain over base rate -0.0  own moves 100%
+lambda study-t4-r5         Criminals  gemini lambda 0.004  normalized 0.029  gain over base rate -53.4  own moves 100%
+lambda study-t4-r5         Government gpt    lambda 1.573  normalized 3.156  gain over base rate 22.6  own moves 100%
+lambda study-t4-r6         Criminals  claude lambda 0.431  normalized 2.301  gain over base rate -0.9  own moves 100%
+lambda study-t4-r6         Government gemini lambda 1.259  normalized 2.219  gain over base rate 1.9  own moves 100%
+lambda study-t5-r1         Criminals  gemini lambda -0.004  normalized -0.016  gain over base rate -48.5  own moves 100%
+lambda study-t5-r1         Government claude lambda 0.196  normalized 0.225  gain over base rate 1.8  own moves 100%
+lambda study-t5-r2         Criminals  gpt    lambda 15.827  normalized 134.833  gain over base rate 26.9  own moves 100%
+lambda study-t5-r2         Government gemini lambda 1.738  normalized 2.013  gain over base rate 8.5  own moves 100%
+lambda study-t5-r3         Criminals  claude lambda 1.189  normalized 5.578  gain over base rate -13.5  own moves 100%
+lambda study-t5-r3         Government gpt    lambda 0.583  normalized 0.788  gain over base rate 8.3  own moves 100%
+lambda study-t6-r4         Criminals  gpt    lambda 7.924  normalized 17.850  gain over base rate -0.0  own moves 100%
+lambda study-t6-r4         Government claude lambda 0.134  normalized 0.129  gain over base rate 1.5  own moves 100%
+lambda study-t6-r5         Criminals  gemini lambda 0.444  normalized 2.044  gain over base rate -32.6  own moves 100%
+lambda study-t6-r5         Government gpt    lambda 2.320  normalized 3.374  gain over base rate 44.6  own moves 100%
+lambda study-t6-r6         Criminals  claude lambda 16.241  normalized 59.209  gain over base rate -2.1  own moves 100%
+lambda study-t6-r6         Government gemini lambda 1.302  normalized 1.547  gain over base rate 11.9  own moves 100%
+lambda study-t7-r1         Criminals  gemini lambda 0.583  normalized 2.849  gain over base rate -4.2  own moves 100%
+lambda study-t7-r1         Government claude lambda -0.120  normalized -0.125  gain over base rate -4.8  own moves 100%
+lambda study-t7-r2         Criminals  gpt    lambda 7.992  normalized 23.749  gain over base rate -0.0  own moves 100%
+lambda study-t7-r2         Government gemini lambda 1.208  normalized 1.491  gain over base rate 12.6  own moves 100%
+lambda study-t7-r3         Criminals  claude lambda 1.007  normalized 3.318  gain over base rate -26.1  own moves 100%
+lambda study-t7-r3         Government gpt    lambda 1.253  normalized 1.760  gain over base rate 25.2  own moves 100%
+lambda study-t8-r4         Criminals  gpt    lambda 30.837  normalized 64.729  gain over base rate -0.0  own moves 100%
+lambda study-t8-r4         Government claude lambda 0.167  normalized 0.118  gain over base rate 3.4  own moves 100%
+lambda study-t8-r5         Criminals  gemini lambda -0.855  normalized -2.161  gain over base rate -83.0  own moves 100%
+lambda study-t8-r5         Government gpt    lambda 0.858  normalized 0.709  gain over base rate 27.2  own moves 100%
+lambda study-t8-r6         Criminals  claude lambda -0.086  normalized -0.370  gain over base rate -239.4  own moves 100%
+lambda study-t8-r6         Government gemini lambda 2.611  normalized 2.021  gain over base rate 21.2  own moves 100%
+lambda study-t9-r1         Criminals  gemini lambda -0.463  normalized -1.658  gain over base rate -40.8  own moves 100%
+lambda study-t9-r1         Government claude lambda 0.218  normalized 0.227  gain over base rate 3.1  own moves 100%
+lambda study-t9-r2         Criminals  gpt    lambda 0.442  normalized 2.805  gain over base rate 12.3  own moves 100%
+lambda study-t9-r2         Government gemini lambda 0.959  normalized 1.540  gain over base rate 23.8  own moves 100%
+lambda study-t9-r3         Criminals  claude lambda 0.633  normalized 3.096  gain over base rate -55.9  own moves 100%
+lambda study-t9-r3         Government gpt    lambda 0.799  normalized 0.952  gain over base rate 16.5  own moves 100%
+skipped (in Holm at p = 1)  H4: The term 'their_prev' is constant!
+skipped (in Holm at p = 1)  H5: no judge codes given (--tones)
+test                        estimate  95% low 95% high       p    Holm  result
+H2a claude                    -0.241   -0.723    0.254   0.000   0.004  confirmed
+H2a gemini                    -2.831   -3.388   -2.284   1.000   1.000  not confirmed
+H2a gpt                       -1.554   -2.076   -1.041   0.962   1.000  not confirmed
+H3 departures claude           0.012    0.001    0.099                  measure
+H3 departures gemini           0.012    0.001    0.077                  measure
+H3 departures gpt              0.013    0.001    0.090                  measure
+H3 delta                      -0.002   -0.434    0.488   0.505   1.000  not confirmed
+H4 day                           nan      nan      nan   1.000   1.000  not confirmed (skipped: The term 'their_prev' is constant!)
+H4 after day 12                  nan      nan      nan   1.000   1.000  not confirmed (skipped: The term 'their_prev' is constant!)
+H5 omnibus                       nan      nan      nan   1.000   1.000  not confirmed (skipped: no judge codes given (--tones))
+H1                             1.000    1.000    1.000   0.000   0.000  confirmed
+H2b                            0.080    0.046    0.113   0.000   0.003  confirmed
+H6 Brier skill                -0.169   -0.341   -0.061   0.000   0.004  confirmed
+H6 lambda                      0.038   -0.153    0.311   0.700   1.000  not confirmed
