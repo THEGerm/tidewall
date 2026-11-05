@@ -15,6 +15,11 @@
 % - H4: any late encroachment would stand out against a base of zero.
 % Replace with the 27-run figures; keep this note's date to show it was seen
 % mid-study and changed nothing.
+% FINAL (5 Nov, all 27 runs; analysis/results/confirmatory-study.txt): H1
+% confirmed. Respect was 100% on every gang-day; triple bootstrap 1.000
+% (1.000 to 1.000), Holm p = 0.000.
+% Study 2 (exploratory; confirmatory-study2.txt): not confirmed, 0.384 (0.334
+% to 0.473). Haiku 12.7% and Luna 4.3% respect as Criminals, Flash-Lite 99.5%.
 \todo{H2: inspection rate and predictability}
 % Early finding, noted 2 Nov during the study (Germ), from triples 1 to 4 (12
 % runs, the triples already open); descriptive only, nothing tested yet.
@@ -26,9 +31,35 @@
 % Crime rose a little under a lax Chief (0.2% under Claude, 1.8% under GPT,
 % 4.3% under Gemini), far less than the payoffs reward (+8 a crime at 5%
 % inspection). Replace with the 27-run figures; keep the date.
+% FINAL (5 Nov, all 27 runs): H2a confirmed for Claude only: log-odds -0.24
+% (-0.72 to 0.25), about 44% inspection, the whole interval above logit(1/4) =
+% -1.10, Holm p = 0.004. Gemini -2.83 (-3.39 to -2.28, about 6%) and GPT -1.55
+% (-2.08 to -1.04, about 17%) not confirmed. H2b confirmed: out-of-sample
+% log-loss gain 0.080 (0.046 to 0.113), Holm p = 0.003.
+% Study 2 (exploratory): H2a confirmed for all three: Haiku 1.74 (0.95 to 2.55,
+% about 85%), Flash-Lite 1.76 (0.98 to 2.62, about 85%), Luna 0.74 (-0.03 to
+% 1.54, about 68%). H2b confirmed: 0.052 (0.021 to 0.084).
 \todo{H3: bribe answers against b > 100a + 11}
+% FINAL (5 Nov): no flagship Chief accepted a bribe. Departure rate (a
+% measurement, not in Holm): Claude 0.012 (0.001 to 0.099), Gemini 0.012
+% (0.001 to 0.077), GPT 0.013 (0.001 to 0.090), all refusals where accepting
+% paid. Secondary slope on delta not confirmed: -0.002 (-0.434 to 0.488),
+% Holm p = 1; with no acceptances the slope has nothing to follow.
+% Study 2 (exploratory): departures Haiku 0.320 (0.167 to 0.526), Flash-Lite
+% 0.142 (0.064 to 0.286), Luna 0.026 (0.006 to 0.079). Slope on delta
+% confirmed: 0.147 (0.102 to 0.206): lightweight Chiefs accept more as the
+% bribe's margin over 100a + 11 grows.
 \todo{H4: end-game drop}
+% FINAL (5 Nov): H4 holds. The model could not be fitted: every gang respected
+% every day, so their_prev is constant; as pre-registered the two entries
+% enter Holm at p = 1, and H4 holds unless a drop is found. Say plainly that
+% it holds because there was no variation to model; respect stayed at 100% to
+% the last day.
+% Study 2 (exploratory): fitted and holds. Day slope -0.004 (-0.089 to 0.084),
+% step at day 12 -0.70 (-2.46 to 0.94); neither interval lies below 0.
 \todo{H5: news tilt}
+% FINAL (5 Nov): skipped, at p = 1 in Holm, until the judges code tone (#141).
+% Rerun analysis.bayes with --tones when the codes exist.
 \todo{H6: model against seat}
 % Early finding, noted 2 Nov during the study (Germ), from triples 1 to 4;
 % descriptive only. Brier skill by model and seat: Claude 0.27 to 0.54 and
@@ -39,6 +70,17 @@
 % acting on them. Interim H6: omega-squared model 0.12, seat 0.18, not near
 % significance on 4 triples; turf has no variation, so H6 rests on beliefs and
 % lambda. Replace with the 27-run figures; keep the date.
+% FINAL (5 Nov, all 27 runs): H6 Brier skill confirmed, in the seat's
+% direction: omega2(model) - omega2(seat) = -0.169 (-0.341 to -0.061), Holm
+% p = 0.004. The seat explains more of forecast accuracy than the model; the
+% rule lets the sign set the direction, so report "seat over model" for belief
+% accuracy. H6 lambda not confirmed: 0.038 (-0.153 to 0.311), Holm p = 1.
+% Seat-runs left out because the lambda fit separated: Claude 1, GPT 8; none
+% for too few valid moves.
+% Study 2 (exploratory): neither confirmed. Brier skill -0.010 (-0.133 to
+% 0.127); lambda -0.072 (-0.196 to 0.231). Separated: Claude 7, Gemini 1, GPT 1.
+% Fit: two study models needed the ladder (up to 88 divergences on the first
+% rung); every test that ran passed r-hat and ESS, none was unreliable.
 \todo{exploratory results, labelled as such}
 %
 % Study 2 note (Germ, 3 Nov): a replayed day changed a choice. On
@@ -100,3 +142,10 @@
 % - Fallbacks stayed under 0.5% of moves (41 of 10,502), so the change is in
 %   the play, not in failed answers.
 % Replace with the 27-run figures from compare_studies.py; keep the date.
+% FINAL (5 Nov): the comparison is in paper/figures/study-comparison.svg and
+% .md (#160). Brier skill, lightweight against flagship: Claude 0.110 against
+% 0.453, Gemini -0.110 against 0.501, GPT 0.019 against 0.251; every
+% flagship-minus-lightweight interval excludes 0. Study 2 without its 75
+% fallbacks (confirmatory-study2-nofb.txt) changes no result; the largest
+% shift is H6 Brier skill, -0.010 to -0.007. Final fallbacks: 75 of 13,604
+% answers (0.6%), all Flash-Lite's.
