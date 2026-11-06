@@ -6,8 +6,8 @@ import type { Provider } from "../keys/store";
 
 export type { Provider };
 
-// Providers with a chat adapter (the players). OpenRouter keys are stored and
-// checked, but its chat calls come with the judges, later.
+// Providers with a chat adapter for the players. OpenRouter carries only the
+// judges, through providers/openrouter.ts.
 export type ChatProvider = Exclude<Provider, "openrouter">;
 
 // Injected so tests can answer with canned responses and never call out.
@@ -62,6 +62,10 @@ export interface ChatResult {
   usage: Usage;
   requestId: string | null;
   latencyMs: number;
+  // OpenRouter only (the judges): the upstream provider that served the call,
+  // and the cost OpenRouter reports for it, in US dollars.
+  providerReported?: string | null;
+  costUsd?: number | null;
 }
 
 export interface CallOptions {

@@ -38,10 +38,14 @@ Every call returns the same shape: the text, why it stopped (`done`, `max_tokens
 
 Failures throw a `ProviderError` with a `kind` (`bad_key`, `no_credit`, `rate_limited`, `model_unavailable`, `overloaded`, `server`, `bad_request`, `network`, `bad_response`) and two flags: `retryable` (same key, a bit later; `withRetry` does this) and `tryNextKey` (the next participant's key may work: bad key, no credit, rate limit, model not available to this key). Error text is scrubbed of anything key-shaped before it leaves the adapter.
 
-OpenRouter keys (for the offline judges) are stored, tested and rotated like the others, but there is no OpenRouter chat adapter yet: `callModel("openrouter", ...)` fails with `bad_request`.
+OpenRouter keys (for the offline judges) are stored, tested and rotated like the others. Players never call OpenRouter (`callModel("openrouter", ...)` fails with `bad_request`); the judges call it through `src/providers/openrouter.ts`, each pinned to one upstream provider with no fallbacks, at temperature 0, and the ledger takes the cost OpenRouter reports.
+
+## The judges
+
+`src/judges/` codes finished runs for H5 and the exploratory codes (pre-registration, section 6; #112). `prompt.ts` holds the frozen prompt and schema (a test compares the prompt with the pre-registration), `items.ts` builds the items from a run's export, `runner.ts` runs one batch, `agree.ts` combines the three judges and computes Krippendorff's alpha, and `export.ts` adds the codes to the run's export. Control starts it: **Judge** on a finished run, or **Judge every finished study run** (or **Study 2 run**), once that whole study set is over (Germ, 2 Nov; `docs/decisions/2026-11-02-judge-runner.md`); each request is one batch of up to 48 calls and the page asks again until done. A rerun skips coded items. Codes are in D1 (`judge_codes`, `judge_runs`), in the run's export under `judges`, at `/api/runs/:id/judges`, and in `data/judges/` once a run is fully judged. `python -m analysis.bayes.collect_tones data/judges/study-*.json` makes the `--tones` file.
 
 `src/providers/check.ts` is the My keys **Test** button: a free key check, then one free metadata request per pinned model (`pinnedModels` in `src/players/models.ts`), each answered `usable`, `not_usable` or `unknown`. "Usable" means the provider lists the model for this key; project-level blocks can still show up only on a real call, as `model_unavailable` in the ledger.
 
-No sampling settings (temperature and the like) are sent: current models at Anthropic and OpenAI reject them. The tests in `test/providers/` answer with canned responses through an injected `fetch`; nothing calls a provider.
+No sampling settings (temperature and the like) are sent to the players' models: current models at Anthropic and OpenAI reject them. The judges get temperature 0. The tests in `test/providers/` answer with canned responses through an injected `fetch`; nothing calls a provider.
 
 Secrets never go in this folder. Local secrets live in `.dev.vars`, which git ignores.

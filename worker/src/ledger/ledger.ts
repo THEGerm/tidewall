@@ -20,7 +20,7 @@ export function ledgerRow(db: D1Database, runId: string, day: number, seq: numbe
       c.payer ? (names[c.payer] ?? "unknown") : null, c.payer,
       c.fallbackKey ? 1 : 0, c.ok ? 1 : 0, c.stop,
       c.usage?.input ?? null, c.usage?.cachedInput ?? null, c.usage?.cacheWrite ?? null, c.usage?.output ?? null, c.usage?.reasoning ?? null,
-      c.usage ? costOf(c.model, c.usage) : null, c.error, c.latencyMs, new Date().toISOString(), c.requestId ?? null, c.stopDetail ?? null, c.payback ? 1 : 0,
+      c.usage ? (c.costUsd ?? costOf(c.model, c.usage)) : null, c.error, c.latencyMs, new Date().toISOString(), c.requestId ?? null, c.stopDetail ?? null, c.payback ? 1 : 0,
     );
 }
 

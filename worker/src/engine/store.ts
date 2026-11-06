@@ -6,6 +6,7 @@
 import * as C from "./config";
 import { PLAYERS, type PlayerName } from "./config";
 import { EFFORT, modelsFor } from "../players/models";
+import { judgesSection } from "../judges/export";
 import type { DayResult } from "./day";
 import { newGame } from "./resolve";
 import type { DiaryEntry, Event, GameState, WireItem } from "./types";
@@ -179,7 +180,7 @@ export async function exportRun(db: D1Database, runId: string) {
   const ledger = (await db.prepare(
     `SELECT day, seq, player, step, provider, model, model_reported, payer_name, fallback_key, ok, stop, stop_detail,
             input, cached_input, cache_write, output, reasoning, cost_usd, error, latency_ms, day_saved, at, request_id, payback
-     FROM ledger WHERE run_id = ? ORDER BY day, seq`).bind(runId).all<Record<string, any>>()).results;
+     FROM ledger WHERE run_id = ? AND step NOT LIKE 'judge%' ORDER BY day, seq`).bind(runId).all<Record<string, any>>()).results;
   // Each answer's calls: a player makes one answer per step per day, so the
   // saved ledger rows with the same day, player and step are its calls (#67).
   const callsOf = new Map<string, number[]>();
@@ -199,6 +200,11 @@ export async function exportRun(db: D1Database, runId: string) {
   for (const e of events) if (e.kind === "crime") crimes.set(e.day, (crimes.get(e.day) ?? 0) + 1);
   const pace = await db.prepare("SELECT value FROM meta WHERE key = 'pace_minutes'").first<{ value: string }>();
   const models = modelsFor(run.model_set);
+  const judges = run.model_set === "bot" ? null : await judgesSection(db, runId, run.seating);
+  const judgeLedger = judges ? (await db.prepare(
+    `SELECT seq, player, step, model, model_reported, payer_name, fallback_key, ok, stop, stop_detail, input, cached_input, output, reasoning, cost_usd, error, latency_ms, at, request_id
+     FROM ledger WHERE run_id = ? AND step LIKE 'judge%' ORDER BY seq`).bind(runId).all<Record<string, any>>()).results : [];
+  if (judges) Object.assign(judges, { ledger: judgeLedger });
   return {
     run: {
       ...run, state: undefined, day_attempts: undefined,
@@ -241,5 +247,9 @@ export async function exportRun(db: D1Database, runId: string) {
     // The raw answer behind each call, with the hash of its prompt. Only a
     // finished run is exported (public.ts), so nothing here leaks a live game.
     responses: (await db.prepare("SELECT day, seq, prompt_sha, text FROM responses WHERE run_id = ? ORDER BY day, seq").bind(runId).all<Record<string, unknown>>()).results,
+    // The offline judges' codes, once judging has started (#112). Their calls
+    // are in the judges' own ledger rows (day 0), kept out of `ledger` above so
+    // the play ledger reads as before.
+    ...(judges ? { judges } : {}),
   };
 }
