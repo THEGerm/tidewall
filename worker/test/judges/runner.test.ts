@@ -142,7 +142,8 @@ describe("judge runner", () => {
     await playedRun(db, "study-t1-r1");
     const moved = fakeOpenRouter({ upstreams: { qwen: "somebody-else" } });
     const r = await judgeBatch(env(db), { run: "study-t1-r1" }, { fetch: moved.fetch });
-    expect(r.error).toMatch(/qwen: qwen\/.* isn't served by "alibaba"/);
+    const qwen = JUDGE_MODELS.find((j) => j.judge === "qwen")!;
+    expect(r.error).toContain(`qwen: ${qwen.model} isn't served by "${qwen.upstream}"`);
     expect(moved.chats).toHaveLength(0);
     expect((await judgeStatus(db, { fetch: moved.fetch })).problems).toHaveLength(1);
     await db.prepare("UPDATE meta SET value = '0' WHERE key = 'cap_usd'").run();

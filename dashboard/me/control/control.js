@@ -143,7 +143,12 @@ function runRow(r) {
   if (done && r.model_set !== "bot") actions.append(button("Judge", async (ev) => {
     const b = ev.currentTarget;
     b.disabled = true;
-    await judgeLoop({ run: r.id }, (t) => { $("run-msg").textContent = `Judge ${r.id}: ${t}`; });
+    b.textContent = "Judging...";
+    // The message sits under the runs table, far from the row on a phone, so
+    // bring it into view and mirror it in the judges section too.
+    $("run-msg").scrollIntoView({ block: "nearest" });
+    await judgeLoop({ run: r.id }, (t) => { $("run-msg").textContent = $("judge-msg").textContent = `Judge ${r.id}: ${t}`; });
+    b.textContent = "Judge";
     b.disabled = false;
   }));
   if (!done) actions.append(button("End", async (ev) => {

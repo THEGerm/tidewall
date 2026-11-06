@@ -64,11 +64,13 @@ export const isPinned = (f: Family, set: ModelSet | "bot" = "study") => !modelsF
 // Upstreams are OpenRouter's exact endpoint tags (6 Nov, Germ): DeepSeek no
 // longer serves V3.2 itself on OpenRouter, so it runs on AtlasCloud at fp8;
 // Z.ai lists GLM 4.7 only as z-ai/fp4, and the preflight matches tags exactly.
+// Qwen and GLM moved to DeepInfra on 6 Nov (Germ): Alibaba and Z.ai don't
+// enforce the schema, and in JSON mode both judges invented field names.
 export interface Judge { judge: string; provider: Provider; model: string; upstream: string }
 export const JUDGE_MODELS: readonly Judge[] = [
   { judge: "deepseek", provider: "openrouter", model: "deepseek/deepseek-v3.2", upstream: "atlas-cloud/fp8" },
-  { judge: "qwen", provider: "openrouter", model: "qwen/qwen3.5-397b-a17b", upstream: "alibaba" },
-  { judge: "glm", provider: "openrouter", model: "z-ai/glm-4.7", upstream: "z-ai/fp4" },
+  { judge: "qwen", provider: "openrouter", model: "qwen/qwen3.5-397b-a17b", upstream: "deepinfra/fp8" },
+  { judge: "glm", provider: "openrouter", model: "z-ai/glm-4.7", upstream: "deepinfra/fp4" },
 ];
 
 // Every pinned model a provider's key may be asked to run: the study set, the
