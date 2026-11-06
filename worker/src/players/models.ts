@@ -61,11 +61,14 @@ export const isPinned = (f: Family, set: ModelSet | "bot" = "study") => !modelsF
 // maker serves it. The judge runner's preflight (and Control's "Check judges")
 // looks each one up in OpenRouter's live list before any call and refuses to
 // start if the model or its provider isn't there.
+// Upstreams are OpenRouter's exact endpoint tags (6 Nov, Germ): DeepSeek no
+// longer serves V3.2 itself on OpenRouter, so it runs on AtlasCloud at fp8;
+// Z.ai lists GLM 4.7 only as z-ai/fp4, and the preflight matches tags exactly.
 export interface Judge { judge: string; provider: Provider; model: string; upstream: string }
 export const JUDGE_MODELS: readonly Judge[] = [
-  { judge: "deepseek", provider: "openrouter", model: "deepseek/deepseek-v3.2", upstream: "deepseek" },
+  { judge: "deepseek", provider: "openrouter", model: "deepseek/deepseek-v3.2", upstream: "atlas-cloud/fp8" },
   { judge: "qwen", provider: "openrouter", model: "qwen/qwen3.5-397b-a17b", upstream: "alibaba" },
-  { judge: "glm", provider: "openrouter", model: "z-ai/glm-4.7", upstream: "z-ai" },
+  { judge: "glm", provider: "openrouter", model: "z-ai/glm-4.7", upstream: "z-ai/fp4" },
 ];
 
 // Every pinned model a provider's key may be asked to run: the study set, the
