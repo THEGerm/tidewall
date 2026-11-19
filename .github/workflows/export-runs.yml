@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: export-runs
@@ -24,8 +24,10 @@ concurrency:
 jobs:
   export:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Download finished runs not yet saved
         env:
           SITE: https://tidewall.tcdar400.workers.dev
